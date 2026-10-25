@@ -190,7 +190,8 @@ public sealed partial class ChoiceField : FieldViewModel
         get => Selected?.Label ?? get();
         set
         {
-            if (!IsEditable || value == null) return;
+            // Committing the displayed label must preserve the selected ID even when another option has that label.
+            if (!IsEditable || value == null || string.Equals(value, Text, StringComparison.Ordinal)) return;
             var match = Options.FirstOrDefault(o => string.Equals(o.Label, value, StringComparison.OrdinalIgnoreCase) || string.Equals(o.Value, value, StringComparison.OrdinalIgnoreCase));
             // A matching option wins even when its value is null ("Their usual look"); otherwise the typed text is the value.
             string? next = match != null ? match.Value : value.Trim().Length == 0 ? null : value.Trim();

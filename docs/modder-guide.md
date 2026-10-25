@@ -39,6 +39,7 @@ MyMod/
       costumes.json
   art/**/*.png
   masks/**/*.png
+  assets/audio/*.wav         # imported music (OGG Vorbis also supported)
   videos/**/*
 ```
 
@@ -47,6 +48,8 @@ The C# export puts the same content under `scenes/`, with `Sdcs.cs` beside it an
 The Runtime discovers ordinary packs through `manifest.json` with a `ContentPackFor` object naming `Player.SDCharacterStudio` and its minimum version. A mod with embedded scenes uses its own `EntryDll` and calls the wrapper. Live NPC, portrait, farmer, item, and game assets remain live references; the pack stores source keys, frames, masks, anchors, and optional colour-slot data, not game assemblies.
 
 Validation occurs when a pack loads and when a cutscene compiles. Missing files, malformed JSON, unknown beat or layer types, missing live references, and unmet dependencies appear in the SMAPI log; a cutscene with a missing runtime dependency is skipped with a warning. In the editor, inspect Problems and Output before exporting.
+
+Imported music is declared in `studio.json`, for example `"Music": { "evening": { "Name": "Evening theme", "File": "assets/audio/evening.ogg", "Loop": true } }`. A scene's `Music` or a Music beat's `Cue` uses `"music:evening"`. `Loop` defaults to true. The runtime registers a unique native cue for each pack and track, so game music volume and event music restoration apply. Preview packs have separate cue IDs. Export again with the updated editor to include music support in embedded engines; framework content packs need the updated Runtime.
 
 ## Embedded API
 

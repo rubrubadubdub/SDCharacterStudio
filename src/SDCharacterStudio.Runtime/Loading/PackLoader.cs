@@ -168,6 +168,17 @@ public sealed class PackLoader
         {
             string? Translate(string key) { var text = pack.Translation.Get(key); return text.HasValue() ? text.ToString() : null; }
             var result = PackCompilation.Compile(new ContentPackFileSystem(pack, ownerFolder), id, pack.Manifest.Name, Translate, helper.ModRegistry.IsLoaded, registry.All);
+            // Compilation has already diagnosed missing requirements and malformed pack files.
+            // No admitted scene needs audio from this pack, so don't decode invalid/unused files.
+            if (result.Cutscenes.Count == 0) NativePackMusic.Remove(id, monitor);
+            else if (!NativePackMusic.Register(id, result.Pack.Index, pack.DirectoryPath, monitor))
+            {
+                Invalidate(registry.RemovePack(id));
+                NativePackMusic.Remove(id, monitor);
+                var issue = new ValidationIssue(ValidationSeverity.Error, "studio.json", "Music", "One or more imported music files could not be loaded.", "Audio");
+                statuses[id] = new(id, pack.Manifest.Name, 0, result.Skipped, result.Issues.Concat(new[] { issue }).ToArray());
+                return false;
+            }
             Invalidate(registry.ReplacePack(id, result.Cutscenes));
             statuses[id] = new(id, pack.Manifest.Name, result.Cutscenes.Count, result.Skipped, result.Issues);
             RevalidateReferences(id);
@@ -185,6 +196,7 @@ public sealed class PackLoader
         catch (Exception ex)
         {
             Invalidate(registry.RemovePack(id));
+            NativePackMusic.Remove(id, monitor);
             var issue = new ValidationIssue(ValidationSeverity.Error, "studio.json", "", ex.Message, "Runtime");
             statuses[id] = new(id, pack.Manifest.Name, 0, Array.Empty<SkippedCutscene>(), new[] { issue });
             monitor.Log($"Could not load SDCS pack '{pack.Manifest.Name}' ({id}): {ex}", LogLevel.Error);
@@ -195,6 +207,7 @@ public sealed class PackLoader
     private void Remove(string packId)
     {
         Invalidate(registry.RemovePack(packId));
+        NativePackMusic.Remove(packId, monitor);
         packs.Remove(packId); statuses.Remove(packId);
     }
 

@@ -226,4 +226,16 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Keep native ComboBox popups usable for large editable choice lists (music cues, sounds, etc.).
+         WPF-UI's default popup uses DynamicScrollBar, which hides the thumb until pointer interaction. -->
+    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="MaxDropDownHeight" Value="380" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Style.Resources>
+            <Style TargetType="ScrollViewer" BasedOn="{StaticResource VisibleScrollViewer}" />
+            <Style TargetType="ui:DynamicScrollViewer" BasedOn="{StaticResource VisibleScrollViewer}" />
+        </Style.Resources>
+    </Style>
 </ResourceDictionary>

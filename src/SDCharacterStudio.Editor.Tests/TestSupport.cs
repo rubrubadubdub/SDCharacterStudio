@@ -51,6 +51,7 @@ internal sealed class FakeUi : IUserInterface
     private readonly Dictionary<string, Action> pending = new();
     public Queue<string?> Prompts { get; } = new();
     public Queue<string?> Folders { get; } = new();
+    public Queue<string?> OpenFiles { get; } = new();
     public List<(string Title, string Message, ToastKind Kind)> Toasts { get; } = new();
     public bool ConfirmAnswer { get; set; } = true;
     public bool? AskAnswer { get; set; } = false;
@@ -61,7 +62,7 @@ internal sealed class FakeUi : IUserInterface
     public bool Confirm(string title, string message, string confirm = "OK", string cancel = "Cancel") => ConfirmAnswer;
     public bool? Ask(string title, string message, string yes, string no) => AskAnswer;
     public string? Prompt(string title, string label, string initial, Func<string, string?>? validate = null) => Prompts.Count > 0 ? Prompts.Dequeue() : null;
-    public string? OpenFile(string title, string filter, string? folder = null) => null;
+    public string? OpenFile(string title, string filter, string? folder = null) => OpenFiles.Count > 0 ? OpenFiles.Dequeue() : null;
     public string? OpenFolder(string title, string? folder = null) => Folders.Count > 0 ? Folders.Dequeue() : null;
     public string? SaveFile(string title, string filter, string fileName, string? folder = null) => null;
     public bool ShowDialog(object viewModel) => Dialogs(viewModel);

@@ -28,7 +28,9 @@ public class StudioIndex : VersionedObject
     public List<string>? Cutscenes { get; set; }
     public LibraryIndex? Library { get; set; }
     public PackDefaults Defaults { get; set; } = new();
+    public Dictionary<string, MusicTrack> Music { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
+public class MusicTrack { public string? Name { get; set; } public string? File { get; set; } public bool Loop { get; set; } = true; }
 public class PackInfo { public string? DisplayName { get; set; } public string DefaultLanguage { get; set; } = "en"; }
 public class ModRequirement { public string? Mod { get; set; } public string? Reason { get; set; } }
 public class PackDefaults { public int StepFps { get; set; } public string TextSpeed { get; set; } = "normal"; }
