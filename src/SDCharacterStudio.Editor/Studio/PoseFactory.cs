@@ -127,7 +127,7 @@ public static class FlatPose
 
     public static void MakeFlat(PackLibrary library, Pose pose)
     {
-        if (pose.Kind != "character" || pose.FrameSize is not [var width, var height]) return;
+        if (pose.Kind is not ("character" or "sheet") || pose.FrameSize is not [var width, var height]) return;
         for (int index = 0; index < pose.Frames.Count; index++)
         {
             var frame = pose.Frames[index];

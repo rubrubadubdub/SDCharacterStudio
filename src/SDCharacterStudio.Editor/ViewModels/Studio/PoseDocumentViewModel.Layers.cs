@@ -444,11 +444,14 @@ public partial class PoseDocumentViewModel
 
     private void BuildLiveFields(LiveLayer live, FieldCommit commit)
     {
-        var kinds = new[] { ("Npc", "Character's current sprite"), ("NpcSheet", "A specific sprite sheet"), ("Portrait", "Character's current portrait"), ("PortraitSheet", "A specific portrait sheet"), ("Farmer", "The player"), ("Asset", "Any game texture (rectangle)") };
+        var kinds = new[] { ("Npc", "Character's current sprite"), ("NpcSheet", "A specific sprite sheet"), ("Portrait", "Character's current portrait"), ("PortraitSheet", "A specific portrait sheet"), ("Farmer", "The player"), ("Asset", "Any game texture (rectangle)"), (Outfits.SourceKind, "One of your outfits") };
         Fields.Add(new ChoiceField("Source", "Source.Kind", kinds.Select(k => new ChoiceItem(k.Item1, k.Item2)), () => live.Source?.Kind, v => { live.Source ??= new LiveSource(); live.Source.Kind = v; if (v == "Farmer") live.Part = "Full"; }, commit) { Rebuild = true });
         string kind = live.Source?.Kind ?? "Npc";
         if (kind is "Npc" or "Portrait")
             Fields.Add(new ChoiceField("Character", "Source.Npc", Studio.Characters.Where(c => !c.IsFarmer).Select(c => new ChoiceItem(c.Key, c.Label, c.Detail)), () => live.Source?.Npc, v => live.Source!.Npc = v, commit) { IsEditable = true });
+        if (kind == Outfits.SourceKind && PoseCharacter() is { IsFarmer: false } wearer)
+            Fields.Add(new ChoiceField("Outfit", "Source.Outfit", Studio.OwnOutfits(wearer.Key).Where(id => !string.Equals(id, Model.Id, StringComparison.OrdinalIgnoreCase))
+                .Select(id => new ChoiceItem(id, OutfitFactory.Label(id, wearer.Key))), () => live.Source?.Outfit, v => { live.Source!.Outfit = v; live.Source.Npc ??= wearer.Key; }, commit));
         if (kind is "NpcSheet" or "PortraitSheet" or "Asset")
             Fields.Add(new ChoiceField("Texture", "Source.Asset", SheetOptions(kind), () => live.Source?.Asset, v => live.Source!.Asset = v, commit) { IsEditable = true, Help = "Picking a texture another mod adds makes that mod a dependency." });
         if (kind == "Asset")

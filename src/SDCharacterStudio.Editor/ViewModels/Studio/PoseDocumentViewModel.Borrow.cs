@@ -132,6 +132,8 @@ public partial class PoseDocumentViewModel
             .Select(c => (c.X, c.Y, Compositor.MapCell(c.X, c.Y, frame: index), 0u, PixelTools.Get(image, c.X, c.Y))).ToList();
         if (cells.Count == 0) { Ui.Toast("Nothing selected", "Select part of her frame first (box, lasso or wand).", ToastKind.Info); return; }
         PeekFrame = null;
+        // Copying from one of your outfits: the pose wears it, so the copied part looks the same in the game.
+        if (!IsSheet && PinnedOutfit == null && WearableShownOutfit is { } shown && StudioContext.OutfitId(shown) != null) { WearOutfit(shown); SaidWearsOutfit(); }
         BeginFloating(cells, $"Copy from her frame {index}");
     }
 }

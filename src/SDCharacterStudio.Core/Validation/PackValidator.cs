@@ -226,7 +226,10 @@ public static class PackValidator
                 if(frame.Duration<=0)issues.Add(new(ValidationSeverity.Error,pose.File,path+".Duration","Pose frame duration must be positive.","V11"));
                 CheckAnchors(frame.Anchors,pose.File,path+".Anchors",issues);
                 ValidateLayers(frame.Layers,frame.Anchors,pose.Value.FrameSize,pose.File,path+".Layers",pack,files,catalog,issues);
+                CheckOutfitSources(frame.Layers,pose.File,path+".Layers",pack,true,issues);
             }
+            if(Compositing.Outfits.IsOutfit(pose.Value)&&pose.Value.Id!=null&&Compositing.Outfits.Cycle(pack,pose.Value.Id) is {} cycle)
+                issues.Add(new(ValidationSeverity.Error,pose.File,"Frames",$"Outfit '{pose.Value.Id}' is made from itself: {string.Join(" → ",cycle)}. Make one of them from her own look.","Reference"));
         }
         CheckDuplicates(pack.Clips.Select(x=>(x.Value.Id,x.File,"Id")),issues);
         foreach(var clip in pack.Clips)ValidateLibraryClip(clip.Value,clip.File,issues);
@@ -238,6 +241,7 @@ public static class PackValidator
             {
                 CheckAnchors(emotion.Value?.Anchors,portrait.File,"Emotions."+emotion.Key+".Anchors",issues);
                 ValidateLayers(emotion.Value?.Layers,emotion.Value?.Anchors,portrait.Value.FrameSize,portrait.File,"Emotions."+emotion.Key+".Layers",pack,files,catalog,issues);
+                CheckOutfitSources(emotion.Value?.Layers,portrait.File,"Emotions."+emotion.Key+".Layers",pack,false,issues);
             }
         }
         if(pack.Expressions is { } expressions)
@@ -369,6 +373,19 @@ public static class PackValidator
             CheckColorSlots(layer.ColorSlots,file,p+".ColorSlots",pack,catalog,issues);
         }
     }
+    /// <summary>A layer that wears an outfit names one of the pack's outfits (sheet poses); portraits can't wear one.</summary>
+    private static void CheckOutfitSources(List<Layer>? layers,string file,string path,LoadedPack pack,bool sprite,List<ValidationIssue> issues)
+    {
+        for(var i=0;i<(layers?.Count??0);i++)
+        {
+            if(layers![i] is not LiveLayer {Source:{} source}||!Compositing.Outfits.IsOutfitSource(source))continue;
+            var at=$"{path}[{i}].Source";
+            if(!sprite){issues.Add(new(ValidationSeverity.Error,file,at+".Kind","Outfits are sprite sheets; a portrait can't wear one.","Schema"));continue;}
+            if(string.IsNullOrWhiteSpace(source.Outfit)){issues.Add(new(ValidationSeverity.Error,file,at+".Outfit","Which outfit? Outfit names one of the pack's outfits.","Schema"));continue;}
+            var target=pack.Poses.Select(x=>x.Value).FirstOrDefault(x=>string.Equals(x?.Id,source.Outfit,StringComparison.OrdinalIgnoreCase));
+            if(target!=null&&!Compositing.Outfits.IsOutfit(target))issues.Add(new(ValidationSeverity.Error,file,at+".Outfit",$"'{source.Outfit}' is a pose, not an outfit (a walk sheet).","Reference"));
+        }
+    }
     private static void CheckImage(string? image,int[]? size,bool multiple,string file,string path,string rule,IPackFileSystem? files,List<ValidationIssue> issues,int frame=0)
     {
         if(!PackPath.IsSafe(image)){issues.Add(new(ValidationSeverity.Error,file,path,"Image path must remain inside the pack and use '/'.","V4"));return;}
@@ -436,7 +453,7 @@ public static class PackValidator
         foreach(var (token,path) in Tokens(JObject.FromObject(entry,PackJson.CreateSerializer())))
         {
             if(token.Type!=JTokenType.String)continue;var name=(token.Parent as JProperty)?.Name??"";var value=token.Value<string>()!;
-            HashSet<string>? set=name switch {"Mask"=>masks,"Pose"=>poses,"Portrait"=>portraits,"Expression"=>expressions,"Preset"=>costumes,_=>null};
+            HashSet<string>? set=name switch {"Mask"=>masks,"Pose"=>poses,"Outfit"=>poses,"Portrait"=>portraits,"Expression"=>expressions,"Preset"=>costumes,_=>null};
             if(set!=null&&!set.Contains(value))issues.Add(new(ValidationSeverity.Error,file,path,$"Unknown {name.ToLowerInvariant()} '{value}'.","Reference"));
             if(name=="Clip" && entry is Cutscene scene && !(scene.Clips?.Keys.Contains(value,StringComparer.OrdinalIgnoreCase)??false) && !libraryClips.Contains(value))issues.Add(new(ValidationSeverity.Error,file,path,$"Unknown clip '{value}'.","Reference"));
             if(name=="Video"&&videos.Add(value)&&files!=null)CheckVideo(value,file,path,files,issues);

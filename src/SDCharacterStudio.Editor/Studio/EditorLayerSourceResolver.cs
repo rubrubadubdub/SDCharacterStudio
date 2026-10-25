@@ -86,7 +86,7 @@ public sealed class EditorLayerSourceResolver : ILayerSourceResolver
     {
         if (rig.Kind.Equals("Farmer", StringComparison.OrdinalIgnoreCase))
             return context.Farmer?.Render(index, 2, FarmerPart.Full) ?? throw new ArgumentException("The game export has no player.");
-        var sheet = context.NpcTexture(rig.Npc ?? rig.Id ?? "", false) ?? throw new ArgumentException($"The game export has no sprite for '{rig.Npc}'.");
+        var sheet = context.NpcTexture(rig.Npc ?? rig.Id ?? "", false, OwnOutfits) ?? throw new ArgumentException($"The game export has no sprite for '{rig.Npc}'.");
         return StudioImages.Frame(sheet, rig.FrameSize[0], rig.FrameSize[1], index) ?? throw new ArgumentException($"'{rig.Npc}' has no frame {index}.");
     }
 
@@ -123,7 +123,7 @@ public sealed class EditorLayerSourceResolver : ILayerSourceResolver
             var rect = spec.Rect is { Length: 4 } r ? r : throw new ArgumentException("Asset layer requires a source rectangle.");
             return new(StudioImages.Crop(texture, rect[0], rect[1], rect[2], rect[3]));
         }
-        if (!Same(spec.Kind, "Npc") && !Same(spec.Kind, "NpcSheet") && !Same(spec.Kind, "Portrait") && !Same(spec.Kind, "PortraitSheet"))
+        if (!Same(spec.Kind, "Npc") && !Same(spec.Kind, "NpcSheet") && !Same(spec.Kind, "Portrait") && !Same(spec.Kind, "PortraitSheet") && !Same(spec.Kind, Outfits.SourceKind))
             throw new NotSupportedException($"Live source '{spec.Kind}' cannot be drawn.");
         if (!Same(live.Part, "Full") && !Same(live.Part, "Head") && !Same(live.Part, "Mask"))
             throw new NotSupportedException($"NPC part '{live.Part}' isn't available; NPC parts are Full, Head or Mask.");
@@ -133,7 +133,9 @@ public sealed class EditorLayerSourceResolver : ILayerSourceResolver
         int index = live.SourceFrame?.Index ?? (portrait ? 0 : rig.Frames.TryGetValue(facing, out var frames) ? frames.Stand
             : throw new ArgumentException($"Rig '{rig.Id}' has no frames for '{facing}'."));
         RgbaImage sheet = Same(spec.Kind, "Npc") || Same(spec.Kind, "Portrait")
-            ? context.NpcTexture(spec.Npc ?? rig.Npc ?? "", portrait) ?? throw new ArgumentException($"The game export has no {(portrait ? "portrait" : "sprite")} for '{spec.Npc ?? rig.Npc}'.")
+            ? context.NpcTexture(spec.Npc ?? rig.Npc ?? "", portrait, OwnOutfits) ?? throw new ArgumentException($"The game export has no {(portrait ? "portrait" : "sprite")} for '{spec.Npc ?? rig.Npc}'.")
+            : Same(spec.Kind, Outfits.SourceKind)
+            ? context.OutfitSheet(spec.Outfit ?? throw new ArgumentException("This layer wears an outfit but doesn't say which.")) ?? throw new ArgumentException($"Outfit '{spec.Outfit}' isn't in the pack, or it's made from itself.")
             : context.AssetTexture(spec.Asset ?? throw new ArgumentException("Sheet source has no asset name.")) ?? throw new ArgumentException($"The game export has no texture '{spec.Asset}'.");
         var size = portrait ? rig.Portrait?.FrameSize ?? new[] { 64, 64 } : rig.FrameSize;
         var image = StudioImages.Frame(sheet, size[0], size[1], index) ?? throw new ArgumentException($"Source frame {index} is outside the sheet.");
@@ -157,6 +159,9 @@ public sealed class EditorLayerSourceResolver : ILayerSourceResolver
         }
         return pose.Facing ?? actorFacing;
     }
+
+    /// <summary>An outfit is drawn from her own look, never from the studio previewing one of your outfits (see StudioContext.NpcTexture).</summary>
+    private bool OwnOutfits => !Outfits.IsOutfit(pose);
 
     private void Problem(string message) { if (!problems.Contains(message)) problems.Add(message); }
 

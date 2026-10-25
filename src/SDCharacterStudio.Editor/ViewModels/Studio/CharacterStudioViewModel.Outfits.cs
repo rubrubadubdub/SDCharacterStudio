@@ -2,13 +2,18 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SDCharacterStudio.Editor.Catalog;
 
 namespace SDCharacterStudio.Editor.ViewModels;
 
-/// <summary>An outfit to see a character in: a sprite sheet (null: whatever the game shows now), named plainly.</summary>
+/// <summary>
+/// An outfit to see a character in: a sprite sheet (null: whatever the game shows now), or one of the pack's own outfits
+/// (an <see cref="StudioContext.OutfitKey"/>), named plainly.
+/// </summary>
 public sealed record OutfitChoice(string? Asset, string Label, string? Detail)
 {
+    public bool IsYours => StudioContext.OutfitId(Asset) != null;
     public override string ToString() => Detail == null ? Label : $"{Label} · {Detail}";
 }
 
@@ -39,6 +44,8 @@ public sealed partial class CharacterStudioViewModel
         {
             string? now = entry.Current?.Sprite;
             fresh.Add(new OutfitChoice(null, "As in the game now", now != null && now != entry.Sprite ? Describe(entry, now) : null));
+            // Your own outfits first: they're what you're making.
+            fresh.AddRange(OwnOutfits(who.Key).Select(id => new OutfitChoice(StudioContext.OutfitKey(id), OutfitFactory.Label(id, who.Key), "your outfit")));
             if (entry.Sprite != null) fresh.Add(new OutfitChoice(entry.Sprite, "Everyday", Origin(entry.Sprite)));
             foreach (var appearance in entry.Appearances.Where(a => a.Sprite != null && a.Sprite != entry.Sprite).GroupBy(a => a.Sprite!, StringComparer.OrdinalIgnoreCase).Select(g => g.First()))
                 fresh.Add(new OutfitChoice(appearance.Sprite, OutfitLabel(appearance, who.Key), Origin(appearance.Sprite)));
@@ -56,6 +63,41 @@ public sealed partial class CharacterStudioViewModel
     }
 
     partial void OnOutfitChanged(OutfitChoice? value) { if (!refreshingOutfits) ApplyOutfit(); }
+
+    /// <summary>The pack's outfits for a villager (sheet poses whose rig is theirs).</summary>
+    public IEnumerable<string> OwnOutfits(string npc)
+    {
+        if (Library is not { } library) yield break;
+        foreach (var item in library.Items(LibraryKind.Pose).OrderBy(i => i.Id, StringComparer.OrdinalIgnoreCase))
+            if (library.Pose(item.Id) is { Kind: "sheet" } pose && (string.Equals(library.Rig(pose.For)?.Npc, npc, StringComparison.OrdinalIgnoreCase) || string.Equals(pose.For, npc, StringComparison.OrdinalIgnoreCase)))
+                yield return item.Id;
+    }
+
+    /// <summary>Outfits are for villagers: the player changes clothes with a Costume beat.</summary>
+    public bool CanMakeOutfit => Character is { IsFarmer: false } && shell.Document != null;
+
+    /// <summary>
+    /// A new outfit for the character, started from what the studio shows (her own look, a game outfit, or another of
+    /// yours), with every frame of her sheet. It opens to paint on, and the studio shows her in it.
+    /// </summary>
+    [RelayCommand] private void MakeOutfit() => NewOutfit();
+
+    public string? NewOutfit(string? name = null)
+    {
+        if (shell.Document == null) { shell.Ui.Toast("No project", "Open or create a project first.", ToastKind.Info); return null; }
+        if (Character is not { IsFarmer: false } who || Library is not { } library)
+        { shell.Ui.Toast("Outfits are for villagers", "The player changes clothes with a Costume beat in a scene.", ToastKind.Info); return null; }
+        name ??= shell.Ui.Prompt("New outfit", $"What is {who.Label} wearing? (e.g. \"raincoat\") It starts from {(Outfit?.Asset == null ? "her own look" : Outfit.Label)}; you paint the clothes on.", "raincoat");
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        string id = library.UniqueId(LibraryKind.Pose, name.StartsWith(who.Key, StringComparison.OrdinalIgnoreCase) ? name : who.Key + " " + name);
+        string? basedOn = Outfit?.Asset;
+        Edit("New outfit " + OutfitFactory.Label(id, who.Key), lib => lib.SavePose(OutfitFactory.Create(Context, lib, shell.Catalog, who.Key, id, basedOn)));
+        if (Library?.Pose(id) == null) return null;
+        RefreshOutfits();
+        Outfit = Outfits.FirstOrDefault(o => string.Equals(o.Asset, StudioContext.OutfitKey(id), StringComparison.OrdinalIgnoreCase)) ?? Outfit;
+        OpenItem(LibraryKind.Pose, id);
+        return id;
+    }
 
     /// <summary>Preview the chosen outfit everywhere in the studio (the canvas, the preview, frames, the character card, her colours).</summary>
     private void ApplyOutfit()

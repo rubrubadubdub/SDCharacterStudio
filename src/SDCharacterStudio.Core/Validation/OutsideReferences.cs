@@ -79,6 +79,12 @@ public static class OutsideReferences
                         Add(OutsideReferenceKind.Npc, source.Npc ?? Rig(rigId)?.Npc, where, layerPath + ".Source.Npc", "live source in " + usage);
                     else if (Same(source.Kind, "NpcSheet") || Same(source.Kind, "PortraitSheet") || Same(source.Kind, "Asset"))
                         Add(OutsideReferenceKind.Asset, source.Asset, where, layerPath + ".Source.Asset", "live source in " + usage);
+                    else if (Same(source.Kind, Compositing.Outfits.SourceKind))
+                    {
+                        // The outfit is in the pack; what it's made from (her sprite, a mod's sheet) is what the pack needs.
+                        Add(OutsideReferenceKind.Npc, source.Npc ?? Rig(rigId)?.Npc, where, layerPath + ".Source.Npc", "outfit in " + usage);
+                        Pose(source.Outfit);
+                    }
                 }
                 if (layer is EffectLayer effect) Pose(effect.Effect, custom: true);
                 foreach (var (slot, colour) in layer.ColorSlots ?? new())

@@ -142,7 +142,7 @@ public static class BeatCatalog
         if (costume.Restore) return $"{who}: back to their own look";
         if (costume.Portrait != null) return $"{who}: portrait {costume.Portrait}";
         if (costume.Sprite?.Asset != null) return $"{who}: sprite {costume.Sprite.Asset}";
-        if (costume.Sprite?.Pose != null) return $"{who}: sprite sheet {costume.Sprite.Pose}";
+        if (costume.Sprite?.Pose != null) return $"{who} puts on {OutfitFactory.Label(costume.Sprite.Pose, who)} (your outfit)";
         var parts = new List<string>();
         if (costume.Preset != null) parts.Add("preset " + costume.Preset);
         // Item slots name the item when the export knows it: "Hat: Earmuffs".

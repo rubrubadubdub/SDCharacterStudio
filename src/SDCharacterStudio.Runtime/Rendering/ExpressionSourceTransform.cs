@@ -32,7 +32,7 @@ internal sealed class ExpressionSourceTransform
         var expression=render.Definition;
         if(portrait!=Same(expression.Target,"Portrait"))return;
         bool farmer=Same(live.Source?.Kind,"Farmer");
-        if(!farmer&&!portrait&&!Same(live.Source?.Kind,"Npc")&&!Same(live.Source?.Kind,"NpcSheet"))return;
+        if(!farmer&&!portrait&&!Same(live.Source?.Kind,"Npc")&&!Same(live.Source?.Kind,"NpcSheet")&&!Same(live.Source?.Kind,Core.Compositing.Outfits.SourceKind))return;
         bool head=farmer?sources.FarmerHeadVisible(live):live.Part.Split('+').Any(x=>Same(x.Trim(),"Head"));
         if(farmer&&!head)return;
         bool full=Same(live.Part,"Full")||Same(live.Part,"Mask");

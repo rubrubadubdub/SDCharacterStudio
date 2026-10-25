@@ -18,7 +18,7 @@ public sealed partial class PoseFrameItem : ObservableObject
     public int Index { get; }
     public int Number => Index + 1;
     /// <summary>Portrait emotions have no timing.</summary>
-    public bool ShowsDuration => !Document.IsPortrait;
+    public bool ShowsDuration => !Document.IsPortrait && !Document.IsSheet;   // the game times an outfit's frames itself
     [ObservableProperty] private BitmapSource? thumbnail;
     [ObservableProperty] private bool isSelected;
     [ObservableProperty] private string? badges;
@@ -143,8 +143,19 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     public PoseFrame? Frame => Model.Frames.ElementAtOrDefault(FrameIndex);
     public Layer? SelectedLayer => Frame?.Layers.ElementAtOrDefault(LayerIndex);
     public bool IsSheet => Model.Kind == "sheet";
+    /// <summary>A pose plays its frames in an order; an outfit's frames are the game's to pick.</summary>
+    public bool ShowsPlayOrder => !IsPortrait && !IsSheet;
+    /// <summary>An outfit keeps every frame in its place: no add, delete or move.</summary>
+    public bool CanChangeFrames => !IsSheet;
+    /// <summary>Ready-made poses make a pose; an outfit is clothes on all her frames.</summary>
+    public bool ShowsReadyMade => !IsSheet;
+    public string PickedFramesText => $"{PickedFrames.Count} frames picked: drawing, erasing and moving apply to all of them";
+    public string SheetFramesHint => IsSheet ? "Click: start this frame again from it · Shift+click: copy part of it" : "Click: start from it · Ctrl+click: new frame · Shift+click: copy part of it";
+    public string PinOutfitLabel => IsSheet ? "Make it from the outfit shown" : "Always wear the outfit shown";
+    public string UnpinOutfitLabel => IsSheet ? "Make it from her own look" : "Wear what the game gives";
     public string FrameCaption => Frames.Count == 0 ? "" : IsPortrait ? $"Emotion {Badges(FrameIndex)} ({FrameIndex + 1} of {Frames.Count})"
-        : IsSheet ? $"Frame {FrameIndex + 1} of {Frames.Count} · {SheetFacing(FrameIndex)} walk {FrameIndex % 4 + 1}" : $"Frame {FrameIndex + 1} of {Frames.Count}";
+        : IsSheet ? $"Frame {FrameIndex + 1} of {Frames.Count} · " + (FrameIndex < 16 ? $"walking {SheetFacing(FrameIndex)}, step {FrameIndex % 4 + 1}" : $"her frame {FrameIndex}")
+        : $"Frame {FrameIndex + 1} of {Frames.Count}";
 
     partial void OnFrameIndexChanged(int value)
     {
@@ -215,6 +226,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         if (fields) BuildFields();
         OnPropertyChanged(nameof(Width)); OnPropertyChanged(nameof(Height)); OnPropertyChanged(nameof(Pivot)); OnPropertyChanged(nameof(IsSheet)); OnPropertyChanged(nameof(FrameCaption));
         OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten));
+        foreach (var name in new[] { nameof(ShowsPlayOrder), nameof(CanChangeFrames), nameof(ShowsReadyMade), nameof(SheetFramesHint), nameof(PinOutfitLabel), nameof(UnpinOutfitLabel) }) OnPropertyChanged(name);
     }
 
     protected virtual string? Badges(int index)
@@ -301,7 +313,16 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         return canvas;
     }
 
-    public static string SheetFacing(int index) => index switch { < 4 => "down", < 8 => "right", < 12 => "up", _ => "left" };
+    /// <summary>The way a walk sheet's frame faces (her special frames after the walking rows face down).</summary>
+    public static string SheetFacing(int index) => index switch { < 4 => "down", < 8 => "right", < 12 => "up", < 16 => "left", _ => "down" };
+
+    /// <summary>An outfit keeps every frame of her sprite sheet in its place (the game picks frames by their place).</summary>
+    private bool FramesStayInPlace()
+    {
+        if (!IsSheet) return false;
+        Ui.Toast("Frames stay in place", "An outfit has every frame of her sprite sheet, in the game's order, so frames can't be added, removed or moved. Start a frame again from one of her frames instead.", ToastKind.Info);
+        return true;
+    }
 
     /// <summary>Who the pose is for: its rig's NPC, or the player.</summary>
     public CharacterChoice? PoseCharacter()
@@ -330,7 +351,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     [RelayCommand]
     private void AddFrame()
     {
-        if (Frame == null) return;
+        if (Frame == null || FramesStayInPlace()) return;
         int at = FrameIndex + 1;
         // A copy joins the part of the order its original is in (a frame copied in the "once" part plays once too).
         Save("Add frame", pose => KeepingOrder(pose, p => p.Frames.Insert(at, CopyFrame(Frame, at)), k => k > 0 && at <= k ? k + 1 : k),
@@ -358,6 +379,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     {
         // Every frame picked in the strip (Shift or Ctrl+click), not just the one on the canvas. Picking them all keeps
         // frame 1: a pose needs at least one.
+        if (FramesStayInPlace()) return;
         var doomed = PickedFrames.Where(CanDeleteFrame).Distinct().OrderBy(i => i).ToList();
         if (doomed.Count >= Model.Frames.Count) doomed.Remove(0);
         if (doomed.Count == 0) { if (Model.Frames.Count <= 1) Ui.Toast("Last frame", "A pose needs at least one frame.", ToastKind.Info); return; }
@@ -380,7 +402,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     private void MoveFrame(int delta)
     {
         int from = FrameIndex, to = from + delta;
-        if (to < 0 || to >= Model.Frames.Count) return;
+        if (to < 0 || to >= Model.Frames.Count || FramesStayInPlace()) return;
         Save("Move frame", pose =>
         {
             if (SimpleLoopFrom(pose) is { } k)

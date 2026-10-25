@@ -145,6 +145,7 @@ public sealed class PersonalLibrary
             {
                 Mask(layer.Mask);
                 Slots(layer.ColorSlots);
+                if (layer is LiveLayer { Source: { } worn } && Core.Compositing.Outfits.IsOutfitSource(worn)) Pose(worn.Outfit);   // the outfit it wears comes along
                 switch (layer)
                 {
                     case PaintLayer paint: File_(paint.Image); break;
@@ -284,9 +285,12 @@ public sealed class PersonalLibrary
             link.Items["Expression:" + source.Id] = id;
         }
 
-        // Poses: effects first, since other poses' effect layers name them.
+        // Poses: effects first, since other poses' effect layers name them; then outfits (an outfit made from another after
+        // it), since poses wear them.
         var poses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var source in bundle.Poses.Where(p => p.Id != null).OrderBy(p => p.Kind == "effect" ? 0 : 1))
+        int Depth(Pose pose, int guard = 0) => guard > 16 ? 0 : Core.Compositing.Outfits.Worn(pose)
+            .Select(id => bundle.Poses.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)) is { } worn ? 1 + Depth(worn, guard + 1) : 0).DefaultIfEmpty(0).Max();
+        foreach (var source in bundle.Poses.Where(p => p.Id != null).OrderBy(p => p.Kind == "effect" ? 0 : p.Kind == "sheet" ? 1 : 2).ThenBy(p => Depth(p)))
         {
             var pose = PackWriter.Clone(source);
             pose.For = R(pose.For);
@@ -294,6 +298,7 @@ public sealed class PersonalLibrary
             {
                 layer.Mask = M(layer.Mask);
                 layer.ColorSlots = Slots(layer.ColorSlots);
+                if (layer is LiveLayer { Source: { Outfit: { } outfit } worn } && Core.Compositing.Outfits.IsOutfitSource(worn)) worn.Outfit = poses.GetValueOrDefault(outfit, outfit);
                 switch (layer)
                 {
                     case PaintLayer paint: paint.Image = F(paint.Image); break;

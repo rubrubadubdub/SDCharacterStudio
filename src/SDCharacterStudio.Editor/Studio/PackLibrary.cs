@@ -24,7 +24,7 @@ public sealed class PackLibrary
 
     public IEnumerable<LibraryItem> Items(LibraryKind kind) => kind switch
     {
-        LibraryKind.Pose => Pack.Poses.Where(p => p.Value.Id != null).Select(p => new LibraryItem(kind, p.Value.Id!, p.File, p.Value.Id!, $"{p.Value.Kind} · {p.Value.Frames.Count} frame{(p.Value.Frames.Count == 1 ? "" : "s")}" + (p.Value.For != null ? " · " + p.Value.For : ""))),
+        LibraryKind.Pose => Pack.Poses.Where(p => p.Value.Id != null).Select(p => new LibraryItem(kind, p.Value.Id!, p.File, p.Value.Id!, $"{(p.Value.Kind == "sheet" ? "outfit" : p.Value.Kind)} · {p.Value.Frames.Count} frame{(p.Value.Frames.Count == 1 ? "" : "s")}" + (p.Value.For != null ? " · " + p.Value.For : ""))),
         LibraryKind.Clip => Pack.Clips.Where(c => c.Value.Id != null).Select(c => new LibraryItem(kind, c.Value.Id!, c.File, string.IsNullOrWhiteSpace(c.Value.Title) ? c.Value.Id! : c.Value.Title!, $"{c.Value.Duration} ms · " + string.Join(", ", c.Value.Roles.Select(r => r.Id)))),
         LibraryKind.Mask => (Pack.Masks?.Value.Masks ?? new()).Where(m => m?.Id != null).Select(m => new LibraryItem(kind, m.Id!, Pack.Masks!.File, string.IsNullOrWhiteSpace(m.DisplayName) ? m.Id! : m.DisplayName!, string.Join(", ", m.Tags))),
         LibraryKind.Rig => Pack.Characters.Where(r => r.Value.Id != null).Select(r => new LibraryItem(kind, r.Value.Id!, r.File, r.Value.Id!, r.Value.Kind == "Farmer" ? "player" : r.Value.Npc)),

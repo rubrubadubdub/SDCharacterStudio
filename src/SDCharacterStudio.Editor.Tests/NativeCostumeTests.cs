@@ -76,6 +76,114 @@ public class NativeCostumeTests
         Note("PASS");
     }
 
+    /// <summary>
+    /// Your own outfit in the real game (the owner: "what if I built my own clothes for Abigail?"): a raincoat painted on
+    /// Robin's walk, put on by a Costume beat, and a pose started from it that wears it, drawn by the runtime.
+    /// </summary>
+    [Fact]
+    public async Task YourOutfitIsWornInTheGame()
+    {
+        string? pipe = Environment.GetEnvironmentVariable("SDCS_NATIVE_PIPE");
+        string? driver = Environment.GetEnvironmentVariable("SDCS_NATIVE_DRIVER");
+        if (string.IsNullOrEmpty(pipe) || string.IsNullOrEmpty(driver) || Environment.GetEnvironmentVariable("SDCS_NATIVE_SUITE") != "costume") return;
+        evidence = Environment.GetEnvironmentVariable("SDCS_NATIVE_EVIDENCE") ?? driver;
+        Directory.CreateDirectory(evidence);
+
+        using var editor = new EditorHarness(pipeName: pipe);
+        var shell = editor.Shell;
+        await WaitReady(shell);
+        var doc = editor.NewProject("Raincoat", "Player.Raincoat", "ScienceHouse");
+
+        // In the Character Studio, as a designer would: the outfit, yellow on every walking frame at once, then a pose from it.
+        shell.IsCharacterStudio = true;
+        var studio = shell.CharacterStudio;
+        studio.Settings.AdvancedPoseTools = false;
+        studio.Character = studio.Characters.First(c => c.Key == "Robin");
+        string outfit = studio.NewOutfit("raincoat")!;
+        var coat = (PoseDocumentViewModel)studio.ActiveDocument!;
+        coat.PickFrames(Enumerable.Range(0, 16), 0);
+        coat.Tool = StudioTool.Rectangle; coat.FilledShapes = true;
+        studio.Palette.Primary = 0xFFE8C020;
+        coat.PointerDown(5, 18, PointerButton.Primary); coat.PointerMove(10, 24); coat.PointerUp(10, 24);
+        string wave = studio.NewPose("character", "wave", "down")!;
+        var waveDoc = (PoseDocumentViewModel)studio.ActiveDocument!;
+        waveDoc.ShowSheetFrames = true;
+        waveDoc.StartFromSheetFrame(0);
+        Xunit.Assert.Equal(outfit, ((LiveLayer)studio.Library!.Pose(wave)!.Frames[0].Layers[0]).Source!.Outfit);
+        shell.IsCharacterStudio = false;
+
+        var scene = shell.Scene!;
+        doc.Edit("Stage", () =>
+        {
+            scene.Actors[0].Start = new Position { Tile = new[] { 16, 9 } };
+            scene.Actors.Add(new Actor { Id = "Robin", Kind = "Npc", Npc = "Robin", Start = new Position { Tile = new[] { 17, 6 } }, Facing = "down" });
+            scene.Beats.Add(new CostumeBeat { Actor = "Robin", Sprite = new SpriteReference { Pose = outfit } });
+            scene.Beats.Add(new WaitBeat { Duration = 2500 });
+            scene.Beats.Add(new PoseBeat { Actor = "Robin", Pose = wave, Play = "loop" });
+            scene.Beats.Add(new WaitBeat { Duration = 2500 });
+            scene.Beats.Add(new PoseBeat { Actor = "Robin", Release = true });
+            scene.Beats.Add(new CostumeBeat { Actor = "Robin", Restore = true });
+            scene.Beats.Add(new WaitBeat { Duration = 1500 });
+        });
+        var problems = shell.ValidateNow();
+        Note("outfit validation: " + (problems.Errors == 0 ? "no errors" : string.Join(" | ", problems.Problems.Select(p => p.Message))));
+        Xunit.Assert.Equal(0, problems.Errors);
+
+        await shell.PreviewInGameCommand.ExecuteAsync(null);
+        const string yellow = "#FFE8C020";
+        bool worn = false, standIn = false, started = false;
+        string? lastSheet = null, ownSize = null, wornSize = null;
+        var deadline = DateTime.UtcNow.AddSeconds(45);
+        while (DateTime.UtcNow < deadline)
+        {
+            var looks = (JObject)(await Ask(driver, "looks", new JObject { ["X"] = 7, ["Y"] = 20 }))["Data"]!;
+            var robin = ((JArray)looks["Actors"]!).OfType<JObject>().FirstOrDefault(a => (string?)a["Name"] == "Robin");
+            if (robin != null)
+            {
+                started = true;
+                string? sheet = (string?)robin["Sheet"];
+                if (sheet != lastSheet) { Note($"Robin wears {sheet} ({robin["Size"]?.ToString(Newtonsoft.Json.Formatting.None)}), pixel {robin["Pixel"]}"); lastSheet = sheet; }
+                string size = robin["Size"]!.ToString(Newtonsoft.Json.Formatting.None);
+                bool wearing = sheet?.Contains("_SDCS_", StringComparison.Ordinal) == true && sheet.EndsWith(outfit, StringComparison.Ordinal);
+                if (wearing) wornSize = size; else ownSize ??= size;
+                worn |= wearing && (string?)robin["Pixel"] == yellow;
+            }
+            if (((JArray)looks["StandIns"]!).Any(p => (string?)p == yellow) && !standIn) { standIn = true; Note("a stand-in shows the raincoat"); }
+            if (started && robin == null) break;   // the scene is over
+            await Task.Delay(150);
+        }
+        Xunit.Assert.True(started, "The scene never started.");
+        Xunit.Assert.True(worn, "Robin never wore the raincoat (its sheet with the yellow paint).");
+        Xunit.Assert.True(standIn, "The pose that wears the raincoat never showed it.");
+        // The outfit was made on the small test export (16 frames); in the game it covers her whole sheet.
+        Xunit.Assert.Equal(ownSize, wornSize);
+        Note("PASS outfit");
+    }
+
+    /// <summary>A driver request (assertions/&lt;id&gt;.json) and its answer.</summary>
+    private static async Task<JObject> Ask(string driver, string check, JObject request)
+    {
+        string id = "outfit-" + Guid.NewGuid().ToString("N");
+        request["Check"] = check;
+        File.WriteAllText(Path.Combine(driver, "assertions", id + ".json.tmp"), request.ToString());
+        File.Move(Path.Combine(driver, "assertions", id + ".json.tmp"), Path.Combine(driver, "assertions", id + ".json"));
+        string result = Path.Combine(driver, "assertion-results", id + ".json");
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (File.Exists(result))
+            {
+                JObject answer;
+                try { answer = JObject.Parse(File.ReadAllText(result)); }
+                catch (Exception ex) when (ex is IOException or Newtonsoft.Json.JsonException) { await Task.Delay(30); continue; }
+                if ((bool?)answer["Ok"] != true) throw new InvalidOperationException($"Driver {check}: {answer["Error"]}");
+                return answer;
+            }
+            await Task.Delay(50);
+        }
+        throw new TimeoutException($"Driver {check}: no answer.");
+    }
+
     private async Task WaitReady(MainViewModel shell)
     {
         var until = DateTime.UtcNow.AddMinutes(5);

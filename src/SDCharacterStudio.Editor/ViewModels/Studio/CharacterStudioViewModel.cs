@@ -36,8 +36,12 @@ public sealed partial class LibraryItemViewModel : ObservableObject
 
 public sealed partial class LibrarySectionViewModel : ObservableObject
 {
-    public LibrarySectionViewModel(LibraryKind kind, string title, SymbolRegular icon, string newLabel) { Kind = kind; Title = title; Icon = icon; NewLabel = newLabel; }
+    public LibrarySectionViewModel(LibraryKind kind, string title, SymbolRegular icon, string newLabel, Action create, Func<PackLibrary, LibraryItem, bool>? shows = null)
+    { Kind = kind; Title = title; Icon = icon; NewLabel = newLabel; NewCommand = new RelayCommand(create); Shows = shows; }
     public LibraryKind Kind { get; }
+    /// <summary>Which of the kind's items this shelf holds (poses and outfits are both sheet-or-not poses).</summary>
+    public Func<PackLibrary, LibraryItem, bool>? Shows { get; }
+    public IRelayCommand NewCommand { get; }
     public string Title { get; }
     public SymbolRegular Icon { get; }
     public string NewLabel { get; }
@@ -66,12 +70,13 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         Palette = new PaletteViewModel(this);
         Sections = new ObservableCollection<LibrarySectionViewModel>(new[]
         {
-            new LibrarySectionViewModel(LibraryKind.Pose, "Poses", SymbolRegular.Accessibility24, "New pose"),
-            new LibrarySectionViewModel(LibraryKind.Clip, "Animations", SymbolRegular.VideoClipMultiple24, "New animation"),
-            new LibrarySectionViewModel(LibraryKind.Mask, "Masks", SymbolRegular.CircleHalfFill24, "New mask"),
-            new LibrarySectionViewModel(LibraryKind.Rig, "Rigs", SymbolRegular.PersonEdit24, "New rig"),
-            new LibrarySectionViewModel(LibraryKind.Expression, "Expressions", SymbolRegular.EmojiSmileSlight24, "New expression"),
-            new LibrarySectionViewModel(LibraryKind.Portrait, "Portraits", SymbolRegular.PersonCircle24, "New portrait"),
+            new LibrarySectionViewModel(LibraryKind.Pose, "Poses", SymbolRegular.Accessibility24, "New pose", () => New(LibraryKind.Pose), (lib, item) => lib.Pose(item.Id)?.Kind != "sheet"),
+            new LibrarySectionViewModel(LibraryKind.Pose, "Outfits", SymbolRegular.Grid24, "New outfit", () => NewOutfit(), (lib, item) => lib.Pose(item.Id)?.Kind == "sheet"),
+            new LibrarySectionViewModel(LibraryKind.Clip, "Animations", SymbolRegular.VideoClipMultiple24, "New animation", () => New(LibraryKind.Clip)),
+            new LibrarySectionViewModel(LibraryKind.Mask, "Masks", SymbolRegular.CircleHalfFill24, "New mask", () => New(LibraryKind.Mask)),
+            new LibrarySectionViewModel(LibraryKind.Rig, "Rigs", SymbolRegular.PersonEdit24, "New rig", () => New(LibraryKind.Rig)),
+            new LibrarySectionViewModel(LibraryKind.Expression, "Expressions", SymbolRegular.EmojiSmileSlight24, "New expression", () => New(LibraryKind.Expression)),
+            new LibrarySectionViewModel(LibraryKind.Portrait, "Portraits", SymbolRegular.PersonCircle24, "New portrait", () => New(LibraryKind.Portrait)),
         });
     }
 
@@ -104,6 +109,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         Palette.Refresh();
         OnPropertyChanged(nameof(CopyForLabel));
         OnPropertyChanged(nameof(ShowsFashionSenseWarning));
+        OnPropertyChanged(nameof(CanMakeOutfit));
     }
     partial void OnSearchChanged(string value) { RefreshLibrary(); if (ShowMyLibrary) RefreshMyLibrary(); }
     partial void OnOnlyThisCharacterChanged(bool value) => RefreshLibrary();
@@ -118,7 +124,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         try
         {
             Context.InvalidatePack();
-            OnPropertyChanged(nameof(HasProject));
+            OnPropertyChanged(nameof(HasProject)); OnPropertyChanged(nameof(CanMakeOutfit));
             RefreshCharacters();
             RefreshOutfits();
             OnPropertyChanged(nameof(ShowsFashionSenseWarning));
@@ -194,6 +200,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
             {
                 // A pose's own edit masks (erased and moved pixels) belong to the pose, not the mask shelf.
                 if (section.Kind == LibraryKind.Mask && library.Mask(item.Id)?.Tags.Contains(PoseDocumentViewModel.EditMaskTag) == true) continue;
+                if (section.Shows != null && !section.Shows(library, item)) continue;
                 if (Search.Length > 0 && !(item.Title.Contains(Search, StringComparison.OrdinalIgnoreCase) || item.Id.Contains(Search, StringComparison.OrdinalIgnoreCase) || (item.Detail?.Contains(Search, StringComparison.OrdinalIgnoreCase) ?? false))) continue;
                 if (OnlyThisCharacter && Character != null && !BelongsTo(library, item, Character)) continue;
                 section.Items.Add(new LibraryItemViewModel(this, item, Thumbnail(library, item)));
@@ -286,7 +293,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
     // ---------------- new items ----------------
 
     [RelayCommand]
-    private void New(LibraryKind kind)
+    public void New(LibraryKind kind)
     {
         if (shell.Document == null) { shell.Ui.Toast("No project", "Open or create a project first.", ToastKind.Info); return; }
         switch (kind)
@@ -300,7 +307,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         }
     }
 
-    [RelayCommand] private void NewSheetPose() => NewPose("sheet");
+    [RelayCommand] private void NewSheetPose() => NewOutfit();
     [RelayCommand] private void NewEffect() => NewPose("effect");
 
     /// <summary>A pose for the chosen character: standing frame to start from, its rig, facing and frame size.</summary>
@@ -313,13 +320,19 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(name)) return null;
         string id = library.UniqueId(LibraryKind.Pose, kind == "effect" ? name : (name.StartsWith(who.Key, StringComparison.OrdinalIgnoreCase) ? name : who.Key + " " + name));
         facing ??= kind == "sheet" ? null : "left";
+        // Made while one of your outfits is shown: the pose starts from her in it, so it wears it.
+        string? wearing = kind == "character" && !who.IsFarmer ? StudioContext.OutfitId(Outfit?.Asset) : null;
         Edit("New pose " + id, lib =>
         {
             var pose = PoseFactory.Create(this, lib, who, kind, id, facing);
+            if (wearing != null)
+                foreach (var live in pose.Frames.SelectMany(f => f.Layers).OfType<LiveLayer>().Where(l => l.Source?.Kind == "Npc"))
+                    live.Source = new LiveSource { Kind = Core.Compositing.Outfits.SourceKind, Npc = live.Source!.Npc ?? who.Key, Outfit = wearing };
             if (!Settings.AdvancedPoseTools) FlatPose.MakeFlat(lib, pose);   // the simple editor works on one flat picture
             lib.SavePose(pose);
         });
         OpenItem(LibraryKind.Pose, id);
+        if (wearing != null) shell.Ui.Toast("Wears your outfit", $"This pose wears {Outfit!.Label}, the outfit shown. Change it under Outfit, on the right.", ToastKind.Info);
         return id;
     }
 

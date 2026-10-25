@@ -96,6 +96,7 @@ public partial class PoseDocumentViewModel
     {
         int n = Model.Frames.Count;
         if (from < 0 || from >= n || to < 0 || to > n || (!copy && (to == from || to == from + 1))) return;
+        if (FramesStayInPlace()) return;
         if (copy)
         {
             int at = to;
@@ -135,6 +136,7 @@ public partial class PoseDocumentViewModel
     [RelayCommand] private void SetPreviewScale(int scale) => PreviewScale = scale;
 
     private void RestartPreview() { previewTimeline = null; previewDirty = true; previewRest = 0; }
+    private double sheetWalkMs;
 
     /// <summary>Advance the preview (the view's timer calls this while it shows). It redraws on a new frame or after an edit.</summary>
     public void TickPreview(double ms)
@@ -142,7 +144,13 @@ public partial class PoseDocumentViewModel
         if (IsPortrait || Model.Frames.Count == 0) return;
         if (TickPresetPreview(ms)) return;   // a ready-made pose plays there while it's hovered
         int frame = FrameIndex;
-        if (PreviewPlaying)
+        if (IsSheet)
+        {
+            // An outfit walks: the four steps of the way this frame faces (her special frames just show).
+            if (PreviewPlaying) sheetWalkMs += ms;
+            if (FrameIndex < 16 && Model.Frames.Count >= 16) frame = FrameIndex / 4 * 4 + (int)(sheetWalkMs / 150) % 4;
+        }
+        else if (PreviewPlaying)
         {
             try
             {
@@ -179,8 +187,32 @@ public partial class PoseDocumentViewModel
         var set = picked.ToHashSet();
         foreach (var frame in Frames) frame.IsPicked = set.Contains(frame.Index);
         if (current is { } index && index != FrameIndex && index >= 0 && index < Model.Frames.Count) FrameIndex = index;
-        OnPropertyChanged(nameof(PickedFrames)); OnPropertyChanged(nameof(HasSeveralPicked));
+        OnPropertyChanged(nameof(PickedFrames)); OnPropertyChanged(nameof(HasSeveralPicked)); OnPropertyChanged(nameof(PickedFramesText));
     }
+
+    /// <summary>
+    /// The same pixels on every other picked frame: each cell a stroke changed gets its new value there too (inside the
+    /// current save). Paint the clothes once on all four steps of a walk.
+    /// </summary>
+    private void CopyChangesToOtherPicked(PackLibrary lib, (RgbaImage Before, RgbaImage After)? map, (RgbaImage Before, RgbaImage After)? paint)
+    {
+        static RgbaImage? Apply(RgbaImage target, (RgbaImage Before, RgbaImage After)? change)
+        {
+            if (change is not { } c || c.Before.Width != target.Width || c.Before.Height != target.Height) return null;
+            RgbaImage? result = null;
+            for (int i = 0; i < c.After.Pixels.Length; i++)
+                if (c.After.Pixels[i] != c.Before.Pixels[i]) (result ??= StudioImages.Clone(target)).Pixels[i] = c.After.Pixels[i];
+            return result;
+        }
+        foreach (var (_, flat, frameMap, framePaint) in OtherPickedFlatFrames().ToList())
+        {
+            if (Apply(frameMap, map) is { } newMap) lib.WriteImage(flat.Live.Map!, newMap);
+            if (Apply(framePaint, paint) is { } newPaint) lib.WriteImage(flat.Paint.Image!, newPaint);
+        }
+    }
+
+    /// <summary>"Draw" or "Draw on 4 frames".</summary>
+    private string OnPicked(string label) => HasSeveralPicked && Flat != null ? $"{label} on {PickedFrames.Count} frames" : label;
 
     /// <summary>The other picked frames that are one picture, with their images.</summary>
     private IEnumerable<(int Frame, FlatFrame Flat, RgbaImage Map, RgbaImage Paint)> OtherPickedFlatFrames()

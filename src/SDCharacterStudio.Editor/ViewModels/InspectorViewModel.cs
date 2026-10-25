@@ -155,9 +155,12 @@ public sealed partial class InspectorViewModel : ObservableObject
         Fields.Add(new BoolField("Visible at the start", "Visible", () => actor.Visible, v => actor.Visible = v, Commit) { Description = "Hidden actors are there but invisible until a clip shows them." });
         if (actor.Kind == "Npc")
         {
-            Fields.Add(new ChoiceField("Outfit at the start", "Sprite.Asset", SpriteOptions(actor.Npc ?? actor.Id), () => actor.Sprite?.Asset,
-                v => actor.Sprite = v == null ? null : new SpriteReference { Asset = v }, Commit)
-            { IsEditable = true, Help = "Leave on \"Their usual look\" so seasonal outfits and sprite mods follow. Picking another sheet can add a dependency." });
+            // Their usual look, then your outfits for them, then the game's sheets (seasons, festivals, mods).
+            var sprites = SpriteOptions(actor.Npc ?? actor.Id).ToList();
+            Fields.Add(new ChoiceField("Outfit at the start", "Sprite.Asset", sprites.Take(1).Concat(OutfitChoices(actor.Npc ?? actor.Id, StudioContext.OutfitKey)).Concat(sprites.Skip(1)),
+                () => actor.Sprite?.Pose is { } outfit ? StudioContext.OutfitKey(outfit) : actor.Sprite?.Asset,
+                v => actor.Sprite = v == null ? null : StudioContext.OutfitId(v) is { } outfit ? new SpriteReference { Pose = outfit } : new SpriteReference { Asset = v }, Commit)
+            { IsEditable = true, Help = "Leave on \"Their usual look\" so seasonal outfits and sprite mods follow. Your outfits are made in the Character Studio; another mod's sheet can add a dependency." });
         }
         else if (actor.Kind == "Temporary")
         {
@@ -443,13 +446,13 @@ public sealed partial class InspectorViewModel : ObservableObject
         string mode = costume.Restore ? "restore" : costume.Portrait != null ? "portrait" : costume.Sprite?.Pose != null ? "sheet" : costume.Sprite?.Asset != null ? "sprite" : costume.Preset != null ? "preset" : "set";
         var modes = farmer
             ? new[] { new ChoiceItem("set", "Change clothes or parts"), new ChoiceItem("preset", "Wear a costume preset"), new ChoiceItem("restore", "Back to their own look") }
-            : new[] { new ChoiceItem("sprite", "Use another sprite sheet"), new ChoiceItem("sheet", "Use a generated sheet pose"), new ChoiceItem("portrait", "Use a composed portrait"), new ChoiceItem("restore", "Back to their usual look") };
+            : new[] { new ChoiceItem("sheet", "Wear an outfit you made"), new ChoiceItem("sprite", "Use another sprite sheet"), new ChoiceItem("portrait", "Use a composed portrait"), new ChoiceItem("restore", "Back to their usual look") };
         Fields.Add(new ChoiceField("Change", "", modes, () => mode, v =>
         {
             costume.Restore = v == "restore"; costume.Set = null; costume.Preset = null; costume.Sprite = null; costume.Portrait = null;
             if (v == "set") costume.Set = new() { ["Hat"] = "none" };
             if (v == "sprite") costume.Sprite = new SpriteReference { Asset = Catalog?.Character(actor?.Npc ?? costume.Actor ?? "")?.Appearances.FirstOrDefault()?.Sprite ?? "Characters/" + costume.Actor };
-            if (v == "sheet") costume.Sprite = new SpriteReference { Pose = shell.Document!.Library.Poses.FirstOrDefault(p => p.Value.Kind == "sheet")?.Value.Id };
+            if (v == "sheet") costume.Sprite = new SpriteReference { Pose = OutfitChoices(actor?.Npc ?? costume.Actor, id => id).FirstOrDefault()?.Value };
             if (v == "portrait") costume.Portrait = shell.Document!.Library.Portraits.FirstOrDefault()?.Value.Id;
             if (v == "preset") costume.Preset = shell.Document!.Library.Costumes?.Value.Costumes.FirstOrDefault()?.Id;
         }, Commit) { Rebuild = true });
@@ -458,7 +461,13 @@ public sealed partial class InspectorViewModel : ObservableObject
             case "set": Fields.Add(CostumeParts("Parts", "Set", () => costume.Set, set => costume.Set = set)); break;
             case "preset": Fields.Add(new ChoiceField("Preset", "Preset", PresetOptions().Where(o => o.Value != null), () => costume.Preset, v => costume.Preset = v, Commit)); break;
             case "sprite": Fields.Add(new ChoiceField("Sprite sheet", "Sprite.Asset", SpriteOptions(actor?.Npc ?? costume.Actor).Where(o => o.Value != null), () => costume.Sprite?.Asset, v => costume.Sprite = new SpriteReference { Asset = v }, Commit) { IsEditable = true }); break;
-            case "sheet": Fields.Add(new ChoiceField("Sheet pose", "Sprite.Pose", LibraryIds(shell.Document!.Library.Poses.Where(p => p.Value.Kind == "sheet").Select(p => p.Value.Id)), () => costume.Sprite?.Pose, v => costume.Sprite = new SpriteReference { Pose = v }, Commit)); break;
+            case "sheet":
+                var outfits = OutfitChoices(actor?.Npc ?? costume.Actor, id => id).ToList();
+                if (outfits.Count == 0 && costume.Sprite?.Pose == null)
+                    Fields.Add(new NoteField($"No outfits for {actor?.Npc ?? costume.Actor ?? "them"} yet. In the Character Studio, pick them and press + beside Outfit."));
+                else Fields.Add(new ChoiceField("Outfit", "Sprite.Pose", outfits, () => costume.Sprite?.Pose, v => costume.Sprite = new SpriteReference { Pose = v }, Commit)
+                { Help = "Walking and the game's own animations keep working while they wear it. \"Back to their usual look\" takes it off." });
+                break;
             case "portrait": Fields.Add(new ChoiceField("Portrait", "Portrait", LibraryIds(shell.Document!.Library.Portraits.Select(p => p.Value.Id)), () => costume.Portrait, v => costume.Portrait = v, Commit)); break;
         }
         if (farmer && mode != "restore")
@@ -683,6 +692,22 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     private IEnumerable<ChoiceItem> LocationOptions() => Catalog?.Locations.Select(l => new ChoiceItem(l.Name, l.Name, l.Origin.IsModProvided ? Catalog.ModLabel(l.Origin.ProvidedBy[0]) : l.Origin.IsEdited ? "edited by " + Catalog.ModLabel(l.Origin.EditedBy[0]) : null))
         ?? Enumerable.Empty<ChoiceItem>();
+
+    /// <summary>The pack's outfits for a villager (every outfit when who is unknown), named plainly, with their first frame.</summary>
+    private IEnumerable<ChoiceItem> OutfitChoices(string? npc, Func<string, string> value)
+    {
+        if (shell.Document is not { } doc) yield break;
+        var studio = shell.CharacterStudio;
+        var ids = npc != null ? studio.OwnOutfits(npc) : doc.Library.Poses.Select(p => p.Value).Where(p => p.Kind == "sheet" && p.Id != null).Select(p => p.Id!);
+        foreach (var id in ids)
+        {
+            var pose = doc.Library.Poses.Select(p => p.Value).FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
+            System.Windows.Media.ImageSource? image = null;
+            if (pose?.FrameSize is [var width, var height] && studio.Context.OutfitSheet(id) is { } sheet && StudioImages.Frame(sheet, width, height, 0) is { } first)
+                image = StudioImages.ToBitmap(first);
+            yield return new ChoiceItem(value(id), OutfitFactory.Label(id, npc), "your outfit", image);
+        }
+    }
 
     private IEnumerable<ChoiceItem> SpriteOptions(string? npc)
     {

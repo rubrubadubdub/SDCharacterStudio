@@ -38,6 +38,8 @@ public static class PoseCopies
         foreach (var layer in pose.Frames.SelectMany(f => f.Layers).OfType<LiveLayer>())
             if (layer.Source?.Kind is "NpcSheet" or "PortraitSheet" && layer.Source.Asset?.Contains(sourceNpc, StringComparison.OrdinalIgnoreCase) == true)
                 problems.Add($"A layer uses {sourceNpc}'s sheet '{layer.Source.Asset}'. Pick {targetNpc}'s sheet in the copy.");
+        foreach (var outfit in Core.Compositing.Outfits.Worn(pose))
+            problems.Add($"This pose wears {sourceNpc}'s outfit '{outfit}'. The copy wears {targetNpc}'s own look; pick one of {targetNpc}'s outfits for it under Outfit.");
         string newId = library.UniqueId(LibraryKind.Pose, SwapName(pose.Id!, sourceRig?.Id, sourceNpc, targetRigId, targetNpc) is { } swapped && swapped != pose.Id ? swapped : targetNpc + " " + pose.Id);
         return new CopyPlan(newId, targetRigId, problems, missing);
     }
@@ -76,6 +78,11 @@ public static class PoseCopies
                     && targetRig.ColorSamples.ContainsKey(parts[1]) ? $"{targetRigId}.{parts[1]}" : p.Value, StringComparer.OrdinalIgnoreCase);
             switch (layer)
             {
+                case LiveLayer live when Core.Compositing.Outfits.IsOutfitSource(live.Source):
+                    // Their outfit is theirs: the copy wears the other character's own look.
+                    live.Source = new LiveSource { Kind = "Npc", Npc = targetNpc };
+                    if (live.Map != null) live.Map = LibraryCopies.CopyImage(library, live.Map, $"art/poses/{plan.NewId}/");
+                    break;
                 case LiveLayer live when live.Source?.Kind is "Npc" or "Portrait" && string.Equals(live.Source.Npc, sourceNpc, StringComparison.OrdinalIgnoreCase):
                     live.Source.Npc = targetNpc;
                     // A flat picture's map points at sprite pixels; the other character's sprite has the same layout.

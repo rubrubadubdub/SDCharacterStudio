@@ -287,7 +287,12 @@ public class LiveLayer : Layer
     /// </summary>
     public string? Map { get; set; }
 }
-public class LiveSource { public string? Kind { get; set; } public string? Npc { get; set; } public string? Asset { get; set; } public int[]? Rect { get; set; } }
+public class LiveSource
+{
+    public string? Kind { get; set; } public string? Npc { get; set; } public string? Asset { get; set; } public int[]? Rect { get; set; }
+    /// <summary>Kind "Outfit": one of this pack's outfits (a sheet pose), worn instead of the character's own sheet.</summary>
+    public string? Outfit { get; set; }
+}
 public class SourceFrame { public int? Index { get; set; } public string? Facing { get; set; } public bool Stand { get; set; } }
 public class ImageLayer : Layer { public override string Type => "Image"; public string? Image { get; set; } public int Frame { get; set; } public int[]? FrameSize { get; set; } }
 public class PaintLayer : Layer { public override string Type => "Paint"; public string? Image { get; set; } }

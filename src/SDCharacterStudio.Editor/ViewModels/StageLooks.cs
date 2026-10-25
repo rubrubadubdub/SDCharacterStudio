@@ -8,7 +8,10 @@ using SDCharacterStudio.Editor.Infrastructure;
 
 namespace SDCharacterStudio.Editor.ViewModels;
 
-/// <summary>An actor's look on the stage: a farmer's outfit (costume keys and values) or an NPC's sprite sheet.</summary>
+/// <summary>
+/// An actor's look on the stage: a farmer's outfit (costume keys and values) or an NPC's sprite sheet (a game sheet, or
+/// one of the pack's outfits as a <see cref="StudioContext.OutfitKey"/>).
+/// </summary>
 public sealed record StageLook(IReadOnlyDictionary<string, string> Outfit, string? SpriteAsset)
 {
     public static readonly StageLook None = new(new Dictionary<string, string>(), null);
@@ -28,7 +31,8 @@ public static class StageLooks
     public static StageLook For(Cutscene scene, Actor actor, PackDocument? document, IReadOnlyList<PlayedBeat> played)
     {
         var outfit = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        string? sprite = actor.Sprite?.Asset;
+        string? Sheet(SpriteReference? reference) => reference?.Pose is { } outfit ? StudioContext.OutfitKey(outfit) : reference?.Asset;
+        string? sprite = Sheet(actor.Sprite);
         void Merge(JToken? values)
         {
             if (values is JObject set) foreach (var (key, value) in set) if (value != null) outfit[key] = value.ToString();
@@ -43,10 +47,10 @@ public static class StageLooks
         foreach (var step in played)
         {
             if (step.Beat is not CostumeBeat costume || !string.Equals(costume.Actor, actor.Id, StringComparison.OrdinalIgnoreCase)) continue;
-            if (costume.Restore) { outfit.Clear(); Merge(actor.Costume?.Type == JTokenType.Object ? actor.Costume : null); sprite = actor.Sprite?.Asset; continue; }
+            if (costume.Restore) { outfit.Clear(); Merge(actor.Costume?.Type == JTokenType.Object ? actor.Costume : null); sprite = Sheet(actor.Sprite); continue; }
             if (costume.Preset != null) Preset(costume.Preset);
             if (costume.Set != null) foreach (var (key, value) in costume.Set) outfit[key] = value.ToString();
-            if (costume.Sprite?.Asset is { } asset) sprite = asset;
+            if (Sheet(costume.Sprite) is { } asset) sprite = asset;
         }
         return new StageLook(outfit, sprite);
     }

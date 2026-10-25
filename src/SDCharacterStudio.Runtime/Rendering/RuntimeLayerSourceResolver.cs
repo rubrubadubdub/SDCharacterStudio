@@ -20,6 +20,7 @@ internal sealed class RuntimeLayerSourceResolver : ILayerSourceResolver
     private readonly Farmer farmer;
     private readonly Func<Farmer,string,string> filterParts;
     private readonly Func<NPC,Texture2D> portraitSource;
+    private readonly Func<string,(Texture2D Texture,string Asset)>? outfits;
     private readonly string actorFacing;
     private readonly Dictionary<string,RgbaImage> packImages=new(StringComparer.OrdinalIgnoreCase);
     public List<TextureDependency> Dependencies { get; }=new();
@@ -32,8 +33,8 @@ internal sealed class RuntimeLayerSourceResolver : ILayerSourceResolver
         return new[]{8+current.X-standard.X,16+current.Y-standard.Y,16,Math.Clamp(16+FarmerRenderer.featureYOffsetPerFrame[frame],0,32)};
     }
 
-    public RuntimeLayerSourceResolver(IModHelper helper,IContentPack pack,LoadedPack library,Pose pose,Func<string,NPC?> findNpc,NpcSource source,int facing,FarmerPartsRenderer farmerRenderer,Farmer farmer,Func<Farmer,string,string> filterParts,Func<NPC,Texture2D> portraitSource)
-    { this.helper=helper;this.pack=pack;this.library=library;this.pose=pose;this.findNpc=findNpc;this.source=source;actorFacing=FacingName(facing);this.farmerRenderer=farmerRenderer;this.farmer=farmer;this.filterParts=filterParts;this.portraitSource=portraitSource; }
+    public RuntimeLayerSourceResolver(IModHelper helper,IContentPack pack,LoadedPack library,Pose pose,Func<string,NPC?> findNpc,NpcSource source,int facing,FarmerPartsRenderer farmerRenderer,Farmer farmer,Func<Farmer,string,string> filterParts,Func<NPC,Texture2D> portraitSource,Func<string,(Texture2D Texture,string Asset)>? outfits=null)
+    { this.helper=helper;this.pack=pack;this.library=library;this.pose=pose;this.findNpc=findNpc;this.source=source;actorFacing=FacingName(facing);this.farmerRenderer=farmerRenderer;this.farmer=farmer;this.filterParts=filterParts;this.portraitSource=portraitSource;this.outfits=outfits; }
 
     public PoseFrame Normalize(PoseFrame frame)
     {
@@ -113,7 +114,7 @@ internal sealed class RuntimeLayerSourceResolver : ILayerSourceResolver
             if(rect.Length!=4) throw new ArgumentException("Asset source rectangle needs x, y, width and height.");
             return new(PixelOperations.Crop(snapshot.Image,rect[0],rect[1],rect[2],rect[3]));
         }
-        if(!Same(spec.Kind,"Npc") && !Same(spec.Kind,"NpcSheet") && !Same(spec.Kind,"Portrait") && !Same(spec.Kind,"PortraitSheet"))
+        if(!Same(spec.Kind,"Npc") && !Same(spec.Kind,"NpcSheet") && !Same(spec.Kind,"Portrait") && !Same(spec.Kind,"PortraitSheet") && !Same(spec.Kind,Outfits.SourceKind))
             throw new NotSupportedException($"Live source '{spec.Kind}' cannot be rendered.");
         if(!Same(live.Part,"Full") && !Same(live.Part,"Head") && !Same(live.Part,"Mask"))
             throw new NotSupportedException($"NPC part '{live.Part}' is unavailable. Farmer parts require M4.");
@@ -138,6 +139,15 @@ internal sealed class RuntimeLayerSourceResolver : ILayerSourceResolver
                 captured=source.CaptureNpc(npc,rig,index);
                 Dependencies.Add(new(captured,()=>NpcSource.Current(npc)));
             }
+        }
+        else if(Same(spec.Kind,Outfits.SourceKind))
+        {
+            // One of the pack's outfits: its generated sheet, composed once per scene (an outfit never wears itself).
+            var id=spec.Outfit ?? throw new ArgumentException("Outfit source names no outfit.");
+            if(outfits==null) throw new ArgumentException($"Outfit '{id}' can only be worn in a scene.");
+            var (texture,asset)=outfits(id);
+            captured=source.Capture(texture,asset,rig.FrameSize[0],rig.FrameSize[1],index);
+            Dependencies.Add(new(captured,()=>outfits(id)));
         }
         else
         {

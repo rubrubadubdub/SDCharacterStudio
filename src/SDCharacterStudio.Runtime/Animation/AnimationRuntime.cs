@@ -64,6 +64,7 @@ public sealed partial class AnimationRuntime
         Compositor.FarmerSource=()=>ev?.farmer??Game1.player;
         Compositor.FilterFarmerParts=FilterParts;
         Compositor.FarmerVisibilityVersion=farmer=>PartVisibility(farmer).Version;
+        Compositor.OutfitSource=(_,id)=>{string name=Sheet(GetPose(id));return(cache["sheet:"+id].Texture,name);};
         Effects=new(monitor,id=>Compose(GetPose(id),3),GetPose);
         session.Cleaning+=()=>Clear(deferAssets:true);
         session.ActorsRestored+=restore=>
@@ -165,14 +166,24 @@ public sealed partial class AnimationRuntime
         var pack=packs.FindPack(scene!.PackId)??throw new InvalidOperationException("Pack unavailable.");
         result=Compositor.Compose(pack,scene.Pack,pose,Npc,facing,expression);cache[key]=result;textures.Add(result);return result;
     }
+    /// <summary>Outfits being composed right now: one made (directly or not) from itself stops here instead of looping.</summary>
+    private readonly HashSet<string> composingSheets=new(StringComparer.OrdinalIgnoreCase);
     private string Sheet(Pose pose)
     {
+        if(pose.Kind!="sheet")throw new ArgumentException($"'{pose.Id}' is a pose, not an outfit (a walk sheet).");
         string key="sheet:"+pose.Id;
         string npc=scene!.Pack.Characters.FirstOrDefault(x=>string.Equals(x.Value.Id,pose.For,StringComparison.OrdinalIgnoreCase))?.Value.Npc??pose.For??throw new ArgumentException("Sheet needs a rig.");
         string name="Characters/"+NPC.getTextureNameForCharacter(npc)+"_SDCS_"+Ids.PackHash(scene.PackId)+"_"+pose.Id;
         if(cache.ContainsKey(key))return name;
-        var composed=Compositor.ComposeSheet(packs.FindPack(scene.PackId)!,scene.Pack,pose,Npc,3);
-        textures.Add(composed);cache[key]=composed;Generated.Register(name,composed.Texture);return name;
+        if(!composingSheets.Add(pose.Id!))throw new ArgumentException($"Outfit '{pose.Id}' is made from itself.");
+        try
+        {
+            // Her whole sheet as the game has it now: frames the outfit lacks show her own, so no animation goes blank.
+            var covering=Npc(npc)?.Sprite?.Texture is {} own?Core.Compositing.Outfits.CoverSheet(pose,own.Width,own.Height):pose;
+            var composed=Compositor.ComposeSheet(packs.FindPack(scene.PackId)!,scene.Pack,covering,Npc,3);
+            textures.Add(composed);cache[key]=composed;Generated.Register(name,composed.Texture);return name;
+        }
+        finally{composingSheets.Remove(pose.Id!);}
     }
     public string SheetSuffix(string id){Sheet(GetPose(id));return "SDCS_"+Ids.PackHash(scene!.PackId)+"_"+id;}
     public StandIn SetPose(string actor,string id,string play,double speed=1,bool external=false)

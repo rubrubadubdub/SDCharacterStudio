@@ -239,12 +239,12 @@
                 <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,1,0,0" Padding="8,6">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Margin="0,0,0,6"
-                                   Text="{Binding PickedFrames.Count, StringFormat='{}{0} frames selected: move, transform or delete together'}"
+                                   Text="{Binding PickedFramesText}"
                                    Visibility="{Binding HasSeveralPicked, Converter={StaticResource VisibleWhen}}" />
                         <ContentControl DockPanel.Dock="Bottom" Content="{Binding}" ContentTemplate="{StaticResource Sequences}" Margin="0,6,0,0" Focusable="False"
                                         Visibility="{Binding ShowsSequenceChips, Converter={StaticResource VisibleWhen}}" />
                         <!-- How it plays, in plain words (Aseprite's tags, simplified). -->
-                        <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                        <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="{Binding ShowsPlayOrder, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="Plays:" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <RadioButton Content="Loop all" GroupName="PlayOrder" IsChecked="{Binding LoopsAll}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame, round and round" />
                             <RadioButton GroupName="PlayOrder" IsChecked="{Binding PlaysOnceThenLoops}" MinWidth="0" Margin="0,0,4,0" ToolTip="The first frames once (getting into the pose), then the rest round and round">
@@ -254,18 +254,18 @@
                             <RadioButton Content="Once, then hold the last" GroupName="PlayOrder" IsChecked="{Binding HoldsLast}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame once, then stay on the last one" />
                             <TextBlock Text="{Binding PlayOrderText}" Style="{StaticResource Faint}" VerticalAlignment="Center" />
                         </WrapPanel>
-                        <StackPanel DockPanel.Dock="Left" Margin="0,0,8,0">
+                        <StackPanel DockPanel.Dock="Left" Margin="0,0,8,0" Visibility="{Binding CanChangeFrames, Converter={StaticResource VisibleWhen}}">
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddFrameCommand}" ToolTip="Add a frame after this one (a copy, with its own paint)" />
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Delete24}" Command="{Binding DeleteFrameCommand}" ToolTip="Delete this frame, or every frame you picked (Shift or Ctrl+click in the strip). Delete key too." />
                         </StackPanel>
-                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0" Visibility="{Binding CanChangeFrames, Converter={StaticResource VisibleWhen}}">
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowLeft24}" Command="{Binding MoveFrameLeftCommand}" ToolTip="Move this frame earlier" />
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRight24}" Command="{Binding MoveFrameRightCommand}" ToolTip="Move this frame later" />
                         </StackPanel>
                         <ListBox x:Name="FramesList" ItemsSource="{Binding Frames}" ItemTemplate="{StaticResource FrameThumb}" SelectionMode="Extended"
                                  SelectionChanged="Frames_SelectionChanged" PreviewMouseLeftButtonDown="Frames_PreviewMouseDown" PreviewMouseMove="Frames_PreviewMouseMove"
                                  AllowDrop="True" Drop="Frames_Drop" DragOver="Frames_DragOver"
-                                 ToolTip="Click a frame to edit it. Shift or Ctrl+click picks several: moves and transforms apply to all of them. Drag to reorder (Ctrl: copy)."
+                                 ToolTip="Click a frame to edit it. Shift or Ctrl+click picks several: drawing, erasing, moves and transforms apply to all of them. Drag to reorder (Ctrl: copy)."
                                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" Background="Transparent" BorderThickness="0">
                             <ListBox.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -396,6 +396,17 @@
             <Border Grid.Row="1" Grid.RowSpan="3" Style="{StaticResource Panel}" Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="12,8,12,12">
+                    <!-- An outfit: what it is and how to make it quickly. -->
+                    <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
+                            Visibility="{Binding IsSheet, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Text="An outfit" Style="{StaticResource Caption}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                       Text="Every frame of her sprite sheet, in the game's places. Paint the clothes on her. Pick the four steps of a walk in the strip (Shift+click) to draw on all of them at once." />
+                            <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="Pick it under Outfit (top left) to see her in it, and start poses from its frames. In a scene, a Costume beat puts it on." />
+                        </StackPanel>
+                    </Border>
                     <!-- An older pose made of layers: offer to make it one picture (D-48). -->
                     <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
                             Visibility="{Binding CanFlatten, Converter={StaticResource VisibleWhen}}">
@@ -407,9 +418,15 @@
                     </Border>
 
                     <!-- Ready-made poses -->
-                    <ToggleButton Style="{StaticResource SectionHeader}" Content="READY-MADE POSES" IsChecked="{Binding PresetsOpen}"
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="READY-MADE POSES" IsChecked="{Binding PresetsOpen}" Visibility="{Binding ShowsReadyMade, Converter={StaticResource VisibleWhen}}"
                                   ToolTip="Poses and little animations made for her body from her standing sprite. Point at one to watch it in the preview; click it to make this frame that pose (the moving ones add frames after it). They keep following sprite mods." />
-                    <StackPanel Visibility="{Binding PresetsOpen, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
+                    <StackPanel Margin="0,4,0,8">
+                        <StackPanel.Visibility>
+                            <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
+                                <Binding Path="ShowsReadyMade" />
+                                <Binding Path="PresetsOpen" />
+                            </MultiBinding>
+                        </StackPanel.Visibility>
                         <ItemsControl ItemsSource="{Binding Presets}" Focusable="False" Visibility="{Binding HasPresetPictures, Converter={StaticResource VisibleWhen}}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -502,7 +519,7 @@
                     <ToggleButton Style="{StaticResource SectionHeader}" Content="HER FRAMES" IsChecked="{Binding ShowSheetFrames}"
                                   ToolTip="Every frame of her sprite in the outfit shown. Click: start this frame from it. Ctrl+click: add it as a new frame. Shift+click: copy part of it into this frame. All stay live." />
                     <StackPanel Visibility="{Binding ShowSheetFrames, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
-                        <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,0,0,6" Text="Click: start from it · Ctrl+click: new frame · Shift+click: copy part of it" />
+                        <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,0,0,6" Text="{Binding SheetFramesHint}" />
                         <ItemsControl ItemsSource="{Binding SheetFrames}" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -530,9 +547,9 @@
                     <StackPanel Visibility="{Binding OutfitOpen, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
                         <TextBlock Text="{Binding OutfitText}" Style="{StaticResource Faint}" TextWrapping="Wrap" />
                         <WrapPanel Margin="0,6,0,0" Visibility="{Binding CanPinOutfit, Converter={StaticResource VisibleWhen}}">
-                            <ui:Button Content="Always wear the outfit shown" Command="{Binding PinShownOutfitCommand}" Margin="0,0,6,6"
-                                       ToolTip="This pose wears the outfit picked under the character (a mod's outfit makes the mod a requirement)" />
-                            <ui:Button Content="Wear what the game gives" Command="{Binding UnpinOutfitCommand}" Margin="0,0,6,6" />
+                            <ui:Button Content="{Binding PinOutfitLabel}" Command="{Binding PinShownOutfitCommand}" Margin="0,0,6,6"
+                                       ToolTip="Wears the outfit picked under the character: a season, a festival, a mod's outfit (the mod becomes a requirement) or one of yours" />
+                            <ui:Button Content="{Binding UnpinOutfitLabel}" Command="{Binding UnpinOutfitCommand}" Margin="0,0,6,6" />
                         </WrapPanel>
                     </StackPanel>
 

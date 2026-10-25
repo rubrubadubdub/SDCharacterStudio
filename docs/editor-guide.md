@@ -126,7 +126,7 @@ Sprites, poses and animations are made in the **Character Studio**. Switch to it
 
 ### 11.1 The left panel
 - **Character**: who you're working on: anyone in the game export, or the player. Their standing frames and rig status show below. **Rig…** opens the character's rig (it's made automatically the first time you need it).
-- **This pack** lists the pack's poses, animations, masks, rigs, expressions and portraits; **+** on a shelf makes a new one. Double-click opens it in a tab. Right-click: *Duplicate*, *Make a copy for <character>* (poses), *Use in the current scene* (animations), *Save to My library*, *Delete*.
+- **This pack** lists the pack's poses, outfits, animations, masks, rigs, expressions and portraits; **+** on a shelf makes a new one. Double-click opens it in a tab. Right-click: *Duplicate*, *Make a copy for <character>* (poses), *Use in the current scene* (animations), *Save to My library*, *Delete*.
 - **My library** holds your own poses and animations for every project (§11.6).
 - Search filters both; *Only this character's items* hides the rest.
 
@@ -157,10 +157,10 @@ Sprites, poses and animations are made in the **Character Studio**. Switch to it
 - **Animating:**
   - **The preview** at the top right keeps playing the pose (1×, 2× or game size) while you edit.
   - **Plays:** under the frames, choose *Loop all*, *Once, then loop from frame N*, or *Once, then hold the last*. Coloured bands on the frames show it: amber plays once, green loops. New and moved frames keep the order.
-  - **Several frames at once:** Shift or Ctrl+click frames to pick several. A move, transform, flip or clear then applies to all of them, as one undo step.
+  - **Several frames at once:** Shift or Ctrl+click frames to pick several. Drawing, erasing, a move, transform, flip or clear then applies to all of them, as one undo step.
   - **Reordering:** drag a frame to move it; Ctrl+drag copies it.
   - **A breathing loop:** *Make a breathing loop* adds a frame with her upper body a pixel lower and loops the two slowly.
-- **Her outfits:** the **Outfit** picker under the character shows every outfit the game knows for her: seasons, festivals (the Flower Dance, Spirit's Eve...) and mods' outfits, named with the mod that adds them. The whole studio then shows her in it. Poses stay live: in the game she wears whatever the day gives her. *Always wear the outfit shown* pins one to a pose; a mod's outfit makes that mod a requirement.
+- **Her outfits:** the **Outfit** picker under the character shows your own outfits for her first (§11.7), then every outfit the game knows for her: seasons, festivals (the Flower Dance, Spirit's Eve...) and mods' outfits, named with the mod that adds them. The whole studio then shows her in it. Poses stay live: in the game she wears whatever the day gives her. *Always wear the outfit shown* pins one to a pose; a mod's outfit makes that mod a requirement.
 - **Her frames:** *Her frames* shows every frame of her sprite in the outfit shown, including festival frames on her main sheet. Click one to start this frame from it; Ctrl+click adds it as a new frame. **Shift+click** shows it on the canvas: select part of it (a raised arm, a turned head) and *Copy into this frame*. They all stay live. Pastes (Ctrl+V) float too: drag, turn or flip them, then Enter.
 - **Her body:** *Head*, *Body*, *Arms* and *Legs* select that part of her. *Show parts* colours the parts; if one is wrong (long hair that belongs to her head), paint it right with the part brush. The fix is saved for her and that facing.
 - **Ready-made poses** are drawn on her and made from her body. There are still poses (bow, look down, tilt, lean, slump, shrug, crouch, kneel, beg) and little animations (nod, shake the head, laugh, jump for joy, shiver, sob). Point at one to watch it in the **Preview** (its title says which); click it to make this frame that pose (an animated one adds its frames after this one).
@@ -206,10 +206,20 @@ Expression tools use **B / E / G / I** for pencil, eraser, fill and picker; **X*
 ### 11.5 Using them in scenes
 - **Poses**: *My poses* in the asset browser (Use adds a Pose beat), or the Pose beat's properties.
 - **Animations**: *My animations* in the asset browser. Select an actor and **Use**, drop it on an actor on the stage, or drop it on the storyboard: a Clip beat appears with its roles cast. The Clip beat's properties change the cast, **Mirror** it, and swap poses for whoever plays it (*Make a copy for <character>* on a pose makes that copy: it switches the live layers, masks and colour samples to the new character and tells you if their rig lacks a mask).
+- **Outfits**: a **Costume** beat with *Wear an outfit you made* puts one on (pick it under *Outfit*); *Back to their usual look* takes it off. An actor can also wear one from the start (*Outfit at the start*). The stage shows them in it from that beat on.
 - **Preview in game** (F5) in the Character Studio plays the open pose, animation, expression or portrait in a short temporary scene at the location of the scene you have open, with the preview's cast and Mirror.
 
 ### 11.6 My library
 *Save to My library* (right-click a pose or animation) copies it, with everything it needs (its art, masks, rigs, and for animations the poses and expressions it plays), into `%APPDATA%\SDCharacterStudio\Library`. In any project, **My library › Use** copies it into that pack: items the pack already has unchanged are reused, a clash gets a new name (`bow-2`), and a pack that already rigs the character keeps its own rig. The pack then works without the library. Using an item again offers **Update it** (refresh the copy from the library) or **Add a copy**.
+
+### 11.7 Outfits
+An **outfit** is your own version of a villager's whole sprite sheet: new clothes for Abigail, a raincoat for Robin.
+- **Make one:** press **+** beside *Outfit* under the character (or on the *Outfits* shelf) and name it. It starts from what the studio shows: her own look, a game outfit (the Flower Dance…), or another of your outfits. Every frame of her sheet is there, in the game's places: the four walking directions first, then her special frames.
+- **Paint the clothes on:** each frame is one picture, like a pose. Pick the four steps of a walk in the strip (Shift+click) and draw once to draw on all of them; then fix each step where she moves. Her face and hair stay live, so they follow sprite mods under your paint. The preview walks her in the direction of the frame you're on. Frames can't be added, removed or moved: the game picks them by their place.
+- **See her in it:** your outfits come first in the *Outfit* picker (marked *your outfit*). Picked, the whole studio shows her in it: the character card, poses, *Her frames* and the ready-made poses.
+- **Poses in your outfit:** with your outfit shown, start a pose's frame from *Her frames*. The pose then always wears that outfit (the *Outfit* section says so), and stays linked: paint more on the outfit and every pose made from it shows it.
+- **In scenes:** see §11.5. In the game the outfit replaces her sheet while she wears it, so walking and the game's own animations keep working.
+- **In the pack:** an outfit is a pose of kind `sheet`. A pose wears one with a live layer whose source is `{ "Kind": "Outfit", "Outfit": "<its ID>" }`. An outfit can be made from another outfit, never from itself (Problems says so).
 
 ## Keyboard shortcuts
 

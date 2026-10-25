@@ -38,6 +38,8 @@ public sealed class PoseCompositor
     public Func<Farmer,long> FarmerVisibilityVersion { get; set; }=_=>0;
     public Func<NPC,Texture2D> PortraitSource { get; set; }=npc=>npc.Portrait;
     public Action<IEnumerable<string>>? PortraitSourcesInvalidated {get;set;}
+    /// <summary>One of a pack's outfits (a sheet pose) as its generated sheet, for layers that wear it (Kind "Outfit").</summary>
+    public Func<LoadedPack,string,(Texture2D Texture,string Asset)>? OutfitSource {get;set;}
 
     public PoseCompositor(IModHelper helper,IMonitor monitor,NpcSource? source=null)
     { this.helper=helper;this.monitor=monitor;this.source=source ?? new NpcSource();Farmers=new(helper); }
@@ -85,7 +87,8 @@ public sealed class PoseCompositor
             throw new ArgumentException("Pose sheet dimensions must contain complete cells for every frame.");
         var canvas=new RgbaImage(width,height,new uint[checked(width*height)]);
         var farmer=FarmerSource();
-        var resolver=new RuntimeLayerSourceResolver(helper,pack,library,pose,findNpc,source,facing,Farmers,farmer,FilterFarmerParts,PortraitSource);
+        var resolver=new RuntimeLayerSourceResolver(helper,pack,library,pose,findNpc,source,facing,Farmers,farmer,FilterFarmerParts,PortraitSource,
+            OutfitSource is {} outfits ? id=>outfits(library,id) : null);
         bool farmerColors=false;
         var colors=new ColorSlotResolver(library,resolver.SampleFrame,message=>monitor.Log(message,LogLevel.Trace),sample=>{farmerColors=true;return FarmerPalette.Resolve(Farmers,farmer,sample);});
         var transform=expression!=null?new ExpressionSourceTransform(pack,library,pose,resolver,colors.Resolve,expression,facing):null;

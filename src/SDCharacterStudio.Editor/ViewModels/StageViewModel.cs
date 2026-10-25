@@ -584,7 +584,9 @@ public sealed partial class StageActorViewModel : ObservableObject
         else
         {
             string? asset = Look.SpriteAsset ?? actor.Sprite?.Asset;
-            if (Look.SpriteAsset != null && Look.SpriteAsset != actor.Sprite?.Asset) Outfit = "Wearing " + Look.SpriteAsset.Split('/').Last();
+            string? starting = actor.Sprite?.Pose is { } startOutfit ? StudioContext.OutfitKey(startOutfit) : actor.Sprite?.Asset;
+            if (Look.SpriteAsset != null && Look.SpriteAsset != starting)
+                Outfit = "Wearing " + (StudioContext.OutfitId(Look.SpriteAsset) is { } yours ? OutfitFactory.Label(yours, actor.Npc ?? Id) : Look.SpriteAsset.Split('/').Last());
             if (Kind == "Npc")
             {
                 var character = catalog?.Character(actor.Npc ?? Id);
@@ -594,7 +596,10 @@ public sealed partial class StageActorViewModel : ObservableObject
             }
             else if (actor.FrameSize is { Length: 2 } size) { frameWidth = size[0]; frameHeight = size[1]; }
             int facingRow = Facing switch { "right" => 1, "up" => 2, "left" => 3, _ => 0 };
-            Sprite = Images.Frame(catalog?.TextureFile(asset), frameWidth, frameHeight, facingRow * 4);
+            // One of the pack's outfits is drawn by the studio (edits included); a game sheet comes from the export.
+            Sprite = StudioContext.OutfitId(asset) is { } own
+                ? stage.Shell.CharacterStudio.Context.OutfitSheet(own) is { } sheet && StudioImages.Frame(sheet, frameWidth, frameHeight, facingRow * 4) is { } frame ? StudioImages.ToBitmap(frame) : null
+                : Images.Frame(catalog?.TextureFile(asset), frameWidth, frameHeight, facingRow * 4);
             // NPC.draw: the frame's bottom sits on the tile's bottom edge, centred on the tile (doc 03 §1.3).
             DrawX = TileX * StageViewModel.Tile + StageViewModel.Tile / 2.0 - frameWidth / 2.0 + pxX;
             DrawY = TileY * StageViewModel.Tile + StageViewModel.Tile - frameHeight + pxY;

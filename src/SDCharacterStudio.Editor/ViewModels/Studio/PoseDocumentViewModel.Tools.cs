@@ -209,10 +209,17 @@ public partial class PoseDocumentViewModel
     private void EndStroke(string label)
     {
         if (stroke is not { } done) return;
+        var before = strokeBase;
         stroke = null; strokeStart = null; strokeLast = null; strokeBase = null; strokePath.Clear();
         try
         {
-            if (strokeChanged) Save(label, _ => { }, lib => lib.WriteImage(done.Path, done.Image), rebuildFields: false);
+            // Drawing on a picture with several frames picked draws the same pixels on all of them.
+            bool all = HasSeveralPicked && before != null && Flat is { } flat && string.Equals(flat.Paint.Image, done.Path, StringComparison.OrdinalIgnoreCase);
+            if (strokeChanged) Save(all ? OnPicked(label) : label, _ => { }, lib =>
+            {
+                lib.WriteImage(done.Path, done.Image);
+                if (all) CopyChangesToOtherPicked(lib, null, (before!, done.Image));
+            }, rebuildFields: false);
             if (strokeChanged && strokeColor >> 24 != 0) Palette.Remember(strokeColor);
         }
         finally

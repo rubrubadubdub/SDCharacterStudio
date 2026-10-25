@@ -32,6 +32,15 @@ public static class References
             Keys(clip.Tracks);
             library.SaveClip(clip);
         }
+        // Poses (and outfits) that wear a renamed outfit.
+        foreach (var item in library.Items(LibraryKind.Pose).ToArray())
+        {
+            if (library.Pose(item.Id) is not { } pose) continue;
+            var wearing = pose.Frames.SelectMany(f => f.Layers).OfType<LiveLayer>().Where(l => Core.Compositing.Outfits.IsOutfitSource(l.Source) && Same(l.Source!.Outfit)).ToList();
+            if (wearing.Count == 0) continue;
+            foreach (var live in wearing) live.Source!.Outfit = next;
+            library.SavePose(pose);
+        }
     }
 
     /// <summary>A mask's new ID in the poses and portraits that cut with it and the rigs that use it as a head mask.</summary>
@@ -108,6 +117,10 @@ public static class References
             foreach (var item in library.Items(LibraryKind.Pose))
                 if (library.Pose(item.Id) is { } pose && pose.Frames.SelectMany(f => f.Layers).Any(l => Same(l.Mask)))
                     uses.Add("pose " + item.Id);
+        if (kind == LibraryKind.Pose)
+            foreach (var item in library.Items(LibraryKind.Pose))
+                if (library.Pose(item.Id) is { } pose && Core.Compositing.Outfits.Worn(pose).Any(Same))
+                    uses.Add((pose.Kind == "sheet" ? "outfit " : "pose ") + item.Id);
         return uses;
     }
 }

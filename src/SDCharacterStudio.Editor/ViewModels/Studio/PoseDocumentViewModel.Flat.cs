@@ -26,7 +26,7 @@ public partial class PoseDocumentViewModel
     public FlatFrame? Flat => FlatOf(Frame);
     public bool IsFlat => Flat != null;
     /// <summary>A character frame made of layers: the simple editor offers to make it one picture.</summary>
-    public bool CanFlatten => !IsFlat && Model.Kind == "character" && Frame?.Layers.Any(l => l is LiveLayer { Part: "Full" }) == true;
+    public bool CanFlatten => !IsFlat && Model.Kind is "character" or "sheet" && Frame?.Layers.Any(l => l is LiveLayer { Part: "Full" }) == true;
 
     private FlatGesture? flatGesture;
 
@@ -162,9 +162,11 @@ public partial class PoseDocumentViewModel
         try
         {
             if (g.Changed)
-                Save(g.Kind == "erase" ? "Erase" : "Move pixels", _ => { }, lib =>
+                Save(g.Kind == "erase" ? OnPicked("Erase") : "Move pixels", _ => { }, lib =>
                 {
                     lib.WriteImage(g.MapPath, g.Map); lib.WriteImage(g.PaintPath, g.Paint);
+                    // Erasing with several frames picked erases the same pixels on all of them.
+                    if (g.Kind == "erase") CopyChangesToOtherPicked(lib, (g.BaseMap, g.Map), (g.BasePaint, g.Paint));
                     // The other picked frames move the same way.
                     if (g.Kind == "move" && g.Shape != null && g.Delta != (0, 0)) TransformOtherPicked(lib, g.Shape, new PieceTransform(g.Delta.X, g.Delta.Y, 1, 1, 0, 0, 0), g.Copy);
                 }, rebuildFields: false);

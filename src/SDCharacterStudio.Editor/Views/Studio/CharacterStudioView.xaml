@@ -140,6 +140,9 @@
                         <!-- Outfits (D-49): see her in any season, festival or mod outfit the game has. -->
                         <DockPanel Margin="0,6,0,0" Visibility="{Binding Outfits.Count, Converter={StaticResource VisibleWhen}}">
                             <TextBlock DockPanel.Dock="Left" Text="Outfit" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Margin="4,0,0,0" Command="{Binding MakeOutfitCommand}"
+                                       Visibility="{Binding CanMakeOutfit, Converter={StaticResource VisibleWhen}}"
+                                       ToolTip="New outfit: her whole sprite sheet, starting from the outfit shown, to paint clothes on" />
                             <ComboBox ItemsSource="{Binding Outfits}" SelectedItem="{Binding Outfit}" MaxDropDownHeight="420"
                                       ToolTip="See her in another outfit: seasons, festivals (the Flower Dance...) and outfits from mods. Poses stay live: in the game she wears whatever the day gives her, unless a pose always wears one.">
                                 <ComboBox.ItemTemplate>
@@ -215,7 +218,7 @@
                                     <Expander.Header>
                                         <DockPanel>
                                             <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" ToolTip="{Binding NewLabel}"
-                                                       Command="{Binding DataContext.NewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Kind}" />
+                                                       Command="{Binding NewCommand}" />
                                             <StackPanel Orientation="Horizontal">
                                                 <ui:SymbolIcon Symbol="{Binding Icon}" Margin="0,0,8,0" />
                                                 <TextBlock Text="{Binding Header}" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -272,7 +275,8 @@
                     <WrapPanel HorizontalAlignment="Center" IsEnabled="{Binding HasProject}">
                         <ui:Button Content="New pose" Icon="{ui:SymbolIcon Accessibility24}" Appearance="Primary" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Pose}" />
                         <ui:Button Content="New animation" Icon="{ui:SymbolIcon VideoClipMultiple24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Clip}" />
-                        <ui:Button Content="New walk sheet" Icon="{ui:SymbolIcon Grid24}" Margin="4" Command="{Binding NewSheetPoseCommand}" />
+                        <ui:Button Content="New outfit" Icon="{ui:SymbolIcon Grid24}" Margin="4" Command="{Binding MakeOutfitCommand}"
+                                   ToolTip="Her whole sprite sheet, to paint clothes on. She can wear it in scenes, and poses can start from it." />
                         <ui:Button Content="New effect" Icon="{ui:SymbolIcon Sparkle24}" Margin="4" Command="{Binding NewEffectCommand}" />
                         <ui:Button Content="New mask" Icon="{ui:SymbolIcon CircleHalfFill24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Mask}" />
                         <ui:Button Content="New expression" Icon="{ui:SymbolIcon EmojiSmileSlight24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Expression}" />

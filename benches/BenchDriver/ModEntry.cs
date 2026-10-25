@@ -157,11 +157,35 @@ public sealed class ModEntry : Mod
                 Game1.warpFarmer((string?)request["Location"] ?? throw new ArgumentException("Missing Location"),
                     (int?)request["X"] ?? 0, (int?)request["Y"] ?? 0, (int?)request["Facing"] ?? 0);
                 return new JObject { ["Warping"] = true };
+            case "looks":
+                // What villagers wear (outfit checks): each event actor's sheet and one of its pixels, and the same pixel of
+                // every stand-in a pose draws (generated textures have no asset name).
+                int x = (int?)request["X"] ?? 0, y = (int?)request["Y"] ?? 0;
+                return new JObject
+                {
+                    ["Actors"] = new JArray((Game1.CurrentEvent?.actors ?? new List<NPC>()).Select(a => new JObject
+                    {
+                        ["Name"] = a.Name, ["Sheet"] = a.Sprite.loadedTexture, ["Size"] = new JArray(a.Sprite.Texture.Width, a.Sprite.Texture.Height),
+                        ["Pixel"] = Pixel(a.Sprite.Texture, x, y), ["Invisible"] = a.IsInvisible,
+                    })),
+                    ["StandIns"] = new JArray((Game1.currentLocation?.temporarySprites.ToList() ?? new List<TemporaryAnimatedSprite>())
+                        .Where(s => s.texture != null && string.IsNullOrEmpty(s.texture.Name) && s.sourceRect.Width > 0)
+                        .Select(s => Pixel(s.texture, s.sourceRect.X + x, s.sourceRect.Y + y))),
+                };
             case "finish":
                 Write("finished.json", new { Ok = true, Tick = ticks });
                 return new JObject { ["Finished"] = true };
             default: throw new ArgumentException("Unknown check " + check);
         }
+    }
+
+    /// <summary>One texture pixel as #AARRGGBB (null outside it).</summary>
+    private static string? Pixel(Microsoft.Xna.Framework.Graphics.Texture2D texture, int x, int y)
+    {
+        if (x < 0 || y < 0 || x >= texture.Width || y >= texture.Height) return null;
+        var data = new Color[1];
+        texture.GetData(0, new Rectangle(x, y, 1, 1), data, 0, 1);
+        return $"#{data[0].A:X2}{data[0].R:X2}{data[0].G:X2}{data[0].B:X2}";
     }
 
     private void Write(string name, object value)
