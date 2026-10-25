@@ -1,0 +1,180 @@
+<UserControl x:Class="SDCharacterStudio.Editor.Views.AssetBrowserView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:SDCharacterStudio.Editor.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:AssetBrowserViewModel}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="46" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Category rail (Canva-style) -->
+        <Border Grid.Column="0" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,0,0,6">
+            <ListBox ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden" Padding="0,4">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="ToolTip" Value="{Binding Name}" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Grid Background="Transparent" Height="38">
+                                        <Border x:Name="Bg" Margin="5,1" CornerRadius="5" Background="Transparent" />
+                                        <Rectangle x:Name="Mark" Width="3" HorizontalAlignment="Left" Margin="0,9" RadiusX="1.5" RadiusY="1.5"
+                                                   Fill="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" />
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{StaticResource CardBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{StaticResource CardHoverBrush}" />
+                                            <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:AssetCategory}">
+                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="19" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+
+        <DockPanel Grid.Column="1" Margin="8,8,6,6">
+            <!-- Header -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding CountText}" Style="{StaticResource Faint}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                <TextBlock Text="{Binding SelectedCategory.Name}" Style="{StaticResource Heading}" FontSize="14" />
+            </DockPanel>
+            <ui:TextBox DockPanel.Dock="Top" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Search names and IDs"
+                        Icon="{ui:SymbolIcon Search24}" ClearButtonEnabled="True" Margin="0,0,0,6" />
+            <ComboBox DockPanel.Dock="Top" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" Margin="0,0,0,8"
+                      ToolTip="Show only vanilla content, or one mod's content" />
+
+            <!-- No export yet -->
+            <Border DockPanel.Dock="Top" Background="#332A2410" BorderBrush="{StaticResource WarningBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                    Visibility="{Binding ShowBanner, Converter={StaticResource VisibleWhen}}">
+                <StackPanel>
+                    <TextBlock Text="No game export" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding Banner}" Style="{StaticResource Caption}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <ui:Button Content="Reload" Command="{Binding Shell.LoadCatalogCommand}" Margin="0,0,6,0" />
+                        <ui:Button Content="Settings…" Command="{Binding Shell.OpenSettingsCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Selected asset -->
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="8" Margin="0,8,0,0"
+                    Visibility="{Binding Selected, Converter={StaticResource VisibleWhen}}">
+                <DockPanel>
+                    <Border DockPanel.Dock="Left" Width="64" Height="64" Background="{StaticResource StageBackdropBrush}" CornerRadius="4" Margin="0,0,8,0">
+                        <Grid>
+                            <Image Source="{Binding Selected.Image}" Style="{StaticResource Pixel}" Stretch="Uniform" Margin="2" />
+                            <ui:SymbolIcon Symbol="Speaker224" FontSize="24" Visibility="{Binding Selected.IsSoundLike, Converter={StaticResource VisibleWhen}}" />
+                        </Grid>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="{Binding Selected.Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Selected.Key}" Style="{StaticResource Faint}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                        <TextBlock Text="{Binding Selected.OriginText}" Style="{StaticResource Caption}" Margin="0,3,0,4" />
+                        <ui:Button Content="Use" Icon="{ui:SymbolIcon Add24}" Command="{Binding Selected.UseCommand}" Padding="10,3"
+                                   ToolTip="Same as double-click: characters join the stage, items, sounds and emotes become beats, locations set the stage." />
+                        <StackPanel Visibility="{Binding Selected.IsSoundLike, Converter={StaticResource VisibleWhen}}" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Content="Play" Command="{Binding Shell.PlaySoundPreviewCommand}" CommandParameter="{Binding Selected.Key}" Padding="8,3" Margin="0,0,4,0" />
+                                <ui:Button Content="Stop" Command="{Binding Shell.StopSoundPreviewCommand}" Padding="8,3" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding Shell.AudioStatus}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <ui:Button DockPanel.Dock="Bottom" Content="{Binding ShowMoreText}" Command="{Binding ShowMoreCommand}" FontSize="12" HorizontalAlignment="Stretch" Margin="0,6,0,0"
+                       Visibility="{Binding HasMore, Converter={StaticResource VisibleWhen}}" />
+
+            <Grid>
+                <ListBox x:Name="Thumbnails" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel"
+                         PreviewMouseLeftButtonDown="Thumbnails_PreviewMouseLeftButtonDown" PreviewMouseMove="Thumbnails_PreviewMouseMove"
+                         MouseDoubleClick="Thumbnails_MouseDoubleClick">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ui:VirtualizingWrapPanel Orientation="Vertical" ItemSize="84,98" SpacingMode="Uniform" StretchItems="False" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bg" Margin="2" CornerRadius="6" Background="Transparent" BorderThickness="1.5" BorderBrush="Transparent">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource CardBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource CardHoverBrush}" />
+                                                <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:AssetItemViewModel}">
+                            <Grid Width="80" Height="94" Background="Transparent">
+                                <Grid.ToolTip>
+                                    <StackPanel MaxWidth="280">
+                                        <Image Source="{Binding Image}" Style="{StaticResource Pixel}" Stretch="Uniform" MaxWidth="192" MaxHeight="192" HorizontalAlignment="Left" Margin="0,0,0,6" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Key}" Style="{StaticResource Faint}" />
+                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" Visibility="{Binding Detail, Converter={StaticResource VisibleWhen}}" />
+                                        <TextBlock Text="{Binding OriginText}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Grid.ToolTip>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="66" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Margin="4,4,4,0" CornerRadius="4" Background="{StaticResource StageBackdropBrush}">
+                                    <Grid>
+                                        <Image Source="{Binding Image}" Style="{StaticResource Pixel}" Stretch="Uniform" Margin="3" />
+                                        <ui:SymbolIcon Symbol="Speaker224" FontSize="22" Visibility="{Binding IsSoundLike, Converter={StaticResource VisibleWhen}}" />
+                                    </Grid>
+                                </Border>
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,1,0" CornerRadius="7" Padding="4,0" MinWidth="14" Height="14"
+                                        Background="{Binding Badge, Converter={StaticResource BadgeBrush}}" Visibility="{Binding HasBadge, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Text="{Binding BadgeText}" FontSize="9" FontWeight="Bold" Foreground="#1B1B1B" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="11" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                           MaxHeight="28" Margin="3,3,3,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Text="{Binding EmptyText}" Style="{StaticResource Caption}" TextAlignment="Center" VerticalAlignment="Center" Margin="12"
+                           Visibility="{Binding EmptyText, Converter={StaticResource VisibleWhen}}" />
+            </Grid>
+        </DockPanel>
+    </Grid>
+</UserControl>

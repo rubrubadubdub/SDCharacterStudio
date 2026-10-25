@@ -1,0 +1,11 @@
+{
+  "Name": "NoCode Bench",
+  "Author": "SDCharacterStudio",
+  "Version": "1.0.0",
+  "Description": "Cutscenes made with SDCharacterStudio.",
+  "UniqueID": "Bench.SdcsNoCode",
+  "ContentPackFor": {
+    "UniqueID": "Player.SDCharacterStudio",
+    "MinimumVersion": "0.1.0"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "Title": "step and bow",
+  "Duration": 2000,
+  "Roles": [
+    {
+      "Id": "robin",
+      "Kind": "Npc"
+    }
+  ],
+  "Tracks": [
+    {
+      "Role": "robin",
+      "Position": [
+        {
+          "Tile": [
+            0,
+            0
+          ],
+          "At": 0
+        },
+        {
+          "Tile": [
+            -1,
+            0
+          ],
+          "At": 600
+        }
+      ],
+      "Pose": [
+        {
+          "Pose": "robin-bow",
+          "Play": "once-then-loop",
+          "At": 600
+        }
+      ]
+    }
+  ],
+  "Id": "step-and-bow",
+  "Format": "1.0"
+}

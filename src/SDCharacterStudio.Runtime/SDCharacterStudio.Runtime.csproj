@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SDCharacterStudio.Runtime</AssemblyName>
+    <RootNamespace>SDCharacterStudio.Runtime</RootNamespace>
+    <Version>0.1.0</Version>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableHarmony>true</EnableHarmony>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <ModFolderName>SDCharacterStudio</ModFolderName>
+    <!-- SMAPI supplies game and third-party dependencies. Only our assemblies are bundled. -->
+    <BundleExtraAssemblies></BundleExtraAssemblies>
+    <IgnoreModFilePatterns>\.py$, ^tools[/\\]</IgnoreModFilePatterns>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" ExcludeAssets="runtime" />
+    <ProjectReference Include="..\SDCharacterStudio.Core\SDCharacterStudio.Core.csproj" />
+  </ItemGroup>
+</Project>

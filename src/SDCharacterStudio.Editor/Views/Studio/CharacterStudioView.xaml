@@ -1,0 +1,278 @@
+<UserControl x:Class="SDCharacterStudio.Editor.Views.Studio.CharacterStudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:SDCharacterStudio.Editor.ViewModels"
+             xmlns:studio="clr-namespace:SDCharacterStudio.Editor.Views.Studio"
+             xmlns:lib="clr-namespace:SDCharacterStudio.Editor.Studio"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:CharacterStudioViewModel}"
+             d:DesignWidth="1400" d:DesignHeight="800">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/SDCharacterStudio.Editor;component/Views/FieldTemplates.xaml" />
+                <ResourceDictionary Source="/SDCharacterStudio.Editor;component/Views/Studio/StudioTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Editors by item kind -->
+            <DataTemplate DataType="{x:Type vm:PoseDocumentViewModel}">
+                <studio:PoseEditorView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AnimationDocumentViewModel}">
+                <studio:AnimationEditorView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:MaskDocumentViewModel}">
+                <studio:MaskEditorView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:RigDocumentViewModel}">
+                <studio:RigEditorView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ExpressionDocumentViewModel}">
+                <studio:ExpressionEditorView />
+            </DataTemplate>
+            <!-- Portraits use the pose editor (PortraitDocumentViewModel is a PoseDocumentViewModel). -->
+            <DataTemplate DataType="{x:Type vm:StudioDocumentViewModel}">
+                <Border Style="{StaticResource Panel}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="16" MaxWidth="560" HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource Heading}" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Fields}" IsTabStop="False" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate x:Key="PersonalItem" DataType="{x:Type vm:PersonalItemViewModel}">
+                <Border Background="Transparent" Padding="4,3" CornerRadius="4" ToolTip="{Binding Tooltip}" Cursor="Hand">
+                    <Border.InputBindings>
+                        <MouseBinding Gesture="LeftDoubleClick" Command="{Binding Studio.UseFromMyLibraryCommand}" CommandParameter="{Binding}" />
+                    </Border.InputBindings>
+                    <Border.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Use in this pack" Command="{Binding Studio.UseFromMyLibraryCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon ArrowDownload24}" />
+                            <Separator />
+                            <MenuItem Header="Delete from My library" Command="{Binding Studio.DeleteFromMyLibraryCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon Delete24}" />
+                        </ContextMenu>
+                    </Border.ContextMenu>
+                    <DockPanel>
+                        <ui:Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Use" Command="{Binding Studio.UseFromMyLibraryCommand}" CommandParameter="{Binding}"
+                                   ToolTip="Copy it into this pack (with its art, masks and rigs)" VerticalAlignment="Center" />
+                        <Border DockPanel.Dock="Left" Width="34" Height="34" Margin="0,0,8,0" Background="{StaticResource StageBackdropBrush}" CornerRadius="4">
+                            <Image Source="{Binding Thumbnail}" Style="{StaticResource Pixel}" Stretch="Uniform" Margin="1" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="12" />
+                                <Border Style="{StaticResource Chip}" Margin="6,0,0,0" Visibility="{Binding InThisPack, Converter={StaticResource VisibleWhen}}">
+                                    <TextBlock Text="in this pack" FontSize="10" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Faint}" FontSize="11" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </DataTemplate>
+
+            <DataTemplate x:Key="LibraryItem" DataType="{x:Type vm:LibraryItemViewModel}">
+                <DockPanel Background="Transparent" ToolTip="{Binding Id}">
+                    <DockPanel.InputBindings>
+                        <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenCommand}" />
+                    </DockPanel.InputBindings>
+                    <DockPanel.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Open" Command="{Binding OpenCommand}" Icon="{ui:SymbolIcon Open24}" />
+                            <MenuItem Header="Duplicate" Command="{Binding Studio.DuplicateCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon Copy24}" />
+                            <MenuItem Header="{Binding Studio.CopyForLabel}" Command="{Binding Studio.CopyForCharacterCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon PeopleSwap24}"
+                                      Visibility="{Binding IsPose, Converter={StaticResource VisibleWhen}}" />
+                            <MenuItem Header="Use in the current scene" Command="{Binding Studio.UseInSceneCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon VideoClipMultiple24}"
+                                      Visibility="{Binding IsAnimation, Converter={StaticResource VisibleWhen}}" />
+                            <MenuItem Header="Save to My library" Command="{Binding Studio.SaveToMyLibraryCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon BookAdd24}"
+                                      Visibility="{Binding CanSaveToMyLibrary, Converter={StaticResource VisibleWhen}}" />
+                            <Separator />
+                            <MenuItem Header="Delete" Command="{Binding Studio.DeleteCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon Delete24}" />
+                        </ContextMenu>
+                    </DockPanel.ContextMenu>
+                    <Border DockPanel.Dock="Left" Width="34" Height="34" Margin="0,0,8,0" Background="{StaticResource StageBackdropBrush}" CornerRadius="4">
+                        <Image Source="{Binding Thumbnail}" Style="{StaticResource Pixel}" Stretch="Uniform" Margin="1" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="12" />
+                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Faint}" FontSize="11" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </DockPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="290" MinWidth="220" />
+            <ColumnDefinition Width="6" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== Character and library ===== -->
+        <Border Grid.Column="0" Style="{StaticResource Panel}">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,6,0,0" Padding="12,10">
+                    <StackPanel>
+                        <TextBlock Text="CHARACTER" Style="{StaticResource PanelTitle}" Margin="0,0,0,6" />
+                        <ComboBox ItemsSource="{Binding Characters}" SelectedItem="{Binding Character}" ToolTip="Who you're making poses and animations for">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:CharacterChoice}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Label}" />
+                                        <TextBlock Text="{Binding Detail, StringFormat='  ·  {0}'}" Style="{StaticResource Faint}" TextWrapping="NoWrap" VerticalAlignment="Center"
+                                                   Visibility="{Binding Detail, Converter={StaticResource VisibleWhen}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <!-- Outfits (D-49): see her in any season, festival or mod outfit the game has. -->
+                        <DockPanel Margin="0,6,0,0" Visibility="{Binding Outfits.Count, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock DockPanel.Dock="Left" Text="Outfit" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ComboBox ItemsSource="{Binding Outfits}" SelectedItem="{Binding Outfit}" MaxDropDownHeight="420"
+                                      ToolTip="See her in another outfit: seasons, festivals (the Flower Dance...) and outfits from mods. Poses stay live: in the game she wears whatever the day gives her, unless a pose always wears one.">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:OutfitChoice}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Label}" />
+                                            <TextBlock Text="{Binding Detail, StringFormat='  ·  {0}'}" Style="{StaticResource Faint}" TextWrapping="NoWrap" VerticalAlignment="Center"
+                                                       Visibility="{Binding Detail, Converter={StaticResource VisibleWhen}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding CharacterFrames}" Margin="0,8,0,0" Height="56" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource StageBackdropBrush}" CornerRadius="4" Margin="0,0,6,0" Padding="2">
+                                        <Image Source="{Binding}" Style="{StaticResource Pixel}" Height="52" Stretch="Uniform" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <DockPanel Margin="0,6,0,0">
+                            <ui:Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Rig…" Command="{Binding MakeRigCommand}"
+                                       ToolTip="The rig says where this character's head, neck and face are, and which colours to sample. Made automatically when needed." />
+                            <TextBlock Text="{Binding RigStatus}" Style="{StaticResource Faint}" FontSize="11" />
+                        </DockPanel>
+                        <Border Margin="0,8,0,0" Padding="8,6" CornerRadius="5" Background="{StaticResource PanelHeaderBrush}"
+                                BorderBrush="{StaticResource WarningBrush}" BorderThickness="1"
+                                Visibility="{Binding ShowsFashionSenseWarning, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="Fashion Sense is installed. Farmer preview uses vanilla parts and does not reproduce Fashion Sense outfits; in-game preview remains available."
+                                       Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,8,10,0" HorizontalAlignment="Left">
+                    <RadioButton Style="{StaticResource WorkspaceSwitch}" Content="This pack" GroupName="Shelf" IsChecked="{Binding ShowMyLibrary, Converter={StaticResource Not}}"
+                                 ToolTip="Poses, animations, masks, rigs, expressions and portraits in this pack" />
+                    <RadioButton Style="{StaticResource WorkspaceSwitch}" Content="My library" GroupName="Shelf" IsChecked="{Binding ShowMyLibrary}"
+                                 ToolTip="Your own poses and animations, for every project" />
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="10,8,10,4">
+                    <ui:TextBox PlaceholderText="Search poses, animations…" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged, Delay=250}" Icon="{ui:SymbolIcon Search24}" />
+                    <CheckBox Content="Only this character's items" IsChecked="{Binding OnlyThisCharacter}" Margin="0,4,0,0" />
+                </StackPanel>
+
+                <!-- My library -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding ShowMyLibrary, Converter={StaticResource VisibleWhen}}">
+                    <StackPanel Margin="8,0,8,8">
+                        <TextBlock Style="{StaticResource Caption}" Margin="2,4,2,8"
+                                   Text="Save a pose or animation here from its menu (Save to My library). Use copies it into this pack with its art, masks and rigs, so the pack works without the library." />
+                        <TextBlock Text="ANIMATIONS" Style="{StaticResource PanelTitle}" Margin="2,4,0,4" />
+                        <TextBlock Text="None yet." Style="{StaticResource Faint}" Margin="4,0,0,4" Visibility="{Binding MyAnimations.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" />
+                        <ItemsControl ItemsSource="{Binding MyAnimations}" ItemTemplate="{StaticResource PersonalItem}" Focusable="False" />
+                        <TextBlock Text="POSES" Style="{StaticResource PanelTitle}" Margin="2,10,0,4" />
+                        <TextBlock Text="None yet." Style="{StaticResource Faint}" Margin="4,0,0,4" Visibility="{Binding MyPoses.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" />
+                        <ItemsControl ItemsSource="{Binding MyPoses}" ItemTemplate="{StaticResource PersonalItem}" Focusable="False" />
+                        <ui:Button Style="{StaticResource LinkButton}" Content="Show the library folder" Command="{Binding ShowMyLibraryFolderCommand}" Margin="0,10,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding ShowMyLibrary, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                    <ItemsControl ItemsSource="{Binding Sections}" Margin="6,0,6,8" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:LibrarySectionViewModel}">
+                                <Expander IsExpanded="{Binding IsExpanded}" Margin="0,4,0,0" Padding="2" Visibility="{Binding IsShown, Converter={StaticResource VisibleWhen}}">
+                                    <Expander.Header>
+                                        <DockPanel>
+                                            <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" ToolTip="{Binding NewLabel}"
+                                                       Command="{Binding DataContext.NewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Kind}" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <ui:SymbolIcon Symbol="{Binding Icon}" Margin="0,0,8,0" />
+                                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Expander.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="Nothing yet." Style="{StaticResource Faint}" Margin="6,2"
+                                                   Visibility="{Binding Items.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" />
+                                        <ListBox ItemsSource="{Binding Items}" ItemTemplate="{StaticResource LibraryItem}" Background="Transparent" BorderThickness="0"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="List_PreviewMouseWheel">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                                    <Setter Property="Padding" Value="4,3" />
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                    </StackPanel>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <GridSplitter Grid.Column="1" Style="{StaticResource ThinSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" />
+
+        <!-- ===== Open items ===== -->
+        <Grid Grid.Column="2">
+            <TabControl ItemsSource="{Binding Documents}" SelectedItem="{Binding ActiveDocument}" Padding="0,4,0,0"
+                        Visibility="{Binding HasDocuments, Converter={StaticResource VisibleWhen}}">
+                <TabControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:StudioDocumentViewModel}">
+                        <StackPanel Orientation="Horizontal" ToolTip="{Binding ItemId}">
+                            <ui:SymbolIcon Symbol="{Binding Icon}" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding Title}" MaxWidth="200" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Dismiss16}" FontSize="10" Padding="3" Margin="6,0,0,0" Command="{Binding CloseCommand}" ToolTip="Close" />
+                        </StackPanel>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+            </TabControl>
+
+            <!-- Nothing open yet -->
+            <Border Style="{StaticResource Panel}" Visibility="{Binding HasDocuments, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                    <ui:SymbolIcon Symbol="Accessibility24" FontSize="48" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Character Studio" Style="{StaticResource Heading}" FontSize="22" HorizontalAlignment="Center" Margin="0,8,0,4" />
+                    <TextBlock Style="{StaticResource Caption}" TextAlignment="Center" Margin="0,0,0,16"
+                               Text="Make poses, sprites and animations for a character, then use them in any scene. Pick a character on the left, then start something, or double-click an item to open it." />
+                    <TextBlock Text="Open or create a project first (File › New project)." Style="{StaticResource Caption}" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Center"
+                               Visibility="{Binding HasProject, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" Margin="0,0,0,12" />
+                    <WrapPanel HorizontalAlignment="Center" IsEnabled="{Binding HasProject}">
+                        <ui:Button Content="New pose" Icon="{ui:SymbolIcon Accessibility24}" Appearance="Primary" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Pose}" />
+                        <ui:Button Content="New animation" Icon="{ui:SymbolIcon VideoClipMultiple24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Clip}" />
+                        <ui:Button Content="New walk sheet" Icon="{ui:SymbolIcon Grid24}" Margin="4" Command="{Binding NewSheetPoseCommand}" />
+                        <ui:Button Content="New effect" Icon="{ui:SymbolIcon Sparkle24}" Margin="4" Command="{Binding NewEffectCommand}" />
+                        <ui:Button Content="New mask" Icon="{ui:SymbolIcon CircleHalfFill24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Mask}" />
+                        <ui:Button Content="New expression" Icon="{ui:SymbolIcon EmojiSmileSlight24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Expression}" />
+                        <ui:Button Content="New portrait" Icon="{ui:SymbolIcon PersonCircle24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Portrait}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,48 @@
+{
+  "Title": "bow",
+  "Location": "ScienceHouse",
+  "Actors": [
+    {
+      "Id": "farmer",
+      "Kind": "Farmer",
+      "Start": {
+        "Tile": [
+          16,
+          9
+        ]
+      },
+      "Facing": "up"
+    },
+    {
+      "Id": "Robin",
+      "Kind": "Npc",
+      "Npc": "Robin",
+      "Start": {
+        "Tile": [
+          17,
+          6
+        ]
+      },
+      "Facing": "left"
+    }
+  ],
+  "Beats": [
+    {
+      "Type": "Clip",
+      "Clip": "step-and-bow",
+      "Cast": {
+        "robin": "Robin"
+      }
+    },
+    {
+      "Type": "Say",
+      "Actor": "Robin",
+      "Text": "Code bench: the engine lives in my mod's DLL."
+    }
+  ],
+  "OnEnd": {
+    "End": "stay"
+  },
+  "Id": "bow",
+  "Format": "1.0"
+}

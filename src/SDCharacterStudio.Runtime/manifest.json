@@ -1,0 +1,9 @@
+{
+  "Name": "SDCharacterStudio",
+  "Author": "rubrubadubdub",
+  "Version": "0.1.0",
+  "Description": "Runtime for SDCharacterStudio content packs.",
+  "UniqueID": "Player.SDCharacterStudio",
+  "EntryDll": "SDCharacterStudio.Runtime.dll",
+  "MinimumApiVersion": "4.0.0"
+}

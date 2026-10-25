@@ -1,0 +1,46 @@
+{
+  "Format": "1.0",
+  "Id": "farmer-floating",
+  "Kind": "character",
+  "FrameSize": [
+    32,
+    48
+  ],
+  "Pivot": [
+    16,
+    47
+  ],
+  "Facing": "down",
+  "Frames": [
+    {
+      "Duration": 1000,
+      "Anchors": {
+        "Neck": [
+          16,
+          32
+        ]
+      },
+      "Layers": [
+        {
+          "Type": "Paint",
+          "Image": "paint/body.png"
+        },
+        {
+          "Type": "Live",
+          "Source": {
+            "Kind": "Farmer"
+          },
+          "Part": "Head+Eyes+Hair+Hat+Accessory",
+          "SourceFrame": {
+            "Index": 0,
+            "Facing": "down"
+          },
+          "AnchorTo": {
+            "Anchor": "Neck",
+            "From": "rig"
+          }
+        }
+      ]
+    }
+  ]
+}

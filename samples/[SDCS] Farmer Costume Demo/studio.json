@@ -1,0 +1,12 @@
+{
+  "Format": "1.0",
+  "Cutscenes": [
+    "cutscenes/*.json"
+  ],
+  "Library": {
+    "Poses": [
+      "library/poses/*.json"
+    ],
+    "Costumes": "library/costumes.json"
+  }
+}

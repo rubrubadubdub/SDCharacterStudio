@@ -1,0 +1,57 @@
+{
+  "Masks": [
+    {
+      "Id": "robin-head-down",
+      "DisplayName": "Robin head, facing down",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/robin-head-down.png",
+      "Tags": [
+        "robin",
+        "head"
+      ]
+    },
+    {
+      "Id": "robin-head-right",
+      "DisplayName": "Robin head, facing right",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/robin-head-right.png",
+      "Tags": [
+        "robin",
+        "head"
+      ]
+    },
+    {
+      "Id": "robin-head-up",
+      "DisplayName": "Robin head, facing up",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/robin-head-up.png",
+      "Tags": [
+        "robin",
+        "head"
+      ]
+    },
+    {
+      "Id": "robin-head-left",
+      "DisplayName": "Robin head, facing left",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/robin-head-left.png",
+      "Tags": [
+        "robin",
+        "head"
+      ]
+    }
+  ],
+  "Format": "1.0"
+}

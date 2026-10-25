@@ -1,0 +1,40 @@
+{
+  "Format": "1.0",
+  "Id": "floating-head",
+  "Location": "ScienceHouse",
+  "Skippable": true,
+  "Trigger": {
+    "Once": false,
+    "Conditions": "FALSE"
+  },
+  "Actors": [
+    {
+      "Id": "farmer",
+      "Kind": "Farmer",
+      "Start": {
+        "Tile": [
+          16,
+          6
+        ]
+      },
+      "Facing": "down"
+    }
+  ],
+  "Beats": [
+    {
+      "Type": "Pose",
+      "Actor": "farmer",
+      "Pose": "farmer-floating",
+      "Play": "loop"
+    },
+    {
+      "Type": "Wait",
+      "Duration": 5000
+    },
+    {
+      "Type": "Pose",
+      "Actor": "farmer",
+      "Release": true
+    }
+  ]
+}

@@ -1,0 +1,581 @@
+<UserControl x:Class="SDCharacterStudio.Editor.Views.Studio.PoseEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:SDCharacterStudio.Editor.ViewModels"
+             xmlns:studio="clr-namespace:SDCharacterStudio.Editor.Views.Studio"
+             xmlns:inf="clr-namespace:SDCharacterStudio.Editor.Infrastructure"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:PoseDocumentViewModel}"
+             d:DesignWidth="1200" d:DesignHeight="760">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/SDCharacterStudio.Editor;component/Views/FieldTemplates.xaml" />
+                <ResourceDictionary Source="/SDCharacterStudio.Editor;component/Views/Studio/StudioTemplates.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="214" />
+            <ColumnDefinition Width="*" MinWidth="300" />
+            <ColumnDefinition Width="6" />
+            <ColumnDefinition Width="320" MinWidth="250" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== Tool rail (Aseprite's keys) ===== -->
+        <Border Grid.Column="0" Style="{StaticResource Panel}" Margin="0,0,6,0" Padding="5,6">
+            <StackPanel>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Select (M). Drag a box, then drag inside it to move what it shows; Ctrl+drag copies."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Select}">
+                    <Grid><ui:SymbolIcon Symbol="SelectObject24" /><TextBlock Text="M" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Move (V). Drag to move what the selection shows, or the whole picture; Ctrl+drag copies."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Move}">
+                    <Grid><ui:SymbolIcon Symbol="ArrowMove24" /><TextBlock Text="V" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Lasso (Q). Draw around what you want. Shift adds, Alt takes away."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Lasso}">
+                    <Grid><ui:SymbolIcon Symbol="Lasso24" /><TextBlock Text="Q" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Magic wand (W). Click a colour to select that area; Ctrl: that colour everywhere. Shift adds, Alt takes away."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Wand}">
+                    <Grid><ui:SymbolIcon Symbol="Wand24" /><TextBlock Text="W" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Pencil (B). [ and ] change the brush. Shift+click draws a line from the last point. Alt+click picks a colour."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Pencil}">
+                    <Grid><ui:SymbolIcon Symbol="Edit24" /><TextBlock Text="B" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Eraser (E). Erases what you see, even her own pixels."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Eraser}">
+                    <Grid><ui:SymbolIcon Symbol="Eraser24" /><TextBlock Text="E" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Fill (G). Ctrl+click fills that colour everywhere."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Fill}">
+                    <Grid><ui:SymbolIcon Symbol="PaintBucket24" /><TextBlock Text="G" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Eyedropper (I). Pick a colour, then you are back to your tool. Holding Alt does it with any tool."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Picker}">
+                    <Grid><ui:SymbolIcon Symbol="Eyedropper24" /><TextBlock Text="I" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Line (L). Shift snaps to 45 degrees."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Line}">
+                    <Grid><ui:SymbolIcon Symbol="Line24" /><TextBlock Text="L" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Rectangle (U). Shift makes a square."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Rectangle}">
+                    <Grid><ui:SymbolIcon Symbol="RectangleLandscape24" /><TextBlock Text="U" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Ellipse (Shift+U). Shift makes a circle."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Ellipse}">
+                    <Grid><ui:SymbolIcon Symbol="Oval24" /><TextBlock Text="&#x21E7;U" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Place an anchor (N): Neck, Hand... Heads are pinned to the Neck."
+                             Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}"
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Anchor}">
+                    <Grid><ui:SymbolIcon Symbol="Pin24" /><TextBlock Text="N" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
+                <Rectangle Height="1" Fill="{StaticResource SubtleLineBrush}" Margin="2,4,2,8" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon Resize24}" Command="{Binding TransformCommand}" ToolTip="Transform (Ctrl+T): move, scale and rotate the selection with handles" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon ArrowRotateClockwise24}" Command="{Binding RotateRightCommand}" ToolTip="Turn a quarter right (Shift+R)" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon ArrowRotateCounterclockwise24}" Command="{Binding RotateLeftCommand}" ToolTip="Turn a quarter left (Ctrl+Shift+R)" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon FlipHorizontal24}" Command="{Binding MirrorSelectionCommand}" ToolTip="Flip horizontally (H or Shift+H): the selection, or the whole frame" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon FlipVertical24}" Command="{Binding FlipSelectionVerticalCommand}" ToolTip="Flip vertically (Shift+V): the selection, or the whole frame" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon Keyboard24}" Command="{Binding ShowShortcutsCommand}" ToolTip="Keyboard shortcuts (F1 or ?)" Margin="0,8,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- ===== Colours ===== -->
+        <Border Grid.Column="1" Style="{StaticResource Panel}" Margin="0,0,6,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ContentControl Content="{Binding Palette}" ContentTemplate="{StaticResource PalettePanel}" Margin="10" Focusable="False" />
+            </ScrollViewer>
+        </Border>
+
+        <!-- ===== Canvas, toolbar, options, frame strip and status ===== -->
+        <Border Grid.Column="2" Style="{StaticResource Panel}">
+            <DockPanel>
+                <!-- Toolbar -->
+                <Border DockPanel.Dock="Top" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,6,0,0" Padding="8,5">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Grid" IsChecked="{Binding ShowGrid}" ToolTip="Pixel grid" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Onion" IsChecked="{Binding ShowOnion}" ToolTip="Onion skin: earlier frames in red, later ones in blue (O or F3)" Margin="1,0,0,0" />
+                            <ToggleButton x:Name="OnionMenu" Style="{StaticResource ToolbarToggle}" Padding="3,4" Margin="0,0,1,0" ToolTip="Onion skin settings">
+                                <ui:SymbolIcon Symbol="ChevronDown24" FontSize="12" />
+                            </ToggleButton>
+                            <Popup PlacementTarget="{Binding ElementName=OnionMenu}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                                   IsOpen="{Binding IsChecked, ElementName=OnionMenu}">
+                                <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,4,0,0" Width="260">
+                                    <StackPanel>
+                                        <TextBlock Text="ONION SKIN" Style="{StaticResource PanelTitle}" Margin="0,0,0,8" HorizontalAlignment="Left" />
+                                        <DockPanel Margin="0,0,0,6">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding OnionBefore}" MinWidth="16" TextAlignment="Right" VerticalAlignment="Center" />
+                                            <TextBlock Text="Frames before" Style="{StaticResource Caption}" Width="96" VerticalAlignment="Center" />
+                                            <Slider Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding OnionBefore}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,6">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding OnionAfter}" MinWidth="16" TextAlignment="Right" VerticalAlignment="Center" />
+                                            <TextBlock Text="Frames after" Style="{StaticResource Caption}" Width="96" VerticalAlignment="Center" />
+                                            <Slider Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding OnionAfter}" />
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding OnionOpacity, StringFormat=P0}" MinWidth="34" TextAlignment="Right" VerticalAlignment="Center" />
+                                            <TextBlock Text="Opacity" Style="{StaticResource Caption}" Width="96" VerticalAlignment="Center" />
+                                            <Slider Minimum="0.1" Maximum="0.9" SmallChange="0.05" LargeChange="0.1" Value="{Binding OnionOpacity}" />
+                                        </DockPanel>
+                                        <CheckBox Content="Tint: earlier red, later blue" IsChecked="{Binding OnionTint}" />
+                                        <CheckBox Content="Wrap around (for loops)" IsChecked="{Binding OnionWrap}" ToolTip="The first frame also shows the last one, like a loop" />
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Ghost" IsChecked="{Binding ShowGhost}" ToolTip="The character's real standing frame behind your drawing" />
+                            <ComboBox ItemsSource="{Binding BackdropChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Backdrop}" MinWidth="0" Width="132" Margin="4,0" Padding="8,2"
+                                      ToolTip="{Binding BackdropNote, TargetNullValue='What is behind the pose: checks, dark, light, or the floor where the scene plays'}" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Slot colours" IsChecked="{Binding RawSlots}" ToolTip="Show the reserved slot colours as painted instead of the character's real colours (P)"
+                                          Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="All frames" IsChecked="{Binding ApplyToAllFrames}"
+                                          ToolTip="Layer changes, new anchors and Isolate head apply to the same layer in every frame"
+                                          Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Advanced" IsChecked="{Binding Advanced}"
+                                          ToolTip="Layers, anchors, masks and the rig. Off: you edit one picture, and live art stays live by itself." />
+                            <Rectangle Width="1" Height="18" Fill="{StaticResource SubtleLineBrush}" Margin="6,0" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Command="{Binding ZoomOutCommand}" ToolTip="Zoom out (wheel, Ctrl+-)" />
+                            <TextBlock Text="{Binding Zoom, Converter={x:Static studio:StudioConverters.ZoomText}}" Style="{StaticResource Caption}" VerticalAlignment="Center" MinWidth="28" TextAlignment="Center" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomIn24}" Command="{Binding ZoomInCommand}" ToolTip="Zoom in (wheel, Ctrl+=)" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomFit24}" Click="Fit_Click" ToolTip="Fit the frame (Ctrl+0)" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Style="{StaticResource ToolbarButton}" Command="{Binding TogglePlayCommand}" ToolTip="Play the pose (Space or Enter): intro once, then the loop"
+                                       Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="{Binding IsPlaying, Converter={x:Static studio:StudioConverters.PlayIcon}}" />
+                                </ui:Button.Icon>
+                            </ui:Button>
+                            <TextBlock Text="{Binding FrameCaption}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="4,0,12,0" TextWrapping="NoWrap" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- Tool options (Aseprite's context bar) -->
+                <Border DockPanel.Dock="Top" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,0,0,1" Padding="10,3" MinHeight="36">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ToolName}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0" />
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding UsesBrush, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="Size" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Subtract24}" Command="{Binding SmallerBrushCommand}" ToolTip="Smaller brush ([)" />
+                            <TextBlock Text="{Binding BrushSize}" MinWidth="18" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding BiggerBrushCommand}" ToolTip="Bigger brush (])" />
+                            <CheckBox Content="Pixel-perfect" IsChecked="{Binding PixelPerfect}" Margin="12,0,0,0" MinWidth="0" VerticalAlignment="Center"
+                                      ToolTip="A 1-px stroke stays one pixel wide on diagonals: no doubled corners (Aseprite)" />
+                            <CheckBox Content="Symmetry" IsChecked="{Binding Symmetry}" Margin="8,0,0,0" MinWidth="0" VerticalAlignment="Center"
+                                      ToolTip="Mirror what you draw or erase across the frame's centre (the dashed line)" />
+                        </StackPanel>
+                        <CheckBox Content="Filled" IsChecked="{Binding FilledShapes}" MinWidth="0" VerticalAlignment="Center" Visibility="{Binding UsesShapes, Converter={StaticResource VisibleWhen}}" />
+                        <!-- A floating piece: exact numbers and quick turns (Animate's transform panel). -->
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsTransforming, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="Angle" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                            <TextBox Text="{Binding TransformAngle, UpdateSourceTrigger=LostFocus, StringFormat=0.#}" Width="56" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" ToolTip="Degrees (Shift while dragging the handle: 15° steps)" />
+                            <TextBlock Text="°  Size" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="2,0,4,0" />
+                            <TextBox Text="{Binding TransformWidth, UpdateSourceTrigger=LostFocus}" Width="44" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" ToolTip="Width in pixels" />
+                            <TextBlock Text="×" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="3,0" />
+                            <TextBox Text="{Binding TransformHeight, UpdateSourceTrigger=LostFocus}" Width="44" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" ToolTip="Height in pixels" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon FlipHorizontal24}" Command="{Binding FlipFloatingHorizontallyCommand}" ToolTip="Flip horizontally (H)" Margin="8,0,0,0" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon FlipVertical24}" Command="{Binding FlipFloatingVerticallyCommand}" ToolTip="Flip vertically (Shift+V)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRotateCounterclockwise24}" Command="{Binding RotateLeftCommand}" ToolTip="A quarter turn left (Ctrl+Shift+R)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRotateClockwise24}" Command="{Binding RotateRightCommand}" ToolTip="A quarter turn right (Shift+R)" />
+                            <ui:Button Content="Apply" Appearance="Primary" Command="{Binding ApplyTransformCommand}" ToolTip="Apply (Enter, or click outside)" Margin="10,0,4,0" Padding="10,3" />
+                            <ui:Button Content="Cancel" Command="{Binding CancelTransformCommand}" ToolTip="Put it back (Esc)" Padding="10,3" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding ShowsSelectionActions, Converter={StaticResource VisibleWhen}}">
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsWandTool, Converter={StaticResource VisibleWhen}}" Margin="0,0,10,0">
+                                <TextBlock Text="Tolerance" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <Slider Minimum="0" Maximum="64" Width="90" Value="{Binding WandTolerance}" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center"
+                                        ToolTip="0: exactly that colour. Higher: similar colours too." />
+                                <TextBlock Text="{Binding WandTolerance}" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Resize24}" Command="{Binding TransformCommand}" ToolTip="Transform (Ctrl+T): move, scale and rotate with handles" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Isolate" IsChecked="{Binding Isolate}" Margin="2,0,6,0"
+                                          ToolTip="Dim everything outside the selection to work on just that part (Shift+I). Edits stay inside the selection anyway." />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Copy24}" Command="{Binding CopySelectionCommand}" ToolTip="Copy (Ctrl+C)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Cut24}" Command="{Binding CutSelectionCommand}" ToolTip="Cut (Ctrl+X)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ClipboardPaste24}" Command="{Binding PasteSelectionCommand}" ToolTip="Paste (Ctrl+V)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Delete24}" Command="{Binding DeleteSelectionCommand}" ToolTip="Clear what the selection shows (Delete)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon SelectAllOn24}" Command="{Binding SelectAllCommand}" ToolTip="Select all (Ctrl+A)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon SelectAllOff24}" Command="{Binding DeselectCommand}" ToolTip="Deselect (Ctrl+D)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowSwap24}" Command="{Binding InvertSelectionCommand}" ToolTip="Invert the selection (Ctrl+Shift+I)" />
+                            <TextBlock Text="Shift adds · Alt takes away" Style="{StaticResource Faint}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        </StackPanel>
+                        <DockPanel Visibility="{Binding IsAnchorTool, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="Anchor" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <ComboBox IsEditable="True" Text="{Binding AnchorName, UpdateSourceTrigger=LostFocus}" MinWidth="110">
+                                <ComboBoxItem Content="Neck" />
+                                <ComboBoxItem Content="Hand" />
+                                <ComboBoxItem Content="Hand2" />
+                                <ComboBoxItem Content="Hat" />
+                                <ComboBoxItem Content="Prop" />
+                            </ComboBox>
+                        </DockPanel>
+                        <CheckBox Content="Pick from this layer only" IsChecked="{Binding PickFromLayer}" ToolTip="Off: the eyedropper reads the whole frame." Margin="12,0,0,0" MinWidth="0"
+                                  VerticalAlignment="Center" Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Status bar -->
+                <Border DockPanel.Dock="Bottom" Background="{StaticResource PanelHeaderBrush}" CornerRadius="0,0,6,6" Padding="10,3">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding HoverText}" Style="{StaticResource Caption}" TextWrapping="NoWrap" Margin="12,0,0,0" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding SelectionText}" Style="{StaticResource Caption}" TextWrapping="NoWrap" Margin="12,0,0,0" />
+                        <TextBlock Text="{Binding ToolHint}" Style="{StaticResource Faint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding ToolHint}" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Frame strip and sequences -->
+                <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,1,0,0" Padding="8,6">
+                    <DockPanel>
+                        <ContentControl DockPanel.Dock="Bottom" Content="{Binding}" ContentTemplate="{StaticResource Sequences}" Margin="0,6,0,0" Focusable="False"
+                                        Visibility="{Binding ShowsSequenceChips, Converter={StaticResource VisibleWhen}}" />
+                        <!-- How it plays, in plain words (Aseprite's tags, simplified). -->
+                        <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                            <TextBlock Text="Plays:" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <RadioButton Content="Loop all" GroupName="PlayOrder" IsChecked="{Binding LoopsAll}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame, round and round" />
+                            <RadioButton GroupName="PlayOrder" IsChecked="{Binding PlaysOnceThenLoops}" MinWidth="0" Margin="0,0,4,0" ToolTip="The first frames once (getting into the pose), then the rest round and round">
+                                <TextBlock Text="Once, then loop from frame" />
+                            </RadioButton>
+                            <TextBox Text="{Binding LoopFromNumber, UpdateSourceTrigger=LostFocus}" Width="40" Margin="0,0,10,0" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" />
+                            <RadioButton Content="Once, then hold the last" GroupName="PlayOrder" IsChecked="{Binding HoldsLast}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame once, then stay on the last one" />
+                            <TextBlock Text="{Binding PlayOrderText}" Style="{StaticResource Faint}" VerticalAlignment="Center" />
+                        </WrapPanel>
+                        <StackPanel DockPanel.Dock="Left" Margin="0,0,8,0">
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddFrameCommand}" ToolTip="Add a frame after this one (a copy, with its own paint)" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Delete24}" Command="{Binding DeleteFrameCommand}" ToolTip="Delete this frame, or every frame you picked (Shift or Ctrl+click in the strip). Delete key too." />
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowLeft24}" Command="{Binding MoveFrameLeftCommand}" ToolTip="Move this frame earlier" />
+                            <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRight24}" Command="{Binding MoveFrameRightCommand}" ToolTip="Move this frame later" />
+                        </StackPanel>
+                        <ListBox x:Name="FramesList" ItemsSource="{Binding Frames}" ItemTemplate="{StaticResource FrameThumb}" SelectionMode="Extended"
+                                 SelectionChanged="Frames_SelectionChanged" PreviewMouseLeftButtonDown="Frames_PreviewMouseDown" PreviewMouseMove="Frames_PreviewMouseMove"
+                                 AllowDrop="True" Drop="Frames_Drop" DragOver="Frames_DragOver"
+                                 ToolTip="Click a frame to edit it. Shift or Ctrl+click picks several: moves and transforms apply to all of them. Drag to reorder (Ctrl: copy)."
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" Background="Transparent" BorderThickness="0">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+
+                <!-- Problems with the frame (missing art, masks...) -->
+                <Border DockPanel.Dock="Bottom" Background="#33EFCB4A" Padding="10,6" Visibility="{Binding Problems, Converter={StaticResource VisibleWhen}}">
+                    <DockPanel>
+                        <ui:SymbolIcon Symbol="Warning24" Foreground="{StaticResource WarningBrush}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                        <TextBlock Text="{Binding Problems}" Style="{StaticResource Caption}" />
+                    </DockPanel>
+                </Border>
+
+                <Grid>
+                    <ScrollViewer x:Name="CanvasScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource StageBackdropBrush}"
+                                  PreviewMouseWheel="Canvas_MouseWheel" PreviewMouseDown="Scroller_PreviewMouseDown" PreviewMouseMove="Scroller_PreviewMouseMove"
+                                  PreviewMouseUp="Scroller_PreviewMouseUp" LostMouseCapture="Scroller_LostMouseCapture" Focusable="False">
+                        <studio:PixelCanvas x:Name="Canvas" Image="{Binding Composite}" Ghost="{Binding Ghost}" OnionPrevious="{Binding OnionPrevious}" OnionNext="{Binding OnionNext}"
+                                            OnionOpacity="{Binding OnionOpacity}" Zoom="{Binding Zoom}" PixelWidth="{Binding Width}" PixelHeight="{Binding Height}"
+                                            ShowGrid="{Binding ShowGrid}" Pivot="{Binding Pivot}" Anchors="{Binding Anchors}" Selection="{Binding Selection}"
+                                            SelectionShape="{Binding SelectionShape}" TransformBox="{Binding TransformBox}" Overlay="{Binding CanvasOverlay}" OverlayOpacity="{Binding CanvasOverlayOpacity}"
+                                            BrushSize="{Binding BrushSize}" Symmetry="{Binding Symmetry}" BackdropImage="{Binding BackdropImage}" BackdropBrush="{Binding BackdropBrush}"
+                                            PixelDown="Canvas_PixelDown" PixelMove="Canvas_PixelMove" PixelUp="Canvas_PixelUp" />
+                    </ScrollViewer>
+
+                    <!-- An empty frame says what to do -->
+                    <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="12,0,12,16" Padding="12,6" CornerRadius="6" Background="#CC1E2024" IsHitTestVisible="False"
+                            Visibility="{Binding IsFrameEmpty, Converter={StaticResource VisibleWhen}}">
+                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" MaxWidth="420" TextAlignment="Center"
+                                   Text="This frame is empty. Start it from one of her frames (Her frames, on the right), paste (Ctrl+V), or draw." />
+                    </Border>
+
+                    <!-- Copying part of one of her frames -->
+                    <Border VerticalAlignment="Top" Margin="12" Padding="12,8" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1"
+                            Visibility="{Binding IsPeeking, Converter={StaticResource VisibleWhen}}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0">
+                                <ui:Button Content="Copy into this frame" Appearance="Primary" Command="{Binding CopyFromPeekCommand}" ToolTip="Enter or Ctrl+C: it arrives floating; place it, then Enter" Margin="0,0,6,0" />
+                                <ui:Button Content="Back" Command="{Binding EndPeekCommand}" ToolTip="Esc" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding PeekText}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Keyboard shortcuts (F1 or ?) -->
+                    <Border Background="#E6181A1E" Visibility="{Binding IsShortcutsOpen, Converter={StaticResource VisibleWhen}}" MouseDown="Shortcuts_MouseDown" Cursor="Hand"
+                            ToolTip="Click to close">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="24">
+                            <StackPanel HorizontalAlignment="Center" MaxWidth="900">
+                                <TextBlock Text="Keyboard shortcuts" Style="{StaticResource Heading}" Margin="0,0,0,12" />
+                                <ItemsControl ItemsSource="{Binding Shortcuts}" Focusable="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Width="290" Margin="0,0,20,16">
+                                                <TextBlock Text="{Binding Title}" Style="{StaticResource PanelTitle}" Margin="0,0,0,6" HorizontalAlignment="Left" />
+                                                <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <DockPanel Margin="0,2">
+                                                                <Border DockPanel.Dock="Left" Background="{StaticResource CardBrush}" CornerRadius="3" Padding="6,1" Margin="0,0,8,0" MinWidth="80">
+                                                                    <TextBlock Text="{Binding Keys}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding Does}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                                            </DockPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <GridSplitter Grid.Column="3" Style="{StaticResource ThinSplitter}" HorizontalAlignment="Stretch" ResizeDirection="Columns" />
+
+        <!-- ===== Layers and properties ===== -->
+        <Grid Grid.Column="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" MinHeight="140" />
+                <RowDefinition Height="6" />
+                <RowDefinition Height="*" MinHeight="160" />
+            </Grid.RowDefinitions>
+            <!-- The preview: the pose playing at game size while you edit (Aseprite's preview window). -->
+            <Border Grid.Row="0" Style="{StaticResource Panel}" Margin="0,0,0,6" Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,6,0,0" Padding="10,4">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource ToolbarToggleRadio}" Content="1×" GroupName="PreviewScale" ToolTip="Actual pixels"
+                                             IsChecked="{Binding PreviewScale, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=1}" />
+                                <RadioButton Style="{StaticResource ToolbarToggleRadio}" Content="2×" GroupName="PreviewScale"
+                                             IsChecked="{Binding PreviewScale, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=2}" />
+                                <RadioButton Style="{StaticResource ToolbarToggleRadio}" Content="Game" GroupName="PreviewScale" ToolTip="As big as the game draws it at zoom 1 (4×)"
+                                             IsChecked="{Binding PreviewScale, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=4}" />
+                                <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding PreviewPlaying}" Padding="5,3" Margin="6,0,0,0" ToolTip="Play the preview">
+                                    <ui:SymbolIcon Symbol="{Binding PreviewPlaying, Converter={x:Static studio:StudioConverters.PauseIcon}}" />
+                                </ToggleButton>
+                            </StackPanel>
+                            <TextBlock Text="{Binding PreviewTitle}" Style="{StaticResource PanelTitle}" ToolTip="{Binding PreviewCaption}" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                    </Border>
+                    <Border Background="{StaticResource StageBackdropBrush}" CornerRadius="0,0,6,6" Height="150" ClipToBounds="True">
+                        <Grid>
+                            <Image Source="{Binding PreviewImage}" Style="{StaticResource Pixel}" Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Image.LayoutTransform>
+                                    <ScaleTransform ScaleX="{Binding PreviewScale}" ScaleY="{Binding PreviewScale}" />
+                                </Image.LayoutTransform>
+                            </Image>
+                        </Grid>
+                    </Border>
+                </DockPanel>
+            </Border>
+            <!-- Simple (D-48, D-49): folding sections, the most used first. Help lives in tooltips and F1. -->
+            <Border Grid.Row="1" Grid.RowSpan="3" Style="{StaticResource Panel}" Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="12,8,12,12">
+                    <!-- An older pose made of layers: offer to make it one picture (D-48). -->
+                    <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
+                            Visibility="{Binding CanFlatten, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                       Text="This pose is made of layers. Make it one picture to edit it here: it looks the same and still follows sprite mods." />
+                            <ui:Button Content="Make it one picture" Icon="{ui:SymbolIcon Image24}" Command="{Binding MakeOnePictureCommand}" HorizontalAlignment="Stretch" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Ready-made poses -->
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="READY-MADE POSES" IsChecked="{Binding PresetsOpen}"
+                                  ToolTip="Poses and little animations made for her body from her standing sprite. Point at one to watch it in the preview; click it to make this frame that pose (the moving ones add frames after it). They keep following sprite mods." />
+                    <StackPanel Visibility="{Binding PresetsOpen, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
+                        <ItemsControl ItemsSource="{Binding Presets}" Focusable="False" Visibility="{Binding HasPresetPictures, Converter={StaticResource VisibleWhen}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PresetItem}">
+                                    <Button Margin="0,0,4,4" Padding="3" Width="68" ToolTip="{Binding Hint}" Cursor="Hand" IsEnabled="{Binding DataContext.IsFlat, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            Tag="{Binding Id}" MouseEnter="Preset_MouseEnter" MouseLeave="Preset_MouseLeave"
+                                            Command="{Binding DataContext.ApplyPresetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Id}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Border Background="{StaticResource StageBackdropBrush}" CornerRadius="3" Height="68">
+                                                    <Image Source="{Binding Thumbnail}" Style="{StaticResource Pixel}" Width="32" Height="64" Stretch="Uniform" />
+                                                </Border>
+                                                <ui:SymbolIcon Symbol="Play24" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0"
+                                                               Visibility="{Binding IsAnimated, Converter={StaticResource VisibleWhen}}" ToolTip="A little animation" />
+                                            </Grid>
+                                            <TextBlock Text="{Binding Title}" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Visibility="{Binding HasPresetPictures, Converter={StaticResource VisibleWhen}, ConverterParameter=not}"
+                                   Text="Ready-made poses are drawn from her standing sprite, which the game export doesn't have for this pose." />
+                        <ui:Button Content="Breathing loop" Icon="{ui:SymbolIcon ArrowRepeatAll24}" Command="{Binding MakeIdleLoopCommand}" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                                   ToolTip="Adds a frame with her upper body a pixel lower and loops the two slowly, like a character standing and breathing. Still her own pixels." />
+                        <!-- A layered pose (made with Advanced): the older helpers. -->
+                        <StackPanel Visibility="{Binding IsFlat, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                            <ItemsControl ItemsSource="{Binding Recipes}" Focusable="False" Margin="0,6,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ui:Button Content="{Binding Title}" ToolTip="{Binding Hint}" Margin="0,0,6,6"
+                                                   Command="{Binding DataContext.ApplyRecipeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Id}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ui:Button Content="Split into parts" Icon="{ui:SymbolIcon PuzzlePiece24}" Command="{Binding SplitIntoPartsCommand}" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                                       ToolTip="Head, arms, body and legs become separate parts you can drag with the Select tool. They still follow sprite mods." />
+                            <ui:Button Content="Redraw the body, keep the real head" Icon="{ui:SymbolIcon PersonEdit24}" Command="{Binding IsolateHeadCommand}" HorizontalAlignment="Stretch" Margin="0,4,0,0"
+                                       ToolTip="Hides the body (it stays behind your drawing as a guide) and keeps the real head, which follows sprite mods. Then draw a new body." />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Her body (D-49): parts from her standing frame, fixed with a brush, saved for her. -->
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="HER BODY" IsChecked="{Binding BodyOpen}" Visibility="{Binding IsFlat, Converter={StaticResource VisibleWhen}}"
+                                  ToolTip="Select a part of her, then drag it, turn it (Ctrl+T) or flip it. The ready-made poses use these parts." />
+                    <StackPanel Margin="0,4,0,8">
+                        <StackPanel.Visibility>
+                            <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
+                                <Binding Path="IsFlat" />
+                                <Binding Path="BodyOpen" />
+                            </MultiBinding>
+                        </StackPanel.Visibility>
+                        <WrapPanel>
+                            <ui:Button Content="Head" Command="{Binding SelectPartCommand}" CommandParameter="head" Margin="0,0,4,4" Padding="8,3" ToolTip="Select her head" />
+                            <ui:Button Content="Body" Command="{Binding SelectPartCommand}" CommandParameter="body" Margin="0,0,4,4" Padding="8,3" ToolTip="Select her body" />
+                            <ui:Button Content="Arms" Command="{Binding SelectPartCommand}" CommandParameter="arms" Margin="0,0,4,4" Padding="8,3" ToolTip="Select both arms (front and back views)" />
+                            <ui:Button Content="Legs" Command="{Binding SelectPartCommand}" CommandParameter="legs" Margin="0,0,4,4" Padding="8,3" ToolTip="Select her legs" />
+                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Show parts" IsChecked="{Binding ShowParts}" Margin="0,0,0,4"
+                                          ToolTip="Colour her parts on the canvas. If one is wrong (long hair that belongs to her head), paint it right: it's saved for her and this facing." />
+                        </WrapPanel>
+                        <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="10,8" Margin="0,4,0,0" Visibility="{Binding ShowParts, Converter={StaticResource VisibleWhen}}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,6" Text="Paint on the canvas with a part to fix it." />
+                                <ListBox ItemsSource="{Binding BodyParts}" SelectedValuePath="Id" SelectedValue="{Binding PartBrush}" Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="12" Height="12" CornerRadius="2" Margin="0,0,5,0" Background="{Binding Color, Converter={x:Static studio:StudioConverters.ArgbBrush}}" />
+                                                <TextBlock Text="{Binding Label}" FontSize="12" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <ui:Button Content="Start over (automatic)" Command="{Binding ResetBodyPartsCommand}" Margin="0,6,0,0" Padding="8,3"
+                                           ToolTip="Forget your fixes for this facing and guess her parts again" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Her real frames: walking, special frames, festival frames on her sheet. -->
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="HER FRAMES" IsChecked="{Binding ShowSheetFrames}"
+                                  ToolTip="Every frame of her sprite in the outfit shown. Click: start this frame from it. Ctrl+click: add it as a new frame. Shift+click: copy part of it into this frame. All stay live." />
+                    <StackPanel Visibility="{Binding ShowSheetFrames, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
+                        <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,0,0,6" Text="Click: start from it · Ctrl+click: new frame · Shift+click: copy part of it" />
+                        <ItemsControl ItemsSource="{Binding SheetFrames}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:SheetFrameItem}">
+                                    <Border Background="{StaticResource StageBackdropBrush}" CornerRadius="3" Margin="0,0,4,4" Padding="2" Cursor="Hand" ToolTip="{Binding Label}">
+                                        <Border.InputBindings>
+                                            <MouseBinding Gesture="LeftClick" Command="{Binding DataContext.StartFromSheetFrameCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Index}" />
+                                            <MouseBinding Gesture="Ctrl+LeftClick" Command="{Binding DataContext.AddSheetFrameCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Index}" />
+                                            <MouseBinding Gesture="Shift+LeftClick" Command="{Binding DataContext.PeekSheetFrameCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Index}" />
+                                        </Border.InputBindings>
+                                        <Image Source="{Binding Thumbnail}" Style="{StaticResource Pixel}" Width="32" Height="64" Stretch="Uniform" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Text="The game export has no sprite sheet for this character."
+                                   Visibility="{Binding SheetFrames.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" />
+                    </StackPanel>
+
+                    <!-- Outfit -->
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="OUTFIT" IsChecked="{Binding OutfitOpen}"
+                                  ToolTip="In the game she wears whatever the season or festival gives her. Pick an outfit under the character to see her in it." />
+                    <StackPanel Visibility="{Binding OutfitOpen, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
+                        <TextBlock Text="{Binding OutfitText}" Style="{StaticResource Faint}" TextWrapping="Wrap" />
+                        <WrapPanel Margin="0,6,0,0" Visibility="{Binding CanPinOutfit, Converter={StaticResource VisibleWhen}}">
+                            <ui:Button Content="Always wear the outfit shown" Command="{Binding PinShownOutfitCommand}" Margin="0,0,6,6"
+                                       ToolTip="This pose wears the outfit picked under the character (a mod's outfit makes the mod a requirement)" />
+                            <ui:Button Content="Wear what the game gives" Command="{Binding UnpinOutfitCommand}" Margin="0,0,6,6" />
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,8,0,0" Text="Layers, anchors, masks and the rig are under Advanced. F1 shows every key." />
+                </StackPanel>
+                </ScrollViewer>
+            </Border>
+            <Border Grid.Row="1" Style="{StaticResource Panel}" Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,6,0,0" Padding="10,6">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowUp24}" Command="{Binding MoveLayerUpCommand}" ToolTip="Move the layer up (drawn later)" />
+                                <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowDown24}" Command="{Binding MoveLayerDownCommand}" ToolTip="Move the layer down" />
+                                <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Copy24}" Command="{Binding DuplicateLayerCommand}" ToolTip="Duplicate the layer" />
+                                <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Delete24}" Command="{Binding DeleteLayerCommand}" ToolTip="Delete the layer" />
+                                <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" ToolTip="Add a layer" Click="AddLayer_Click">
+                                    <ui:Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Paint layer (draw your own pixels)" Command="{Binding AddPaintLayerCommand}" Icon="{ui:SymbolIcon HandDraw24}" />
+                                            <MenuItem Header="Live character (whole sprite)" Command="{Binding AddCharacterLayerCommand}" Icon="{ui:SymbolIcon PersonCircle24}" />
+                                            <MenuItem Header="Live head (on the Neck anchor)" Command="{Binding AddHeadLayerCommand}" Icon="{ui:SymbolIcon Person24}" />
+                                            <MenuItem Header="Image from a PNG…" Command="{Binding ImportImageCommand}" Icon="{ui:SymbolIcon Image24}" />
+                                            <MenuItem Header="Effect (sweat drop, steam…)" Command="{Binding AddEffectLayerCommand}" Icon="{ui:SymbolIcon Sparkle24}" />
+                                        </ContextMenu>
+                                    </ui:Button.ContextMenu>
+                                </ui:Button>
+                            </StackPanel>
+                            <TextBlock Text="LAYERS" Style="{StaticResource PanelTitle}" />
+                        </DockPanel>
+                    </Border>
+                    <ui:Button DockPanel.Dock="Bottom" Content="Isolate head" Icon="{ui:SymbolIcon PersonEdit24}" Command="{Binding IsolateHeadCommand}" HorizontalAlignment="Stretch" Margin="8,4,8,8"
+                               ToolTip="Keep the real head (it follows sprite mods), hide the body, and give you an empty body layer with the ghost behind it to draw a new pose" />
+                    <ListBox ItemsSource="{Binding Layers}" ItemTemplate="{StaticResource LayerRow}" ItemContainerStyle="{StaticResource SelectableRow}" MaxHeight="300" Margin="4"
+                             Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </DockPanel>
+            </Border>
+            <Border Grid.Row="3" Style="{StaticResource Panel}" Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,6,0,0" Padding="10,6">
+                        <TextBlock Text="PROPERTIES" Style="{StaticResource PanelTitle}" />
+                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                        <ItemsControl ItemsSource="{Binding Fields}" Margin="12,10,12,12" IsTabStop="False" />
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

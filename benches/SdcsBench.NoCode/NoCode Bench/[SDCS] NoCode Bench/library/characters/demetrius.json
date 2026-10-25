@@ -1,0 +1,167 @@
+{
+  "Kind": "Npc",
+  "Npc": "Demetrius",
+  "FrameSize": [
+    16,
+    32
+  ],
+  "Frames": {
+    "down": {
+      "Walk": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "right": {
+      "Stand": 4,
+      "Walk": [
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "up": {
+      "Stand": 8,
+      "Walk": [
+        8,
+        9,
+        10,
+        11
+      ]
+    },
+    "left": {
+      "Stand": 12,
+      "Walk": [
+        12,
+        13,
+        14,
+        15
+      ]
+    }
+  },
+  "HeadMask": {
+    "down": "demetrius-head-down",
+    "right": "demetrius-head-right",
+    "up": "demetrius-head-up",
+    "left": "demetrius-head-left"
+  },
+  "NeckPoint": {
+    "down": [
+      8,
+      15
+    ],
+    "right": [
+      8,
+      15
+    ],
+    "up": [
+      8,
+      15
+    ],
+    "left": [
+      7,
+      15
+    ]
+  },
+  "FaceBox": {
+    "down": [
+      4,
+      9,
+      8,
+      6
+    ],
+    "up": [
+      4,
+      9,
+      8,
+      6
+    ],
+    "left": [
+      2,
+      9,
+      6,
+      6
+    ],
+    "right": [
+      8,
+      9,
+      6,
+      6
+    ]
+  },
+  "ColorSamples": {
+    "Skin": {
+      "Mode": "auto-skin",
+      "Box": [
+        3,
+        7,
+        10,
+        8
+      ]
+    },
+    "Outline": {
+      "Mode": "auto-edge"
+    },
+    "Hair": {
+      "Mode": "auto-common",
+      "Frame": 8,
+      "Box": [
+        3,
+        1,
+        10,
+        7
+      ],
+      "Fallback": "Outline"
+    },
+    "Shirt": {
+      "Mode": "auto-common",
+      "Box": [
+        3,
+        16,
+        10,
+        7
+      ]
+    },
+    "Pants": {
+      "Mode": "auto-common",
+      "Box": [
+        3,
+        24,
+        10,
+        3
+      ],
+      "Fallback": "Shirt"
+    },
+    "Shoes": {
+      "Mode": "auto-common",
+      "Box": [
+        2,
+        28,
+        12,
+        4
+      ],
+      "Fallback": "Pants"
+    }
+  },
+  "Portrait": {
+    "FrameSize": [
+      64,
+      64
+    ],
+    "NeckPoint": [
+      32,
+      50
+    ],
+    "FaceBox": [
+      18,
+      14,
+      28,
+      26
+    ]
+  },
+  "Id": "demetrius",
+  "Format": "1.0"
+}

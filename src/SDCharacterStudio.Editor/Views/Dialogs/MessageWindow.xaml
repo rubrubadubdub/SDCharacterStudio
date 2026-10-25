@@ -1,0 +1,28 @@
+<ui:FluentWindow x:Class="SDCharacterStudio.Editor.Views.Dialogs.MessageWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Width="460" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica" WindowCornerPreference="Round" ShowInTaskbar="False" FontSize="13">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar x:Name="Bar" ShowMaximize="False" ShowMinimize="False" Height="34" />
+        <StackPanel Grid.Row="1" Margin="24,4,24,20">
+            <TextBlock x:Name="Message" TextWrapping="Wrap" />
+            <TextBlock x:Name="InputLabel" Style="{StaticResource FieldLabel}" Margin="0,14,0,4" Visibility="Collapsed" TextWrapping="Wrap" />
+            <ui:TextBox x:Name="Input" Visibility="Collapsed" ClearButtonEnabled="False" TextChanged="Input_TextChanged" />
+            <TextBlock x:Name="InputError" Foreground="{StaticResource ErrorBrush}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+        </StackPanel>
+        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,1,0,0" Padding="20,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button x:Name="CancelButton" IsCancel="True" MinWidth="90" Margin="0,0,8,0" Click="Cancel_Click" />
+                <ui:Button x:Name="NoButton" MinWidth="90" Margin="0,0,8,0" Click="No_Click" Visibility="Collapsed" />
+                <ui:Button x:Name="YesButton" Appearance="Primary" IsDefault="True" MinWidth="100" Click="Yes_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

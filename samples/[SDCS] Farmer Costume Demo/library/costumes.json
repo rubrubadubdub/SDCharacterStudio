@@ -1,0 +1,12 @@
+{
+  "Format": "1.0",
+  "Costumes": [
+    {
+      "Id": "red-shirt",
+      "Set": {
+        "Shirt": "(S)1010",
+        "Hair": 12
+      }
+    }
+  ]
+}

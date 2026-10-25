@@ -1,0 +1,70 @@
+{
+  "Format": "1.0",
+  "Id": "farmer-costume",
+  "Location": "ScienceHouse",
+  "Skippable": true,
+  "Trigger": {
+    "Once": false,
+    "Conditions": "FALSE"
+  },
+  "Actors": [
+    {
+      "Id": "farmer",
+      "Kind": "Farmer",
+      "Start": {
+        "Tile": [
+          16,
+          6
+        ]
+      },
+      "Facing": "down"
+    }
+  ],
+  "Clips": {
+    "wardrobe": {
+      "Duration": 3600,
+      "Tracks": [
+        {
+          "Actor": "farmer",
+          "Parts": [
+            {
+              "At": 0,
+              "Set": {
+                "Hat": "original"
+              }
+            },
+            {
+              "At": 1200,
+              "Set": {
+                "Hat": "none"
+              }
+            },
+            {
+              "At": 2400,
+              "Set": {
+                "Shirt": "(S)1010"
+              }
+            },
+            {
+              "At": 3000,
+              "Visible": {
+                "Arms": false,
+                "Pants": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "Beats": [
+    {
+      "Type": "Clip",
+      "Clip": "wardrobe"
+    },
+    {
+      "Type": "Wait",
+      "Duration": 1000
+    }
+  ]
+}

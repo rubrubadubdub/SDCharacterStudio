@@ -1,0 +1,10 @@
+{
+  "Name": "Farmer Costume Demo",
+  "Author": "rubrubadubdub",
+  "Version": "0.1.0",
+  "Description": "M4 wardrobe timeline and live floating head example.",
+  "UniqueID": "Player.SDCS.FarmerDemo",
+  "ContentPackFor": {
+    "UniqueID": "Player.SDCharacterStudio"
+  }
+}

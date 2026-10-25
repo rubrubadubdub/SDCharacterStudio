@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="UseAppHost">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The editor always starts this executable, including when the main
+         editor apphost is disabled for tests. Keep one project build instance. -->
+    <UseAppHost>true</UseAppHost>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+</Project>

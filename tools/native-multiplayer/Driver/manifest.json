@@ -1,0 +1,10 @@
+{
+  "Name": "SDCS native LAN test driver",
+  "Author": "SDCharacterStudio",
+  "Version": "0.1.0",
+  "Description": "Disposable developer-only LAN smoke fixture. Never install in a normal game.",
+  "UniqueID": "Player.SDCS.NativeLanDriver",
+  "EntryDll": "NativeMultiplayerDriver.dll",
+  "MinimumApiVersion": "4.0.0",
+  "Dependencies": [{ "UniqueID": "Bench.SdcsNoCode", "IsRequired": true }]
+}

@@ -1,0 +1,259 @@
+<ui:FluentWindow x:Class="SDCharacterStudio.Editor.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:vm="clr-namespace:SDCharacterStudio.Editor.ViewModels"
+                 xmlns:views="clr-namespace:SDCharacterStudio.Editor.Views"
+                 xmlns:studioviews="clr-namespace:SDCharacterStudio.Editor.Views.Studio"
+                 xmlns:docking="clr-namespace:AvalonDock;assembly=AvalonDock"
+                 mc:Ignorable="d"
+                 d:DataContext="{d:DesignInstance vm:MainViewModel}"
+                 Title="{Binding Title}"
+                 Width="1500" Height="920" MinWidth="1040" MinHeight="660"
+                 WindowStartupLocation="CenterScreen"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round"
+                 FontSize="13"
+                 Icon="pack://application:,,,/SDCharacterStudio.Editor;component/Assets/app.png">
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewProjectCommand}" />
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenProjectCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="F5" Command="{Binding PreviewInGameCommand}" />
+        <KeyBinding Gesture="Shift+F5" Command="{Binding PreviewFromHereCommand}" />
+        <KeyBinding Gesture="Ctrl+F5" Command="{Binding StopPreviewCommand}" />
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding ExportCommand}" />
+        <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding Stage.ZoomInCommand}" />
+        <KeyBinding Gesture="Ctrl+Add" Command="{Binding Stage.ZoomInCommand}" />
+        <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding Stage.ZoomOutCommand}" />
+        <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding Stage.ZoomOutCommand}" />
+    </Window.InputBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar x:Name="TitleBar" Grid.Row="0" Title="{Binding Title}" Height="34">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/SDCharacterStudio.Editor;component/Assets/app.png" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <!-- ===== Menu and command bar ===== -->
+        <Grid Grid.Row="1" Margin="6,0,8,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Menu Grid.Column="0" VerticalAlignment="Center" FontSize="13">
+                <MenuItem Header="_File">
+                    <MenuItem Header="_New project…" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+N" Icon="{ui:SymbolIcon Add24}" />
+                    <MenuItem Header="_Open project…" Command="{Binding OpenProjectCommand}" InputGestureText="Ctrl+O" Icon="{ui:SymbolIcon FolderOpen24}" />
+                    <MenuItem Header="Open a _pack folder…" Command="{Binding OpenPackFolderCommand}" />
+                    <MenuItem x:Name="RecentMenu" Header="Open _recent" ItemsSource="{Binding RecentProjects}"
+                              IsEnabled="{Binding RecentProjects.Count, Converter={StaticResource Truthy}}">
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding}" />
+                                <Setter Property="Command" Value="{Binding DataContext.OpenRecentCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <Setter Property="CommandParameter" Value="{Binding}" />
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGestureText="Ctrl+S" Icon="{ui:SymbolIcon Save24}" IsEnabled="{Binding IsProjectOpen}" />
+                    <MenuItem Header="_Close project" Command="{Binding CloseProjectCommand}" IsEnabled="{Binding IsProjectOpen}" />
+                    <Separator />
+                    <MenuItem Header="Se_ttings…" Command="{Binding OpenSettingsCommand}" Icon="{ui:SymbolIcon Settings24}" />
+                    <Separator />
+                    <MenuItem Header="E_xit" Click="Exit_Click" />
+                </MenuItem>
+                <MenuItem Header="_Edit">
+                    <MenuItem Header="{Binding UndoText}" Command="{Binding UndoCommand}" InputGestureText="Ctrl+Z" Icon="{ui:SymbolIcon ArrowUndo24}" IsEnabled="{Binding CanUndo}" />
+                    <MenuItem Header="{Binding RedoText}" Command="{Binding RedoCommand}" InputGestureText="Ctrl+Y" Icon="{ui:SymbolIcon ArrowRedo24}" IsEnabled="{Binding CanRedo}" />
+                    <Separator />
+                    <MenuItem Header="Duplicate beat" Command="{Binding Storyboard.DuplicateSelectedCommand}" InputGestureText="Ctrl+D" />
+                    <MenuItem Header="Delete beat or branch" Command="{Binding Storyboard.DeleteSelectedCommand}" InputGestureText="Del" Icon="{ui:SymbolIcon Delete24}" />
+                    <MenuItem Header="Move beat earlier" Command="{Binding Storyboard.MoveSelectedLeftCommand}" InputGestureText="Ctrl+Left" />
+                    <MenuItem Header="Move beat later" Command="{Binding Storyboard.MoveSelectedRightCommand}" InputGestureText="Ctrl+Right" />
+                </MenuItem>
+                <MenuItem Header="_View">
+                    <MenuItem Header="Zoom in" Command="{Binding Stage.ZoomInCommand}" InputGestureText="Ctrl+=" Icon="{ui:SymbolIcon ZoomIn24}" />
+                    <MenuItem Header="Zoom out" Command="{Binding Stage.ZoomOutCommand}" InputGestureText="Ctrl+-" Icon="{ui:SymbolIcon ZoomOut24}" />
+                    <Separator />
+                    <MenuItem Header="Tile grid" IsCheckable="True" IsChecked="{Binding Stage.ShowGrid}" />
+                    <MenuItem Header="Walkable tiles" IsCheckable="True" IsChecked="{Binding Stage.ShowPassability}" />
+                    <MenuItem Header="Front layer (roofs, trees)" IsCheckable="True" IsChecked="{Binding Stage.ShowFront}" />
+                    <MenuItem Header="Camera frame" IsCheckable="True" IsChecked="{Binding Stage.ShowCamera}" />
+                    <Separator />
+                    <MenuItem Header="Assets" Tag="tool.assets" Click="ShowTool_Click" />
+                    <MenuItem Header="Properties" Tag="tool.properties" Click="ShowTool_Click" />
+                    <MenuItem Header="Storyboard" Click="ShowStoryboard_Click" />
+                    <MenuItem Header="Story (flags and numbers)" Tag="tool.story" Click="ShowTool_Click" />
+                    <MenuItem Header="Problems" Click="ShowProblems_Click" />
+                    <MenuItem Header="Output" Click="ShowOutput_Click" />
+                    <Separator />
+                    <MenuItem Header="Reset panel layout" Click="ResetLayout_Click" />
+                </MenuItem>
+                <MenuItem Header="_Pack" IsEnabled="{Binding IsProjectOpen}">
+                    <MenuItem Header="New cutscene…" Command="{Binding AddCutsceneCommand}" Icon="{ui:SymbolIcon Add24}" />
+                    <MenuItem Header="Duplicate cutscene" Command="{Binding DuplicateCutsceneCommand}" />
+                    <MenuItem Header="Delete cutscene" Command="{Binding DeleteCutsceneCommand}" />
+                    <Separator />
+                    <MenuItem Header="New branch…" Command="{Binding Storyboard.AddBranchInteractiveCommand}" Icon="{ui:SymbolIcon BranchFork24}" />
+                    <MenuItem Header="Import video…" Command="{Binding ImportVideoCommand}" Icon="{ui:SymbolIcon MoviesAndTv24}" />
+                    <Separator />
+                    <MenuItem Header="Dependencies…" Command="{Binding ShowDependenciesCommand}" Icon="{ui:SymbolIcon Branch24}" />
+                    <MenuItem Header="Pack settings…" Command="{Binding EditPackSettingsCommand}" />
+                    <MenuItem Header="Check for problems" Command="{Binding CheckNowCommand}" />
+                    <MenuItem Header="Show pack folder" Command="{Binding OpenPackFolderInExplorerCommand}" />
+                    <Separator />
+                    <MenuItem Header="Export…" Command="{Binding ExportCommand}" InputGestureText="Ctrl+E" Icon="{ui:SymbolIcon BoxArrowUp24}" />
+                </MenuItem>
+                <MenuItem Header="P_review">
+                    <MenuItem Header="Preview in game" Command="{Binding PreviewInGameCommand}" InputGestureText="F5" Icon="{ui:SymbolIcon Play24}" IsEnabled="{Binding IsProjectOpen}" />
+                    <MenuItem Header="Preview from the selected beat" Command="{Binding PreviewFromHereCommand}" InputGestureText="Shift+F5" IsEnabled="{Binding IsProjectOpen}" />
+                    <MenuItem Header="Stop preview" Command="{Binding StopPreviewCommand}" InputGestureText="Ctrl+F5" Icon="{ui:SymbolIcon Stop24}" />
+                    <Separator />
+                    <MenuItem Header="Ask the game to export again" Command="{Binding RefreshGameExportCommand}" Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                    <MenuItem Header="Reload the game export from disk" Command="{Binding LoadCatalogCommand}" />
+                </MenuItem>
+                <MenuItem Header="_Help">
+                    <MenuItem Header="Quick start" Click="QuickStart_Click" Icon="{ui:SymbolIcon QuestionCircle24}" />
+                    <MenuItem Header="Keyboard shortcuts" Click="Shortcuts_Click" />
+                    <Separator />
+                    <MenuItem Header="About SDCharacterStudio" Click="About_Click" Icon="{ui:SymbolIcon Info24}" />
+                </MenuItem>
+            </Menu>
+
+            <!-- Undo/redo + cutscene picker -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center"
+                        Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}">
+                <Rectangle Width="1" Height="20" Fill="{StaticResource SubtleLineBrush}" Margin="0,0,8,0" />
+                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ArrowUndo24}" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip="{Binding UndoText}" />
+                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ArrowRedo24}" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip="{Binding RedoText}" />
+                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon Save24}" Command="{Binding SaveCommand}" ToolTip="Save (Ctrl+S)" />
+                <Rectangle Width="1" Height="20" Fill="{StaticResource SubtleLineBrush}" Margin="8,0" />
+                <TextBlock Text="Cutscene" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox x:Name="CutscenePicker" MinWidth="240" MaxWidth="360" ItemsSource="{Binding Cutscenes}" SelectedItem="{Binding CurrentCutsceneItem}"
+                          ToolTip="The cutscene you're editing">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:CutsceneItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis" MaxWidth="220" />
+                                <TextBlock Text="{Binding Location, StringFormat='  ·  {0}'}" Style="{StaticResource Faint}" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddCutsceneCommand}" ToolTip="New cutscene" Margin="4,0,0,0" />
+            </StackPanel>
+
+            <!-- Workspace switch (doc 07 §15): scenes, or the Character Studio for sprites, poses and animations -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <RadioButton x:Name="ScenesSwitch" Style="{StaticResource WorkspaceSwitch}" Content="Scenes" GroupName="Workspace"
+                             IsChecked="{Binding IsCharacterStudio, Converter={StaticResource Not}}" ToolTip="Stage, storyboard and properties for cutscenes" />
+                <RadioButton x:Name="StudioSwitch" Style="{StaticResource WorkspaceSwitch}" Content="Character Studio" GroupName="Workspace"
+                             IsChecked="{Binding IsCharacterStudio}" ToolTip="Poses, sprites, masks, expressions, portraits and reusable animations" />
+            </StackPanel>
+
+            <!-- Bridge light, preview, export -->
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border x:Name="BridgePill" Style="{StaticResource Chip}" Padding="10,4" Margin="0,0,10,0" Cursor="Hand" MouseLeftButtonUp="BridgePill_Click"
+                        ToolTip="{Binding Bridge.GameVersion, StringFormat='Stardew Valley {0}. Click to check again.', TargetNullValue='Start Stardew Valley with the SDCS Bridge installed. Click to check again.'}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="9" Height="9" Fill="{Binding Bridge.State, Converter={StaticResource BridgeBrush}}" VerticalAlignment="Center" Margin="0,0,7,0" />
+                        <TextBlock Text="{Binding Bridge.Text}" FontSize="12" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <!-- Try it as… (D-51): pick how Checks, Chances and random items land in previews. -->
+                <Grid Margin="0,0,6,0" Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}">
+                    <ToggleButton x:Name="TryItAsToggle" Style="{StaticResource ToolbarToggle}" Content="{Binding TryItAs.ButtonText}" Checked="TryItAs_Opened"
+                                  ToolTip="Pick how this scene's Checks, Chances and random items land in previews. Your pack and the save don't change." />
+                    <Popup IsOpen="{Binding IsChecked, ElementName=TryItAsToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=TryItAsToggle}" Placement="Bottom"
+                           AllowsTransparency="True">
+                        <Border Background="{DynamicResource ApplicationBackgroundBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="8"
+                                Padding="14,12" Width="440" Margin="0,4,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Try it as…" FontWeight="SemiBold" FontSize="14" />
+                                <TextBlock Text="For previews only: how this scene's Checks, Chances and random items land. The pack and the save don't change."
+                                           Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,10" />
+                                <ItemsControl ItemsSource="{Binding TryItAs.Entries}" IsTabStop="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:TryItAsEntry}">
+                                            <StackPanel Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding Title}" Style="{StaticResource FieldLabel}" />
+                                                <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" DisplayMemberPath="Label" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding TryItAs.EmptyText}" Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                           Visibility="{Binding TryItAs.EmptyText, Converter={StaticResource VisibleWhen}}" />
+                                <ui:Button Content="Let the game decide everywhere" Command="{Binding TryItAs.ClearCommand}" HorizontalAlignment="Left" Padding="10,4" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
+                <ui:Button Content="Preview in game" Icon="{ui:SymbolIcon Play24}" Appearance="Primary" Command="{Binding PreviewInGameCommand}"
+                           IsEnabled="{Binding IsProjectOpen}" ToolTip="Play the current cutscene in the running game (F5). Shift+F5 starts at the selected beat." Margin="0,0,6,0" />
+                <ui:Button Content="Export" Icon="{ui:SymbolIcon BoxArrowUp24}" Appearance="Secondary" Command="{Binding ExportCommand}"
+                           IsEnabled="{Binding IsProjectOpen}" ToolTip="Check the pack, fill in dependencies, and write it out (Ctrl+E)" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ===== Workspace ===== -->
+        <Grid x:Name="Workspace" Grid.Row="2" Margin="6,0,6,0" Visibility="{Binding IsCharacterStudio, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+            <docking:DockingManager x:Name="DockManager" />
+            <views:WelcomeView Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" />
+        </Grid>
+
+        <!-- ===== Character Studio workspace (M8) ===== -->
+        <studioviews:CharacterStudioView Grid.Row="2" Margin="6,0,6,0" DataContext="{Binding CharacterStudio}"
+                                         Visibility="{Binding DataContext.IsCharacterStudio, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource VisibleWhen}}" />
+
+        <ui:SnackbarPresenter x:Name="Snackbar" Grid.Row="2" VerticalAlignment="Bottom" Margin="0,0,0,24" />
+
+        <!-- ===== Status bar ===== -->
+        <Grid Grid.Row="3" Margin="10,3,10,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Cursor="Hand" MouseLeftButtonUp="CatalogStatus_Click"
+                        ToolTip="The game export feeds the asset browser, the stage and validation. Click to reload it from disk.">
+                <ui:SymbolIcon Symbol="{Binding HasCatalog, Converter={x:Static views:StatusIcons.Catalog}}" FontSize="14" Margin="0,0,6,0"
+                               Foreground="{Binding HasCatalog, Converter={x:Static views:StatusIcons.CatalogBrush}}" />
+                <TextBlock Text="{Binding CatalogStatus}" Style="{StaticResource Caption}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" MaxWidth="760" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="12,0" Visibility="{Binding IsBusy, Converter={StaticResource VisibleWhen}}">
+                <ui:ProgressRing IsIndeterminate="True" Width="14" Height="14" Margin="0,0,6,0" />
+                <TextBlock Text="{Binding BusyText}" Style="{StaticResource Caption}" TextWrapping="NoWrap" />
+            </StackPanel>
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Cursor="Hand" MouseLeftButtonUp="ShowProblems_Click"
+                        Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}" ToolTip="Open the Problems panel">
+                <ui:SymbolIcon Symbol="ErrorCircle24" FontSize="14" Foreground="{StaticResource ErrorBrush}" Margin="0,0,4,0"
+                               Visibility="{Binding Problems.ErrorCount, Converter={StaticResource VisibleWhen}}" />
+                <ui:SymbolIcon Symbol="Warning24" FontSize="14" Foreground="{StaticResource WarningBrush}" Margin="0,0,4,0"
+                               Visibility="{Binding Problems.WarningCount, Converter={StaticResource VisibleWhen}}" />
+                <TextBlock Text="{Binding Problems.Summary}" Style="{StaticResource Caption}" TextWrapping="NoWrap" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

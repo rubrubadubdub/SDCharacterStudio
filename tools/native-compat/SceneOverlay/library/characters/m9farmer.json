@@ -1,0 +1,11 @@
+{
+  "Kind": "Farmer",
+  "FrameSize": [32, 48],
+  "Frames": {
+    "down": { "Stand": 0 }, "right": { "Stand": 0 }, "up": { "Stand": 0 }, "left": { "Stand": 0 }
+  },
+  "NeckPoint": { "down": [16, 23], "right": [16, 23], "up": [16, 23], "left": [16, 23] },
+  "FaceBox": { "down": [8, 8, 16, 10], "right": [8, 8, 16, 10], "up": [8, 8, 16, 10], "left": [8, 8, 16, 10] },
+  "Id": "m9farmer",
+  "Format": "1.0"
+}

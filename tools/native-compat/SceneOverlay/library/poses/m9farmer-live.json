@@ -1,0 +1,21 @@
+{
+  "Kind": "character",
+  "For": "m9farmer",
+  "FrameSize": [32, 48],
+  "Pivot": [16, 47],
+  "Frames": [
+    {
+      "Duration": 1000,
+      "Layers": [
+        {
+          "Type": "Live",
+          "Source": { "Kind": "Farmer" },
+          "Part": "Full",
+          "SourceFrame": { "Index": 0 }
+        }
+      ]
+    }
+  ],
+  "Id": "m9farmer-live",
+  "Format": "1.0"
+}

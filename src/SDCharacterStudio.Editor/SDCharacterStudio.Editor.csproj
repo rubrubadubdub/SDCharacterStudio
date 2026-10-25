@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Version>0.1.0</Version>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>SDCharacterStudio.Editor</AssemblyName>
+    <RootNamespace>SDCharacterStudio.Editor</RootNamespace>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <AudioHostDirectory>$(MSBuildProjectDirectory)\..\SDCharacterStudio.AudioHost\bin\$(Configuration)\net8.0-windows\</AudioHostDirectory>
+    <AudioHostDirectory Condition="'$(RuntimeIdentifier)' != ''">$(AudioHostDirectory)$(RuntimeIdentifier)\</AudioHostDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SDCharacterStudio.Core\SDCharacterStudio.Core.csproj" />
+    <ProjectReference Include="..\SDCharacterStudio.AudioHost\SDCharacterStudio.AudioHost.csproj" ReferenceOutputAssembly="false" />
+    <!-- Export › As a complete mod (Q-17): the entry DLL with the engine inside, renamed per mod with Mono.Cecil. -->
+    <ProjectReference Include="..\SDCharacterStudio.EmbedStub\SDCharacterStudio.EmbedStub.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <None Include="..\SDCharacterStudio.EmbedStub\bin\$(Configuration)\net6.0\SDCharacterStudio.EmbedStub.dll" Link="Embed\SDCharacterStudio.EmbedStub.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="..\SDCharacterStudio.Engine\bin\$(Configuration)\net6.0\Sdcs.cs" Link="Embed\Sdcs.cs" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <PackageReference Include="Mono.Cecil" Version="0.11.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="WPF-UI" Version="3.0.5" />
+    <PackageReference Include="Dirkster.AvalonDock" Version="4.74.1" />
+    <PackageReference Include="Dirkster.AvalonDock.Themes.VS2013" Version="4.74.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\**\*.png" />
+    <InternalsVisibleTo Include="SDCharacterStudio.Editor.Tests" />
+  </ItemGroup>
+  <!-- Character Studio (M8): the runtime's pure source-resolution and animation-timing rules, compiled in so editor
+       previews follow the same logic (doc 05 §1). None of these files touch the game. -->
+  <ItemGroup>
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\RigSelection.cs" Link="Runtime\RigSelection.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\PixelOperations.cs" Link="Runtime\PixelOperations.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\ColorSlotResolver.cs" Link="Runtime\ColorSlotResolver.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\FarmerParts.cs" Link="Runtime\FarmerParts.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\FarmerCanvas.cs" Link="Runtime\FarmerCanvas.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\AnimationMath.cs" Link="Runtime\AnimationMath.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\PoseTimeline.cs" Link="Runtime\PoseTimeline.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\ClipClock.cs" Link="Runtime\ClipClock.cs" />
+  </ItemGroup>
+  <Target Name="CollectAudioHostFiles">
+    <ItemGroup>
+      <AudioHostFiles Include="$(AudioHostDirectory)SDCharacterStudio.AudioHost.*" Condition="'$(AudioHostPublished)' != 'true'" />
+      <AudioHostFiles Include="$(AudioHostDirectory)**\*" Condition="'$(AudioHostPublished)' == 'true'" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(AudioHostDirectory)SDCharacterStudio.AudioHost.exe')" Text="Build the AudioHost executable before packaging the editor." />
+  </Target>
+  <Target Name="CopyAudioHost" AfterTargets="Build" DependsOnTargets="CollectAudioHostFiles">
+    <Copy SourceFiles="@(AudioHostFiles)" DestinationFiles="@(AudioHostFiles->'$(TargetDir)AudioHost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishAudioHost" AfterTargets="Publish" DependsOnTargets="CollectAudioHostFiles">
+    <Copy SourceFiles="@(AudioHostFiles)" DestinationFiles="@(AudioHostFiles->'$(PublishDir)AudioHost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

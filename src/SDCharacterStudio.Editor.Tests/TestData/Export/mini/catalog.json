@@ -1,0 +1,287 @@
+{
+ "CatalogFormat": 1,
+ "Profile": "mini",
+ "Game": {
+  "Version": "1.6.15"
+ },
+ "ExportedAt": "2026-10-24T12:00:00Z",
+ "Mods": "mods.json",
+ "Origins": "origins.json",
+ "Sounds": "sounds.json",
+ "Emotes": "emotes.json",
+ "Textures": [
+  {
+   "Asset": "Characters/Robin",
+   "File": "textures/Characters/Robin.png",
+   "Size": [
+    64,
+    128
+   ]
+  },
+  {
+   "Asset": "Characters/Robin_Summer",
+   "File": "textures/Characters/Robin_Summer.png",
+   "Size": [
+    64,
+    128
+   ]
+  },
+  {
+   "Asset": "Characters/Sophia",
+   "File": "textures/Characters/Sophia.png",
+   "Size": [
+    64,
+    128
+   ]
+  }
+ ],
+ "Characters": [
+  {
+   "Name": "Robin",
+   "DisplayName": "Robin",
+   "Size": [
+    16,
+    32
+   ],
+   "Origin": {
+    "Vanilla": true,
+    "ProvidedBy": [],
+    "EditedBy": [
+     "Poltergeister.SeasonalCuteCharacters"
+    ],
+    "Certain": true
+   },
+   "Sprite": "Characters/Robin",
+   "Portrait": "Portraits/Robin",
+   "Appearances": [
+    {
+     "Id": "Summer",
+     "Season": "Summer",
+     "Sprite": "Characters/Robin_Summer",
+     "Portrait": "Portraits/Robin_Summer"
+    }
+   ],
+   "Current": {
+    "Sprite": "Characters/Robin",
+    "Portrait": "Portraits/Robin"
+   }
+  },
+  {
+   "Name": "Demetrius",
+   "DisplayName": "Demetrius",
+   "Size": [
+    16,
+    32
+   ],
+   "Origin": {
+    "Vanilla": true,
+    "ProvidedBy": [],
+    "EditedBy": [],
+    "Certain": true
+   },
+   "Sprite": "Characters/Demetrius",
+   "Portrait": "Portraits/Demetrius"
+  },
+  {
+   "Name": "Sophia",
+   "DisplayName": "Sophia",
+   "Size": [
+    16,
+    32
+   ],
+   "Origin": {
+    "Vanilla": false,
+    "ProvidedBy": [
+     "FlashShifter.StardewValleyExpandedCP"
+    ],
+    "EditedBy": [],
+    "Certain": true
+   },
+   "Sprite": "Characters/Sophia",
+   "Portrait": "Portraits/Sophia"
+  },
+  {
+   "Name": "Lenny",
+   "DisplayName": "Lenny",
+   "Size": [
+    16,
+    32
+   ],
+   "Origin": {
+    "Vanilla": false,
+    "ProvidedBy": [
+     "Rafseazz.RidgesideVillage"
+    ],
+    "EditedBy": [],
+    "Certain": true
+   },
+   "Sprite": "Characters/Lenny",
+   "Portrait": "Portraits/Lenny"
+  }
+ ],
+ "Locations": [
+  {
+   "Name": "ScienceHouse",
+   "MapAsset": "Maps\\ScienceHouse",
+   "Size": [
+    32,
+    25
+   ],
+   "Origin": {
+    "Vanilla": true,
+    "ProvidedBy": [],
+    "EditedBy": [
+     "FlashShifter.StardewValleyExpandedCP"
+    ],
+    "Certain": true
+   }
+  },
+  {
+   "Name": "Town",
+   "MapAsset": "Maps\\Town",
+   "Size": [
+    130,
+    110
+   ],
+   "Origin": {
+    "Vanilla": true,
+    "ProvidedBy": [],
+    "EditedBy": [],
+    "Certain": true
+   }
+  },
+  {
+   "Name": "Mountain",
+   "MapAsset": "Maps\\Mountain",
+   "Size": [
+    135,
+    41
+   ],
+   "Origin": {
+    "Vanilla": true,
+    "ProvidedBy": [],
+    "EditedBy": [],
+    "Certain": true
+   }
+  },
+  {
+   "Name": "Custom_Ridgeside_RidgesideVillage",
+   "MapAsset": "Maps\\Custom_Ridgeside_RidgesideVillage",
+   "Size": [
+    150,
+    90
+   ],
+   "Origin": {
+    "Vanilla": false,
+    "ProvidedBy": [
+     "Rafseazz.RidgesideVillage"
+    ],
+    "EditedBy": [],
+    "Certain": true
+   }
+  },
+  {
+   "Name": "Custom_SophiaCottage",
+   "MapAsset": "Maps\\Custom_SophiaCottage",
+   "Size": [
+    20,
+    15
+   ],
+   "Origin": {
+    "Vanilla": false,
+    "ProvidedBy": [
+     "FlashShifter.StardewValleyExpandedCP"
+    ],
+    "EditedBy": [],
+    "Certain": true
+   }
+  }
+ ],
+ "Items": {
+  "(O)": [
+   {
+    "Id": "709",
+    "QualifiedId": "(O)709",
+    "Name": "Hardwood",
+    "DisplayName": "Hardwood",
+    "Icon": "icons/O/709.png",
+    "Origin": {
+     "Vanilla": true,
+     "ProvidedBy": [],
+     "EditedBy": [],
+     "Certain": true
+    }
+   },
+   {
+    "Id": "336",
+    "QualifiedId": "(O)336",
+    "Name": "Gold Bar",
+    "DisplayName": "Gold Bar",
+    "Icon": "icons/O/336.png",
+    "Origin": {
+     "Vanilla": true,
+     "ProvidedBy": [],
+     "EditedBy": [],
+     "Certain": true
+    }
+   },
+   {
+    "Id": "128",
+    "QualifiedId": "(O)128",
+    "Name": "Pufferfish",
+    "DisplayName": "Pufferfish",
+    "Icon": "icons/O/128.png",
+    "Origin": {
+     "Vanilla": true,
+     "ProvidedBy": [],
+     "EditedBy": [],
+     "Certain": true
+    }
+   },
+   {
+    "Id": "FlashShifter.StardewValleyExpandedCP_Birch_Water",
+    "QualifiedId": "(O)FlashShifter.StardewValleyExpandedCP_Birch_Water",
+    "Name": "Birch Water",
+    "DisplayName": "Birch Water",
+    "Origin": {
+     "Vanilla": false,
+     "ProvidedBy": [
+      "FlashShifter.StardewValleyExpandedCP"
+     ],
+     "EditedBy": [],
+     "Certain": true
+    }
+   }
+  ],
+  "(H)": [
+   {
+    "Id": "0",
+    "QualifiedId": "(H)0",
+    "Name": "Cowboy Hat",
+    "DisplayName": "Cowboy Hat",
+    "Origin": {
+     "Vanilla": true,
+     "ProvidedBy": [],
+     "EditedBy": [],
+     "Certain": true
+    }
+   }
+  ]
+ },
+ "FarmerParts": {
+  "Hairstyles": [
+   {
+    "Index": 0,
+    "Texture": "Characters/Farmer/hairstyles",
+    "TileX": 0,
+    "TileY": 0,
+    "Origin": {
+     "Vanilla": true,
+     "ProvidedBy": [],
+     "EditedBy": [],
+     "Certain": true
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,9 @@
+{
+  "Name": "SDCS Bench (code)",
+  "Author": "SDCharacterStudio",
+  "Version": "1.0.0",
+  "Description": "Bench: a C# mod that plays SDCharacterStudio scenes with the engine embedded (Sdcs.cs). Players need nothing else.",
+  "UniqueID": "Bench.SdcsCode",
+  "EntryDll": "SdcsBench.CodeMod.dll",
+  "MinimumApiVersion": "4.0.0"
+}

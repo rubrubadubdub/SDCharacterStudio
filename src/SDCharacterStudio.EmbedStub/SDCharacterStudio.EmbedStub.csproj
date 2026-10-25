@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The entry DLL of a mod exported "as a complete mod" (Q-17): a ModEntry that registers the mod's own folder, with the
+    engine embedded through the generated drop-in Sdcs.cs. The editor renames this assembly for each exported mod, so no
+    two exported mods share an assembly name.
+  -->
+  <PropertyGroup>
+    <AssemblyName>SDCharacterStudio.EmbedStub</AssemblyName>
+    <RootNamespace>SDCharacterStudio.EmbeddedMod</RootNamespace>
+    <Version>0.1.0</Version>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <EnableModDeploy>false</EnableModDeploy>
+    <EnableModZip>false</EnableModZip>
+    <DebugType>none</DebugType>
+    <EngineOut>$(MSBuildProjectDirectory)\..\SDCharacterStudio.Engine\bin\$(Configuration)\net6.0\</EngineOut>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <ProjectReference Include="..\SDCharacterStudio.Engine\SDCharacterStudio.Engine.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <Compile Include="$(EngineOut)Sdcs.cs" Link="Sdcs.cs" />
+  </ItemGroup>
+</Project>

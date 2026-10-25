@@ -1,0 +1,81 @@
+{
+  "Kind": "character",
+  "For": "robin",
+  "FrameSize": [
+    16,
+    32
+  ],
+  "Pivot": [
+    8,
+    31
+  ],
+  "Facing": "left",
+  "Frames": [
+    {
+      "Duration": 150,
+      "Layers": [
+        {
+          "Source": {
+            "Kind": "Npc",
+            "Npc": "Robin"
+          },
+          "SourceFrame": {
+            "Facing": "left",
+            "Stand": true
+          },
+          "Map": "art/poses/robin-bow/map-0.png",
+          "Visible": false,
+          "Type": "Live"
+        },
+        {
+          "Type": "Paint",
+          "Image": "art/poses/robin-bow/body-0.png",
+          "ColorSlots": {
+            "Skin": "robin.Skin",
+            "Outline": "robin.Outline",
+            "Hair": "robin.Hair",
+            "Shirt": "robin.Shirt",
+            "Pants": "robin.Pants",
+            "Shoes": "robin.Shoes"
+          }
+        },
+        {
+          "Type": "Live",
+          "Source": {
+            "Kind": "Npc",
+            "Npc": "Robin"
+          },
+          "Part": "Head",
+          "SourceFrame": {
+            "Facing": "left",
+            "Stand": true
+          },
+          "AnchorTo": {
+            "Anchor": "Neck",
+            "From": "rig"
+          }
+        },
+        {
+          "Image": "art/poses/robin-bow/paint-0.png",
+          "ColorSlots": {
+            "Skin": "robin.Skin",
+            "Outline": "robin.Outline",
+            "Hair": "robin.Hair",
+            "Shirt": "robin.Shirt",
+            "Pants": "robin.Pants",
+            "Shoes": "robin.Shoes"
+          },
+          "Type": "Paint"
+        }
+      ],
+      "Anchors": {
+        "Neck": [
+          7,
+          15
+        ]
+      }
+    }
+  ],
+  "Id": "robin-bow",
+  "Format": "1.0"
+}

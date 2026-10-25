@@ -1,0 +1,81 @@
+{
+  "Kind": "character",
+  "For": "demetrius",
+  "FrameSize": [
+    16,
+    32
+  ],
+  "Pivot": [
+    8,
+    31
+  ],
+  "Facing": "left",
+  "Frames": [
+    {
+      "Duration": 150,
+      "Layers": [
+        {
+          "Source": {
+            "Kind": "Npc",
+            "Npc": "Demetrius"
+          },
+          "SourceFrame": {
+            "Facing": "left",
+            "Stand": true
+          },
+          "Map": "art/poses/demetrius-cheer/map-0.png",
+          "Visible": false,
+          "Type": "Live"
+        },
+        {
+          "Type": "Paint",
+          "Image": "art/poses/demetrius-cheer/body-0.png",
+          "ColorSlots": {
+            "Skin": "demetrius.Skin",
+            "Outline": "demetrius.Outline",
+            "Hair": "demetrius.Hair",
+            "Shirt": "demetrius.Shirt",
+            "Pants": "demetrius.Pants",
+            "Shoes": "demetrius.Shoes"
+          }
+        },
+        {
+          "Type": "Live",
+          "Source": {
+            "Kind": "Npc",
+            "Npc": "Demetrius"
+          },
+          "Part": "Head",
+          "SourceFrame": {
+            "Facing": "left",
+            "Stand": true
+          },
+          "AnchorTo": {
+            "Anchor": "Neck",
+            "From": "rig"
+          }
+        },
+        {
+          "Image": "art/poses/demetrius-cheer/paint-0.png",
+          "ColorSlots": {
+            "Skin": "demetrius.Skin",
+            "Outline": "demetrius.Outline",
+            "Hair": "demetrius.Hair",
+            "Shirt": "demetrius.Shirt",
+            "Pants": "demetrius.Pants",
+            "Shoes": "demetrius.Shoes"
+          },
+          "Type": "Paint"
+        }
+      ],
+      "Anchors": {
+        "Neck": [
+          7,
+          15
+        ]
+      }
+    }
+  ],
+  "Id": "demetrius-cheer",
+  "Format": "1.0"
+}

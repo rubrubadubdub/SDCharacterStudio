@@ -1,0 +1,47 @@
+{
+  "Title": "wave",
+  "Location": "ScienceHouse",
+  "Actors": [
+    {
+      "Id": "farmer",
+      "Kind": "Farmer",
+      "Start": {
+        "Tile": [
+          16,
+          9
+        ]
+      },
+      "Facing": "up"
+    },
+    {
+      "Id": "Demetrius",
+      "Kind": "Npc",
+      "Npc": "Demetrius",
+      "Start": {
+        "Tile": [
+          13,
+          7
+        ]
+      }
+    }
+  ],
+  "Beats": [
+    {
+      "Clip": "hop",
+      "Cast": {
+        "demetrius": "Demetrius"
+      },
+      "Type": "Clip"
+    },
+    {
+      "Actor": "Demetrius",
+      "Text": "No-code bench: I'm one complete mod.",
+      "Type": "Say"
+    }
+  ],
+  "OnEnd": {
+    "End": "stay"
+  },
+  "Id": "wave",
+  "Format": "1.0"
+}

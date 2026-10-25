@@ -1,0 +1,53 @@
+<UserControl x:Class="SDCharacterStudio.Editor.Views.ProblemsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:SDCharacterStudio.Editor.ViewModels"
+             xmlns:views="clr-namespace:SDCharacterStudio.Editor.Views"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:ProblemsViewModel}">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="12,6,12,6">
+            <CheckBox DockPanel.Dock="Right" Content="Only this cutscene" IsChecked="{Binding CurrentCutsceneOnly}" FontSize="12" />
+            <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" FontWeight="SemiBold" />
+            <TextBlock Text="  ·  double-click a problem to jump to it. Export and preview wait until errors are fixed; warnings are fine."
+                       Style="{StaticResource Faint}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+        <Grid>
+            <ListBox ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0" Margin="6,0,6,6"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" MouseDoubleClick="List_MouseDoubleClick" KeyDown="List_KeyDown">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="Padding" Value="8,5" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ProblemItemViewModel}">
+                        <DockPanel>
+                            <ui:SymbolIcon DockPanel.Dock="Left" Symbol="{Binding IsError, Converter={x:Static views:StatusIcons.Severity}}" FontSize="16" Margin="0,0,10,0"
+                                           Foreground="{Binding IsError, Converter={StaticResource SeverityBrush}}" VerticalAlignment="Top" />
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <ui:Button Content="{Binding FixLabel}" Command="{Binding FixCommand}" Padding="8,2" Margin="8,0,0,0" FontSize="12"
+                                           Visibility="{Binding FixLabel, Converter={StaticResource VisibleWhen}}" />
+                                <ui:Button Content="Go to" Command="{Binding JumpCommand}" Padding="8,2" Margin="6,0,0,0" FontSize="12" Appearance="Transparent" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource Faint}" FontSize="11">
+                                    <Run Text="{Binding Location, Mode=OneWay}" /><Run Text="{Binding Rule, Mode=OneWay, StringFormat='  ·  {0}'}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal"
+                        Visibility="{Binding Items.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                <ui:SymbolIcon Symbol="CheckmarkCircle24" Foreground="{StaticResource GoodBrush}" FontSize="18" Margin="0,0,8,0" />
+                <TextBlock Text="No problems. The pack is ready to preview and export." Style="{StaticResource Caption}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

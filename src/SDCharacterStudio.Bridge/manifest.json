@@ -1,0 +1,12 @@
+{
+  "Name": "SDCharacterStudio.Bridge",
+  "Author": "rubrubadubdub",
+  "Version": "0.1.0",
+  "Description": "Developer bridge for SDCharacterStudio authoring tools.",
+  "UniqueID": "Player.SDCharacterStudio.Bridge",
+  "EntryDll": "SDCharacterStudio.Bridge.dll",
+  "MinimumApiVersion": "4.0.0",
+  "Dependencies": [
+    { "UniqueID": "Player.SDCharacterStudio", "MinimumVersion": "0.1.0", "IsRequired": true }
+  ]
+}

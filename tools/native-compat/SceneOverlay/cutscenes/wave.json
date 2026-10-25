@@ -1,0 +1,15 @@
+{
+  "Title": "M9 wardrobe native check",
+  "Location": "ScienceHouse",
+  "Actors": [
+    { "Id": "farmer", "Kind": "Farmer", "Start": { "Tile": [16, 9] }, "Facing": "up" },
+    { "Id": "Demetrius", "Kind": "Npc", "Npc": "Demetrius", "Start": { "Tile": [13, 7] } }
+  ],
+  "Beats": [
+    { "Type": "Pose", "Actor": "farmer", "Pose": "m9farmer-live", "Play": "hold-first", "Wait": false },
+    { "Type": "Clip", "Clip": "hop", "Cast": { "demetrius": "Demetrius" } },
+    { "Type": "Say", "Actor": "Demetrius", "Text": "M9 wardrobe native check." }
+  ],
+  "Id": "wave",
+  "Format": "1.0"
+}

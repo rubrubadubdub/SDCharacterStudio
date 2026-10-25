@@ -1,0 +1,57 @@
+{
+  "Masks": [
+    {
+      "Id": "demetrius-head-down",
+      "DisplayName": "Demetrius head, facing down",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/demetrius-head-down.png",
+      "Tags": [
+        "demetrius",
+        "head"
+      ]
+    },
+    {
+      "Id": "demetrius-head-right",
+      "DisplayName": "Demetrius head, facing right",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/demetrius-head-right.png",
+      "Tags": [
+        "demetrius",
+        "head"
+      ]
+    },
+    {
+      "Id": "demetrius-head-up",
+      "DisplayName": "Demetrius head, facing up",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/demetrius-head-up.png",
+      "Tags": [
+        "demetrius",
+        "head"
+      ]
+    },
+    {
+      "Id": "demetrius-head-left",
+      "DisplayName": "Demetrius head, facing left",
+      "FrameSize": [
+        16,
+        32
+      ],
+      "Image": "masks/demetrius-head-left.png",
+      "Tags": [
+        "demetrius",
+        "head"
+      ]
+    }
+  ],
+  "Format": "1.0"
+}

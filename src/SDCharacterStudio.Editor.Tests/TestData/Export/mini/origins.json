@@ -1,0 +1,42 @@
+{
+ "Assets": {
+  "Characters/Robin": {
+   "Vanilla": true,
+   "ProvidedBy": [],
+   "EditedBy": [
+    "Poltergeister.SeasonalCuteCharacters"
+   ],
+   "Certain": false
+  },
+  "Characters/Robin_Summer": {
+   "Vanilla": false,
+   "ProvidedBy": [
+    "Poltergeister.SeasonalCuteCharacters"
+   ],
+   "EditedBy": [
+    "Poltergeister.SeasonalCuteCharacters"
+   ],
+   "Certain": false
+  },
+  "Portraits/Robin": {
+   "Vanilla": true,
+   "ProvidedBy": [],
+   "EditedBy": [],
+   "Certain": true
+  },
+  "Characters/Sophia": {
+   "Vanilla": false,
+   "ProvidedBy": [
+    "FlashShifter.StardewValleyExpandedCP"
+   ],
+   "EditedBy": [],
+   "Certain": true
+  },
+  "Characters/Mystery_Outfit": {
+   "Vanilla": false,
+   "ProvidedBy": [],
+   "EditedBy": [],
+   "Certain": false
+  }
+ }
+}

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\ExpressionKeyTimeline.cs" Link="RuntimeAnimation\ExpressionKeyTimeline.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\ExpressionStack.cs" Link="RuntimeAnimation\ExpressionStack.cs" Condition="Exists('..\SDCharacterStudio.Runtime\Animation\ExpressionStack.cs')" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Costumes\CostumeSet.cs" Link="RuntimeCostumes\CostumeSet.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\FarmerParts.cs" Link="RuntimeRendering\FarmerParts.cs" Condition="Exists('..\SDCharacterStudio.Runtime\Rendering\FarmerParts.cs')" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\FarmerCanvas.cs" Link="RuntimeRendering\FarmerCanvas.cs" Condition="Exists('..\SDCharacterStudio.Runtime\Rendering\FarmerCanvas.cs')" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\FarmerPartVisibility.cs" Link="RuntimeAnimation\FarmerPartVisibility.cs" Condition="Exists('..\SDCharacterStudio.Runtime\Animation\FarmerPartVisibility.cs')" />
+    <ProjectReference Include="..\SDCharacterStudio.Core\SDCharacterStudio.Core.csproj" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\RigSelection.cs" Link="RuntimeRendering\RigSelection.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\AnimationMath.cs" Link="RuntimeAnimation\AnimationMath.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\PoseTimeline.cs" Link="RuntimeAnimation\PoseTimeline.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Animation\ClipClock.cs" Link="RuntimeAnimation\ClipClock.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\PixelOperations.cs" Link="RuntimeRendering\PixelOperations.cs" Condition="Exists('..\SDCharacterStudio.Runtime\Rendering\PixelOperations.cs')" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Rendering\SourceVersionCache.cs" Link="RuntimeRendering\SourceVersionCache.cs" Condition="Exists('..\SDCharacterStudio.Runtime\Rendering\SourceVersionCache.cs')" />
+    <None Include="..\..\reference\examples\**\*" Link="TestData\Examples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Playback\MovePlanner.cs" Link="RuntimePlayback\MovePlanner.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Playback\CommandState.cs" Link="RuntimePlayback\CommandState.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Playback\GiftProgress.cs" Link="RuntimePlayback\GiftProgress.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Playback\ResetFlags.cs" Link="RuntimePlayback\ResetFlags.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\RegisteredCutscene.cs" Link="RuntimeLoading\RegisteredCutscene.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\CutsceneRegistry.cs" Link="RuntimeLoading\CutsceneRegistry.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Loading\PackCompilation.cs" Link="RuntimeLoading\PackCompilation.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Loading\PackReferenceValidation.cs" Link="RuntimeLoading\PackReferenceValidation.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Media\VideoPlayback.cs" Link="RuntimeMedia\VideoPlayback.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Media\VideoFrameCache.cs" Link="RuntimeMedia\VideoFrameCache.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\Playback\MenuOwnership.cs" Link="RuntimePlayback\MenuOwnership.cs" />
+  </ItemGroup>
+</Project>

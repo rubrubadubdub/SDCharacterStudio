@@ -1,0 +1,16 @@
+{
+  "ProjectFormat": "1.0",
+  "PackFolder": "[SDCS] NoCode Bench",
+  "OpenCutscene": "wave",
+  "Dependencies": [],
+  "UnknownProviders": {},
+  "OptionalEditedBy": [],
+  "ManualDependencies": [],
+  "StageZoom": 3.0,
+  "ShowGrid": true,
+  "ShowPassability": false,
+  "LibraryLinks": [],
+  "DockLayoutXml": null,
+  "StoryNotes": {},
+  "StoryboardGraph": false
+}

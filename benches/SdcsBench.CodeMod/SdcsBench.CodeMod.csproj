@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    A plain SMAPI mod project. The only SDCharacterStudio things in it: Sdcs.cs (the drop-in, picked up like any .cs
+    file) and the exported scenes in scenes/. Run-Benches.ps1 refreshes Sdcs.cs from the engine build.
+  -->
+  <PropertyGroup>
+    <AssemblyName>SdcsBench.CodeMod</AssemblyName>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <EnableModDeploy>false</EnableModDeploy>
+    <EnableModZip>false</EnableModZip>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <None Update="manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="scenes\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

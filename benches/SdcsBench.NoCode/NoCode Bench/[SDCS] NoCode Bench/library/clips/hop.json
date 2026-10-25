@@ -1,0 +1,40 @@
+{
+  "Title": "hop",
+  "Duration": 2000,
+  "Roles": [
+    {
+      "Id": "demetrius",
+      "Kind": "Npc"
+    }
+  ],
+  "Tracks": [
+    {
+      "Role": "demetrius",
+      "Position": [
+        {
+          "Tile": [
+            0,
+            0
+          ],
+          "At": 0
+        },
+        {
+          "Tile": [
+            1,
+            0
+          ],
+          "At": 600
+        }
+      ],
+      "Pose": [
+        {
+          "Pose": "demetrius-cheer",
+          "Play": "once-then-loop",
+          "At": 600
+        }
+      ]
+    }
+  ],
+  "Id": "hop",
+  "Format": "1.0"
+}

@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The SDCS engine for embedding in other mods (Q-17): Core and Runtime compiled into one assembly, plus EngineHost.
+    Not a mod by itself. After each build, the single drop-in file Sdcs.cs (the engine compressed inside a C# file a
+    modder adds to their project) is written next to the DLL and to artifacts/embed/.
+  -->
+  <PropertyGroup>
+    <AssemblyName>SDCharacterStudio.Engine</AssemblyName>
+    <RootNamespace>SDCharacterStudio.Engine</RootNamespace>
+    <Version>0.1.0</Version>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableHarmony>true</EnableHarmony>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <EnableModDeploy>false</EnableModDeploy>
+    <EnableModZip>false</EnableModZip>
+    <DebugType>embedded</DebugType>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <EmbedArtifacts>$(MSBuildProjectDirectory)\..\..\artifacts\embed\</EmbedArtifacts>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" ExcludeAssets="runtime" />
+    <Compile Include="..\SDCharacterStudio.Core\**\*.cs" Exclude="..\SDCharacterStudio.Core\obj\**;..\SDCharacterStudio.Core\bin\**" Link="Core\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\SDCharacterStudio.Runtime\**\*.cs" Exclude="..\SDCharacterStudio.Runtime\obj\**;..\SDCharacterStudio.Runtime\bin\**;..\SDCharacterStudio.Runtime\ModEntry.cs" Link="Runtime\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="Sdcs.cs.template" />
+  </ItemGroup>
+
+  <UsingTask TaskName="WriteSdcsDropIn" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Engine ParameterType="System.String" Required="true" />
+      <Template ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        byte[] raw = File.ReadAllBytes(Engine);
+        var buffer = new MemoryStream();
+        // The task compiles against .NET Standard (no BrotliStream); MSBuild itself runs on .NET, which has it.
+        var brotliType = Type.GetType("System.IO.Compression.BrotliStream, System.IO.Compression.Brotli", true);
+        using (var brotli = (Stream)Activator.CreateInstance(brotliType, new object[] { buffer, (CompressionLevel)3 /* SmallestSize */, true })) brotli.Write(raw, 0, raw.Length);
+        string data = Convert.ToBase64String(buffer.ToArray());
+        var lines = new StringBuilder();
+        for (int i = 0; i < data.Length; i += 120) lines.Append(data, i, Math.Min(120, data.Length - i)).Append('\n');
+        string text = File.ReadAllText(Template).Replace("\r\n", "\n").Replace("%VERSION%", Version).Replace("%ENGINE%", lines.ToString());
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        File.WriteAllText(Output, text);
+        Log.LogMessage(MessageImportance.High, "SDCS drop-in: " + Output + " (engine " + raw.Length / 1024 + " KB, file " + text.Length / 1024 + " KB)");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="WriteSdcsDropIn" AfterTargets="Build">
+    <WriteSdcsDropIn Engine="$(TargetPath)" Template="$(MSBuildProjectDirectory)\Sdcs.cs.template" Output="$(OutDir)Sdcs.cs" Version="$(Version)" />
+    <Copy SourceFiles="$(OutDir)Sdcs.cs" DestinationFolder="$(EmbedArtifacts)" Condition="'$(Configuration)' == 'Release'" />
+  </Target>
+</Project>

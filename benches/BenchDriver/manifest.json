@@ -1,0 +1,9 @@
+{
+  "Name": "SDCS Bench Driver",
+  "Author": "SDCharacterStudio",
+  "Version": "1.0.0",
+  "Description": "Test driver for the SDCharacterStudio benches: a disposable in-memory world that plays the benches' scenes. Never saves.",
+  "UniqueID": "Bench.SdcsDriver",
+  "EntryDll": "SdcsBench.Driver.dll",
+  "MinimumApiVersion": "4.0.0"
+}

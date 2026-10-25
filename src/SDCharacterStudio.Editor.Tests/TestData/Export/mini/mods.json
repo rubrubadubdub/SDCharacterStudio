@@ -1,0 +1,33 @@
+[
+ {
+  "UniqueID": "FlashShifter.StardewValleyExpandedCP",
+  "Name": "Stardew Valley Expanded",
+  "Version": "1.15.0",
+  "IsContentPack": true,
+  "ContentPackFor": "Pathoschild.ContentPatcher"
+ },
+ {
+  "UniqueID": "Poltergeister.SeasonalCuteCharacters",
+  "Name": "Seasonal Cute Characters",
+  "Version": "2.4.0",
+  "IsContentPack": true,
+  "ContentPackFor": "Pathoschild.ContentPatcher"
+ },
+ {
+  "UniqueID": "Rafseazz.RidgesideVillage",
+  "Name": "Ridgeside Village",
+  "Version": "2.5.0",
+  "IsContentPack": true,
+  "ContentPackFor": "Pathoschild.ContentPatcher"
+ },
+ {
+  "UniqueID": "Pathoschild.ContentPatcher",
+  "Name": "Content Patcher",
+  "Version": "2.4.0"
+ },
+ {
+  "UniqueID": "Player.SDCharacterStudio",
+  "Name": "SDCharacterStudio",
+  "Version": "0.1.0"
+ }
+]

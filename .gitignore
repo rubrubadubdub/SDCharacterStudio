@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/TestResults/
+.vs/
+*.user
+*.suo
+tools/decompile/out/
+tools/xnbdump/out/
+.superpowers/
+artifacts/
+benches/**/export/
+benches/.run/
+benches/SdcsBench.CodeMod/Sdcs.cs
+benches/**/*.media/
