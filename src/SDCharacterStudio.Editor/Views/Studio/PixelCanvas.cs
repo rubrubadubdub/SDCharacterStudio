@@ -53,20 +53,23 @@ public sealed class PixelCanvas : FrameworkElement
         FocusVisualStyle = null;
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.NearestNeighbor);
         Cursor = Cursors.Cross;
+        Unloaded += (_, _) => CancelGesture();
     }
 
     private static T Frozen<T>(T freezable) where T : Freezable { freezable.Freeze(); return freezable; }
 
-    private static FrameworkPropertyMetadata Visual(object? value) => new(value, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.AffectsMeasure);
+    // Painting changes the picture, not its extent. Re-measuring every stroke point makes large canvases lag.
+    private static FrameworkPropertyMetadata Visual(object? value) => new(value, FrameworkPropertyMetadataOptions.AffectsRender);
+    private static FrameworkPropertyMetadata Extent(object value) => new(value, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.AffectsMeasure);
 
     public static readonly DependencyProperty ImageProperty = DependencyProperty.Register(nameof(Image), typeof(BitmapSource), typeof(PixelCanvas), Visual(null));
     public static readonly DependencyProperty GhostProperty = DependencyProperty.Register(nameof(Ghost), typeof(BitmapSource), typeof(PixelCanvas), Visual(null));
     public static readonly DependencyProperty OnionPreviousProperty = DependencyProperty.Register(nameof(OnionPrevious), typeof(BitmapSource), typeof(PixelCanvas), Visual(null));
     public static readonly DependencyProperty OnionNextProperty = DependencyProperty.Register(nameof(OnionNext), typeof(BitmapSource), typeof(PixelCanvas), Visual(null));
     public static readonly DependencyProperty OnionOpacityProperty = DependencyProperty.Register(nameof(OnionOpacity), typeof(double), typeof(PixelCanvas), Visual(0.3));
-    public static readonly DependencyProperty ZoomProperty = DependencyProperty.Register(nameof(Zoom), typeof(double), typeof(PixelCanvas), Visual(8.0));
-    public static readonly DependencyProperty PixelWidthProperty = DependencyProperty.Register(nameof(PixelWidth), typeof(int), typeof(PixelCanvas), Visual(16));
-    public static readonly DependencyProperty PixelHeightProperty = DependencyProperty.Register(nameof(PixelHeight), typeof(int), typeof(PixelCanvas), Visual(32));
+    public static readonly DependencyProperty ZoomProperty = DependencyProperty.Register(nameof(Zoom), typeof(double), typeof(PixelCanvas), Extent(8.0));
+    public static readonly DependencyProperty PixelWidthProperty = DependencyProperty.Register(nameof(PixelWidth), typeof(int), typeof(PixelCanvas), Extent(16));
+    public static readonly DependencyProperty PixelHeightProperty = DependencyProperty.Register(nameof(PixelHeight), typeof(int), typeof(PixelCanvas), Extent(32));
     public static readonly DependencyProperty ShowGridProperty = DependencyProperty.Register(nameof(ShowGrid), typeof(bool), typeof(PixelCanvas), Visual(true));
     public static readonly DependencyProperty PivotProperty = DependencyProperty.Register(nameof(Pivot), typeof(int[]), typeof(PixelCanvas), Visual(null));
     public static readonly DependencyProperty AnchorsProperty = DependencyProperty.Register(nameof(Anchors), typeof(IEnumerable), typeof(PixelCanvas), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (d, e) => ((PixelCanvas)d).WatchAnchors(e)));
@@ -99,9 +102,25 @@ public sealed class PixelCanvas : FrameworkElement
     public static readonly RoutedEvent PixelDownEvent = EventManager.RegisterRoutedEvent(nameof(PixelDown), RoutingStrategy.Bubble, typeof(EventHandler<PixelPointerEventArgs>), typeof(PixelCanvas));
     public static readonly RoutedEvent PixelMoveEvent = EventManager.RegisterRoutedEvent(nameof(PixelMove), RoutingStrategy.Bubble, typeof(EventHandler<PixelPointerEventArgs>), typeof(PixelCanvas));
     public static readonly RoutedEvent PixelUpEvent = EventManager.RegisterRoutedEvent(nameof(PixelUp), RoutingStrategy.Bubble, typeof(EventHandler<PixelPointerEventArgs>), typeof(PixelCanvas));
+    public static readonly RoutedEvent PixelCancelEvent = EventManager.RegisterRoutedEvent(nameof(PixelCancel), RoutingStrategy.Bubble, typeof(EventHandler<PixelPointerEventArgs>), typeof(PixelCanvas));
     public event EventHandler<PixelPointerEventArgs> PixelDown { add => AddHandler(PixelDownEvent, value); remove => RemoveHandler(PixelDownEvent, value); }
     public event EventHandler<PixelPointerEventArgs> PixelMove { add => AddHandler(PixelMoveEvent, value); remove => RemoveHandler(PixelMoveEvent, value); }
     public event EventHandler<PixelPointerEventArgs> PixelUp { add => AddHandler(PixelUpEvent, value); remove => RemoveHandler(PixelUpEvent, value); }
+    public event EventHandler<PixelPointerEventArgs> PixelCancel { add => AddHandler(PixelCancelEvent, value); remove => RemoveHandler(PixelCancelEvent, value); }
+
+    /// <summary>Abort this pointer gesture before releasing capture; a later button-up must do nothing.</summary>
+    public void CancelGesture()
+    {
+        var button = pressed;
+        pressed = null;
+        lastMoved = null;
+        if (IsMouseCaptured) ReleaseMouseCapture();
+        if (button != null)
+        {
+            var (x, y) = hover ?? (0, 0);
+            RaiseEvent(new PixelPointerEventArgs(PixelCancelEvent, x, y, button));
+        }
+    }
 
     private void WatchAnchors(DependencyPropertyChangedEventArgs e)
     {
@@ -271,7 +290,8 @@ public sealed class PixelCanvas : FrameworkElement
         Focus();
         if (e.ChangedButton is not (MouseButton.Left or MouseButton.Right) || pressed != null) return;
         pressed = e.ChangedButton;
-        CaptureMouse();
+        lastMoved = null;
+        if (!CaptureMouse()) { pressed = null; return; }
         var at = e.GetPosition(this);
         var (x, y) = ToPixel(at);
         var f = ToFramePoint(at);
@@ -306,11 +326,7 @@ public sealed class PixelCanvas : FrameworkElement
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
         base.OnLostMouseCapture(e);
-        if (pressed == null) return;
-        var button = pressed;
-        pressed = null;
-        var (x, y) = hover ?? (0, 0);
-        RaiseEvent(new PixelPointerEventArgs(PixelUpEvent, x, y, button));
+        CancelGesture();
     }
 
     protected override void OnMouseLeave(MouseEventArgs e)

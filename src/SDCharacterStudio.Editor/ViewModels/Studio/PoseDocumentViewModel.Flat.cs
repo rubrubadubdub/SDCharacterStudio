@@ -117,10 +117,10 @@ public partial class PoseDocumentViewModel
     /// <summary>Fill the area of the picture that has the clicked colour (Ctrl: that colour everywhere), as you see it.</summary>
     private void FlatFill(FlatFrame flat, (RgbaImage Map, RgbaImage Paint) images, int x, int y, bool global, uint color)
     {
-        if (x < 0 || y < 0 || x >= Width || y >= Height) return;
+        if (x < 0 || y < 0 || x >= Width || y >= Height || !InsideSelection(x, y)) return;
         var shown = Context.RenderFrame(Model, FrameIndex).Image;
         uint target = shown.Pixels[y * Width + x];
-        bool Same(int px, int py) => shown.Pixels[py * Width + px] == target && (Selection is not { } s || s.Contains(px, py));
+        bool Same(int px, int py) => shown.Pixels[py * Width + px] == target && InsideSelection(px, py);
         var cells = global ? Enumerable.Range(0, Width * Height).Select(i => (i % Width, i / Width)).Where(p => Same(p.Item1, p.Item2)).ToList()
             : PixelTools.Flood(Width, Height, x, y, Same);
         if (cells.Count == 0 || target == color) return;
@@ -148,7 +148,8 @@ public partial class PoseDocumentViewModel
         {
             ApplyFlatMove(g, x - g.From.X, y - g.From.Y);
             g.Delta = (x - g.From.X, y - g.From.Y);
-            Selection = g.Selection with { X = g.Selection.X + x - g.From.X, Y = g.Selection.Y + y - g.From.Y };
+            var moved = g.Selection with { X = g.Selection.X + x - g.From.X, Y = g.Selection.Y + y - g.From.Y };
+            SetShape(g.Shape?.Offset(g.Delta.X, g.Delta.Y), keepBounds: moved);
         }
         Render();
         return true;
@@ -248,8 +249,9 @@ public partial class PoseDocumentViewModel
 
     private void CancelFlat()
     {
-        if (flatGesture == null) return;
+        if (flatGesture is not { } gesture) return;
         flatGesture = null;
+        if (gesture.Kind == "move") SetShape(gesture.Shape, keepBounds: gesture.Selection);
         EndPreview();
     }
 

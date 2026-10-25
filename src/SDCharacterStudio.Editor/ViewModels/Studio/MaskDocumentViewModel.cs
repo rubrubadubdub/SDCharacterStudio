@@ -49,10 +49,13 @@ public sealed partial class MaskDocumentViewModel : StudioDocumentViewModel
     public string FrameText => $"Source frame {SourceFrame}{(HasOverride ? " · its own mask (per-frame)" : "")}";
 
     private bool loading;
+    partial void OnSourceFrameChanging(int value) => CancelStroke();
     partial void OnSourceFrameChanged(int value) { if (loading) return; Render(); RenderFit(); BuildFields(); OnPropertyChanged(nameof(HasOverride)); OnPropertyChanged(nameof(FrameText)); }
+    partial void OnToolChanging(MaskTool value) => CancelStroke();
 
     public override bool Reload()
     {
+        if (!IsOwnCommit) CancelStroke();
         if (Library?.Mask(ItemId) is not { } fresh) return false;
         bool first = Model.Id == null;
         Model = fresh;
@@ -201,6 +204,14 @@ public sealed partial class MaskDocumentViewModel : StudioDocumentViewModel
         if (done.Changed) WriteMask(Tool == MaskTool.Eraser ? "Erase mask" : "Paint mask", image); else Render();
     }
 
+    public void CancelStroke()
+    {
+        if (stroke is not { } active) return;
+        active.Cancel();
+        stroke = null;
+        Render();
+    }
+
     /// <summary>Keep everything at or above the rig's neck line (doc 07 §6.3).</summary>
     [RelayCommand]
     private void AboveNeck()
@@ -310,5 +321,5 @@ public sealed partial class MaskDocumentViewModel : StudioDocumentViewModel
         Reload();
     }
 
-    public override void Closing() { if (stroke != null) { stroke.End(); stroke = null; } }
+    public override void Closing() { CancelStroke(); }
 }

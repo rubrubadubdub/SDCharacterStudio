@@ -35,7 +35,7 @@ public partial class PoseDocumentViewModel
     private bool dragCopies;
     private static RgbaImage? clipboard;
 
-    public bool IsStroking => stroke != null || dragFrom != null || liveErase != null || lift != null || flatGesture != null;
+    public bool IsStroking => stroke != null || strokeStart != null || dragFrom != null || liveErase != null || lift != null || flatGesture != null || partsWorking != null;
 
     /// <summary>The paint target for a layer: its working copy if a stroke is in progress.</summary>
     public PaintTarget? TargetFor(int layerIndex)
@@ -181,10 +181,18 @@ public partial class PoseDocumentViewModel
     public void CancelStroke()
     {
         if (stroke != null) Context.Overrides.Remove(stroke.Path);
-        stroke = null; strokeBase = null; dragFrom = null; dragPiece = null; strokeStart = null;
+        bool dropSelection = moveDropsSelection;
+        CancelSelectionGesture();
+        if (dragFrom != null) Selection = floatingRect;
+        stroke = null; strokeBase = null; dragFrom = null; dragPiece = null; strokeStart = null; strokeLast = null;
+        strokePath.Clear();
+        strokeChanged = false;
+        if (partsWorking != null) { partsWorking = null; RefreshPartsOverlay(); }
         CancelDirect();
         CancelFlat();
         CancelTransform();
+        if (dropSelection) SetShape(null);
+        moveDropsSelection = false;
         Render();
     }
 
@@ -267,16 +275,19 @@ public partial class PoseDocumentViewModel
     /// <summary>Flood fill within the layer's cell (Ctrl: every pixel of that colour in the cell).</summary>
     private bool FillAt(int x, int y, bool global)
     {
-        if (stroke == null) return false;
-        var cell = PixelTools.Copy(stroke.Image, stroke.Cell);
-        int changed = PixelTools.Fill(cell, x - stroke.CellX, y - stroke.CellY, strokeColor, global);
-        if (changed == 0) return false;
-        PixelTools.Paste(stroke.Image, cell, stroke.CellX, stroke.CellY);
-        // Paste skips transparent pixels: copy the cell back exactly.
-        for (int py = 0; py < cell.Height; py++)
-            for (int px = 0; px < cell.Width; px++)
-                stroke.Image.Pixels[(stroke.CellY + py) * stroke.Image.Width + stroke.CellX + px] = cell.Pixels[py * cell.Width + px];
-        return true;
+        if (stroke is not { } target) return false;
+        int localX = x - target.CellX, localY = y - target.CellY;
+        uint picked = PixelTools.Get(target.Image, x, y);
+        if (picked == strokeColor) return false;
+        bool Same(int px, int py) => PixelTools.Get(target.Image, target.CellX + px, target.CellY + py) == picked
+            && InsideSelection(target.OriginX + (target.Flip ? target.CellWidth - 1 - px : px), target.OriginY + py);
+        if (!Same(localX, localY)) return false;
+        var cells = global
+            ? Enumerable.Range(0, target.CellWidth * target.CellHeight).Select(i => (X: i % target.CellWidth, Y: i / target.CellWidth)).Where(p => Same(p.X, p.Y)).ToList()
+            : PixelTools.Flood(target.CellWidth, target.CellHeight, localX, localY, Same);
+        bool changed = false;
+        foreach (var (px, py) in cells) changed |= PixelTools.Set(target.Image, target.CellX + px, target.CellY + py, strokeColor);
+        return changed;
     }
 
     private bool InsideSelection(int x, int y) => SelectionShape?.Contains(x, y) ?? (Selection is not { } rect || rect.Contains(x, y));
@@ -334,8 +345,13 @@ public partial class PoseDocumentViewModel
         if (IsPeeking) { CopyFromPeek(); return; }
         if (FlatCopy()) return;
         if (TargetFor(LayerIndex) is not { } target) return;
-        var rect = Selection ?? new PixelRect(0, 0, Width, Height);
-        clipboard = PixelTools.Copy(target.Image, Translate(rect, target).Clip(target.Image.Width, target.Image.Height));
+        var rect = (Selection ?? new PixelRect(0, 0, Width, Height)).Clip(Width, Height);
+        if (rect.IsEmpty) return;
+        clipboard = StudioImages.Blank(rect.Width, rect.Height);
+        for (int y = 0; y < rect.Height; y++)
+            for (int x = 0; x < rect.Width; x++)
+                if (InsideSelection(rect.X + x, rect.Y + y) && target.ToImage(rect.X + x, rect.Y + y) is { } p)
+                    PixelTools.Set(clipboard, x, y, PixelTools.Get(target.Image, p.X, p.Y));
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
@@ -348,8 +364,10 @@ public partial class PoseDocumentViewModel
         if (clipboard == null || !CanPaint(out var target)) return;
         var rect = Selection ?? new PixelRect(0, 0, clipboard.Width, clipboard.Height);
         var image = StudioImages.Clone(target!.Image);
-        var at = Translate(rect with { Width = clipboard.Width, Height = clipboard.Height }, target);
-        PixelTools.Paste(image, clipboard, at.X, at.Y);
+        for (int y = 0; y < clipboard.Height; y++)
+            for (int x = 0; x < clipboard.Width; x++)
+                if (PixelTools.Get(clipboard, x, y) is var color && color >> 24 != 0 && target.ToImage(rect.X + x, rect.Y + y) is { } p)
+                    PixelTools.Set(image, p.X, p.Y, color);
         Save("Paste", _ => { }, lib => lib.WriteImage(target.Path, image), rebuildFields: false);
         Selection = rect with { Width = clipboard.Width, Height = clipboard.Height };
         Tool = StudioTool.Select;
@@ -376,14 +394,26 @@ public partial class PoseDocumentViewModel
     private void MirrorSelection()
     {
         if (IsFlat && Shaped) { FlipFloatingHorizontally(); return; }
-        if (!FlatEdit("Mirror pixels", (image, rect) => PixelTools.Mirror(image, rect))) EditPixels("Mirror pixels", (image, rect) => PixelTools.Mirror(image, rect));
+        if (!FlatEdit("Mirror pixels", (image, rect) => PixelTools.Mirror(image, rect)))
+        {
+            var shape = SelectionShape;
+            var bounds = Selection;
+            if (EditPixels("Mirror pixels", (image, rect) => PixelTools.Mirror(image, rect)) && shape != null && bounds is { } area)
+                SetShape(SelectionMask.FromCells(Width, Height, shape.Cells().Select(p => (2 * area.X + area.Width - 1 - p.X, p.Y))));
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void FlipSelectionVertical()
     {
         if (IsFlat && Shaped) { FlipFloatingVertically(); return; }
-        if (!FlatEdit("Flip pixels", (image, rect) => PixelTools.FlipVertical(image, rect))) EditPixels("Flip pixels", (image, rect) => PixelTools.FlipVertical(image, rect));
+        if (!FlatEdit("Flip pixels", (image, rect) => PixelTools.FlipVertical(image, rect)))
+        {
+            var shape = SelectionShape;
+            var bounds = Selection;
+            if (EditPixels("Flip pixels", (image, rect) => PixelTools.FlipVertical(image, rect)) && shape != null && bounds is { } area)
+                SetShape(SelectionMask.FromCells(Width, Height, shape.Cells().Select(p => (p.X, 2 * area.Y + area.Height - 1 - p.Y))));
+        }
     }
 
     public void NudgeSelection(int dx, int dy)
@@ -391,20 +421,36 @@ public partial class PoseDocumentViewModel
         if (NudgeFloating(dx, dy)) return;
         if (Selection is not { } rect) return;
         if (IsFlat) { FlatNudge(dx, dy); return; }
-        EditPixels("Nudge pixels", (image, r) => PixelTools.Move(image, r, dx, dy));
+        if (!EditPixels("Nudge pixels", (image, r) => PixelTools.Move(image, r, dx, dy))) return;
         Selection = rect with { X = rect.X + dx, Y = rect.Y + dy };
     }
 
-    private void EditPixels(string label, Action<RgbaImage, PixelRect> edit)
+    private bool EditPixels(string label, Action<RgbaImage, PixelRect> edit)
     {
-        if (IsLayerLocked(LayerIndex) || TargetFor(LayerIndex) is not { } target) return;
+        if (IsLayerLocked(LayerIndex) || TargetFor(LayerIndex) is not { } target) return false;
         var image = StudioImages.Clone(target.Image);
-        var rect = Translate(Selection ?? new PixelRect(0, 0, Width, Height), target).Clip(image.Width, image.Height);
-        if (rect.IsEmpty) return;
-        edit(image, rect);
+        var rect = (Selection ?? new PixelRect(0, 0, Width, Height)).Clip(Width, Height);
+        if (rect.IsEmpty) return false;
+        // Work in canvas coordinates so offsets and flips behave like the brush. Only selected pixels are lifted;
+        // transparent corners of a moved or flipped piece leave the unselected picture underneath intact.
+        var selected = StudioImages.Blank(Width, Height);
+        for (int y = rect.Y; y < rect.Y + rect.Height; y++)
+            for (int x = rect.X; x < rect.X + rect.Width; x++)
+                if (InsideSelection(x, y) && target.ToImage(x, y) is { } p)
+                {
+                    PixelTools.Set(selected, x, y, PixelTools.Get(image, p.X, p.Y));
+                    PixelTools.Set(image, p.X, p.Y, 0);
+                }
+        edit(selected, rect);
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                if (PixelTools.Get(selected, x, y) is var color && color >> 24 != 0 && target.ToImage(x, y) is { } p)
+                    PixelTools.Set(image, p.X, p.Y, color);
+        if (image.Pixels.AsSpan().SequenceEqual(target.Image.Pixels)) return true;
         Save(label, _ => { }, lib => lib.WriteImage(target.Path, image), rebuildFields: false);
         Context.InvalidatePack();
         Render(); RenderThumbnails();
+        return true;
     }
 
     /// <summary>Single-key tools (doc 07 §6.2). Returns true when handled.</summary>

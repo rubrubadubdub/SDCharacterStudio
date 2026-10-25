@@ -17,12 +17,12 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid studio:StudioWorkspace.FocusColumns="0,2,3" PreviewKeyDown="View_PreviewKeyDown" PreviewKeyUp="View_PreviewKeyUp">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="214" />
+            <ColumnDefinition Width="190" />
             <ColumnDefinition Width="*" MinWidth="300" />
             <ColumnDefinition Width="6" />
-            <ColumnDefinition Width="320" MinWidth="250" />
+            <ColumnDefinition Width="280" MinWidth="230" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Style="{StaticResource Panel}" Margin="0,0,6,0">
@@ -30,16 +30,16 @@
                 <StackPanel Margin="10">
                     <TextBlock Text="TOOLS" Style="{StaticResource PanelTitle}" Margin="0,0,0,6" />
                     <WrapPanel>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Pencil" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Pencil}">
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Pencil (B)" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Pencil}">
                             <ui:SymbolIcon Symbol="Edit24" />
                         </RadioButton>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Eraser (back to the face as it is)" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Eraser}">
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Eraser (E): take back your paint" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Eraser}">
                             <ui:SymbolIcon Symbol="Eraser24" />
                         </RadioButton>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Fill" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Fill}">
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Fill (G)" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Fill}">
                             <ui:SymbolIcon Symbol="PaintBucket24" />
                         </RadioButton>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Colour picker (or Alt+click)" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Picker}">
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Colour picker (I or Alt+click)" IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Picker}">
                             <ui:SymbolIcon Symbol="Eyedropper24" />
                         </RadioButton>
                     </WrapPanel>
@@ -59,8 +59,9 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Grid" IsChecked="{Binding ShowGrid}" />
                             <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Slot colours" IsChecked="{Binding RawSlots}" ToolTip="Show slot colours as painted" />
-                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Click="ZoomOut_Click" />
-                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomIn24}" Click="ZoomIn_Click" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Click="ZoomOut_Click" ToolTip="Zoom out (wheel or Ctrl+-)" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Content="Fit" Click="Fit_Click" ToolTip="Fit the frame (Ctrl+0)" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomIn24}" Click="ZoomIn_Click" ToolTip="Zoom in (wheel or Ctrl+=)" />
                         </StackPanel>
                         <TextBlock Text="{Binding HoverText}" Style="{StaticResource Faint}" VerticalAlignment="Center" Margin="4,0" />
                     </DockPanel>
@@ -97,8 +98,8 @@
                 <Border DockPanel.Dock="Bottom" Background="#33EFCB4A" Padding="10,6" Visibility="{Binding Problems, Converter={StaticResource VisibleWhen}}">
                     <TextBlock Text="{Binding Problems}" Style="{StaticResource Caption}" />
                 </Border>
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource StageBackdropBrush}" Focusable="False">
-                    <studio:PixelCanvas Image="{Binding Composite}" Zoom="{Binding Zoom}" PixelWidth="{Binding Width}" PixelHeight="{Binding Height}" ShowGrid="{Binding ShowGrid}"
+                <ScrollViewer x:Name="CanvasScroller" PreviewMouseDown="Scroller_PreviewMouseDown" PreviewMouseMove="Scroller_PreviewMouseMove" PreviewMouseUp="Scroller_PreviewMouseUp" LostMouseCapture="Scroller_LostMouseCapture" PreviewMouseWheel="Canvas_MouseWheel" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource StageBackdropBrush}" Focusable="False">
+                    <studio:PixelCanvas x:Name="Canvas" Image="{Binding Composite}" Zoom="{Binding Zoom}" PixelWidth="{Binding Width}" PixelHeight="{Binding Height}" ShowGrid="{Binding ShowGrid}"
                                         Selection="{Binding FaceBox}" PixelDown="Canvas_PixelDown" PixelMove="Canvas_PixelMove" PixelUp="Canvas_PixelUp" />
                 </ScrollViewer>
             </DockPanel>

@@ -158,13 +158,15 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         OnPropertyChanged(nameof(FrameCaption)); OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten));
     }
     partial void OnLayerIndexChanged(int value) { foreach (var row in Layers) row.IsSelected = row.Index == value; Selection = null; BuildFields(); }
+    partial void OnLayerIndexChanging(int value) { if (IsStroking && !IsTransforming) CancelStroke(); }
     partial void OnZoomChanged(double value) { Studio.Settings.PoseZoom = value; Studio.Settings.Save(); if (IsTransforming) NotifyTransform(); }
-    partial void OnFrameIndexChanging(int value) { if (IsTransforming) ApplyTransform(); }
+    partial void OnFrameIndexChanging(int value) { if (IsTransforming) ApplyTransform(); else if (IsStroking) CancelStroke(); }
     partial void OnShowGridChanged(bool value) { Studio.Settings.ShowGrid = value; Studio.Settings.Save(); }
     partial void OnShowOnionChanged(bool value) { Studio.Settings.ShowOnionSkin = value; Studio.Settings.Save(); Render(); }
     partial void OnOnionOpacityChanged(double value) { Studio.Settings.OnionOpacity = value; Studio.Settings.Save(); }
     partial void OnShowGhostChanged(bool value) { Studio.Settings.ShowGhost = value; Studio.Settings.Save(); Render(); }
     partial void OnRawSlotsChanged(bool value) => Render();
+    partial void OnToolChanging(StudioTool value) { if (IsStroking && !IsTransforming) CancelStroke(); }
     partial void OnToolChanged(StudioTool value)
     {
         OnPropertyChanged(nameof(IsAnchorTool)); OnPropertyChanged(nameof(UsesBrush)); OnPropertyChanged(nameof(UsesShapes));
@@ -179,6 +181,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
 
     public override bool Reload()
     {
+        if (!IsOwnCommit && IsStroking) CancelStroke();
         // After its own edit the document already shows the new state (and a portrait keeps its frames' emotion names).
         if (!IsOwnCommit && floating != null) { floating = null; EndPreview(); NotifyTransform(); }   // undo or an outside change: drop the floating piece
         if (!IsOwnCommit || Model.Id == null)

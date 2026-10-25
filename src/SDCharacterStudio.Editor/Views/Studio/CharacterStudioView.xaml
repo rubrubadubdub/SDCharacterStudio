@@ -106,9 +106,16 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <ToggleButton DockPanel.Dock="Right" Content="Focus canvas" Style="{StaticResource ToolbarToggle}"
+                          ToolTip="Hide side panels while painting. Tab on the canvas toggles them back."
+                          IsChecked="{Binding Path=(studio:StudioWorkspace.FocusCanvas), RelativeSource={RelativeSource AncestorType=studio:CharacterStudioView}, Mode=TwoWay}" />
+            <TextBlock Text="Wheel: zoom · Space + drag: pan · Tab: panels" Style="{StaticResource Faint}" VerticalAlignment="Center" />
+        </DockPanel>
+    <Grid studio:StudioWorkspace.FocusColumns="0,1">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="290" MinWidth="220" />
+            <ColumnDefinition Width="240" MinWidth="200" />
             <ColumnDefinition Width="6" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
@@ -275,4 +282,5 @@
             </Border>
         </Grid>
     </Grid>
+    </DockPanel>
 </UserControl>

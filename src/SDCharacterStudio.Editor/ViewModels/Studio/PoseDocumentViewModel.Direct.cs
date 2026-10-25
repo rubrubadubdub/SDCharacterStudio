@@ -45,6 +45,7 @@ public partial class PoseDocumentViewModel
     {
         public required (int X, int Y) From { get; init; }
         public required PixelRect Selection { get; init; }
+        public SelectionMask? Shape { get; init; }
         public List<LivePiece> Live { get; } = new();
         public List<PaintMove> Paint { get; } = new();
         /// <summary>Live pieces lifted earlier by this selection (dragging it again moves them).</summary>
@@ -74,7 +75,10 @@ public partial class PoseDocumentViewModel
             if (TopLayerAt(x, y) is not { } hit) return true;   // nothing there to erase
             if (IsLayerLocked(hit)) { Ui.Toast("Layer locked", "Unlock it in the layers list to erase it.", ToastKind.Info); return true; }
             if (Frame.Layers[hit] is LiveLayer) return BeginLiveErase(hit, x, y);
+            var shape = SelectionShape;
+            var bounds = Selection;
             LayerIndex = hit;   // paint or image pixels: the normal eraser, on the layer you clicked
+            SetShape(shape, keepBounds: bounds);
             return false;
         }
         if ((Tool == StudioTool.Select && Selection is { IsEmpty: false } inside && inside.Contains(x, y)) || (Tool == StudioTool.Move && Selection is { IsEmpty: false }))
@@ -99,7 +103,8 @@ public partial class PoseDocumentViewModel
             preview = PackWriter.Clone(Model);
             ApplyLift(preview, moving);
             foreach (var paint in moving.Paint) Working(paint.Target.Path, MovedPaint(paint, moving.Delta));
-            Selection = moving.Selection with { X = moving.Selection.X + moving.Delta.X, Y = moving.Selection.Y + moving.Delta.Y };
+            var moved = moving.Selection with { X = moving.Selection.X + moving.Delta.X, Y = moving.Selection.Y + moving.Delta.Y };
+            SetShape((moving.Shape ?? SelectionMask.FromRect(Width, Height, moving.Selection)).Offset(moving.Delta.X, moving.Delta.Y), keepBounds: moved);
             Render();
             return true;
         }
@@ -149,6 +154,7 @@ public partial class PoseDocumentViewModel
     private void CancelDirect()
     {
         if (liveErase == null && lift == null) return;
+        if (lift is { } moving) SetShape(moving.Shape ?? SelectionMask.FromRect(Width, Height, moving.Selection), keepBounds: moving.Selection);
         liveErase = null; lift = null;
         EndPreview();
     }
@@ -185,9 +191,9 @@ public partial class PoseDocumentViewModel
         return true;
     }
 
-    private static void EraseLivePixel(LiveErase erase, int x, int y)
+    private void EraseLivePixel(LiveErase erase, int x, int y)
     {
-        if (erase.Place.ToSource(x, y) is not { } source) return;
+        if (!InsideSelection(x, y) || erase.Place.ToSource(x, y) is not { } source) return;
         int index = source.Y * erase.Image.Width + source.X;
         if (erase.Image.Pixels[index] == 0) return;
         erase.Image.Pixels[index] = 0;
@@ -224,7 +230,7 @@ public partial class PoseDocumentViewModel
     private bool BeginLift(PixelRect selection, int x, int y, bool copy)
     {
         var frame = Frame!;
-        var moving = new Lift { From = (x, y), Selection = selection };
+        var moving = new Lift { From = (x, y), Selection = selection, Shape = SelectionShape };
         // The same selection again: move the live pieces it lifted instead of cutting the originals again.
         bool again = !copy && lifted is { } earlier && earlier.Frame == FrameIndex && earlier.Selection == selection
             && earlier.Keys.All(k => frame.Layers.Any(l => PieceKey(l) == k));
@@ -257,7 +263,7 @@ public partial class PoseDocumentViewModel
         for (int cy = selection.Y; cy < selection.Y + selection.Height; cy++)
         for (int cx = selection.X; cx < selection.X + selection.Width; cx++)
         {
-            if (PixelTools.Get(shown, cx, cy) >> 24 == 0 || place.ToSource(cx, cy) is not { } s) continue;
+            if (!InsideSelection(cx, cy) || PixelTools.Get(shown, cx, cy) >> 24 == 0 || place.ToSource(cx, cy) is not { } s) continue;
             int i = s.Y * place.SourceWidth + s.X;
             pieceKeep.Pixels[i] = 0xFF000000;
             if (!copy) baseKeep.Pixels[i] = 0;
@@ -284,7 +290,7 @@ public partial class PoseDocumentViewModel
         var pixels = new List<(int X, int Y, uint Color)>();
         for (int cy = selection.Y; cy < selection.Y + selection.Height; cy++)
         for (int cx = selection.X; cx < selection.X + selection.Width; cx++)
-            if (target.ToImage(cx, cy) is { } p && PixelTools.Get(target.Image, p.X, p.Y) is var color && color >> 24 != 0)
+            if (InsideSelection(cx, cy) && target.ToImage(cx, cy) is { } p && PixelTools.Get(target.Image, p.X, p.Y) is var color && color >> 24 != 0)
                 pixels.Add((p.X, p.Y, color));
         return pixels.Count == 0 ? null : new PaintMove(target, StudioImages.Clone(target.Image), pixels, copy);
     }

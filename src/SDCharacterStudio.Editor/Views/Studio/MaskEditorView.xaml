@@ -17,12 +17,12 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid studio:StudioWorkspace.FocusColumns="0,2,3" PreviewKeyDown="View_PreviewKeyDown" PreviewKeyUp="View_PreviewKeyUp">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200" />
             <ColumnDefinition Width="*" MinWidth="300" />
             <ColumnDefinition Width="6" />
-            <ColumnDefinition Width="320" MinWidth="250" />
+            <ColumnDefinition Width="280" MinWidth="230" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Style="{StaticResource Panel}" Margin="0,0,6,0">
@@ -30,15 +30,15 @@
                 <StackPanel Margin="10">
                     <TextBlock Text="TOOLS" Style="{StaticResource PanelTitle}" Margin="0,0,0,6" />
                     <WrapPanel>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Brush: add pixels to the mask (right button removes)"
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Brush (B): add pixels to the mask (right button removes)"
                                      IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Brush}">
                             <ui:SymbolIcon Symbol="Edit24" />
                         </RadioButton>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Eraser: remove pixels from the mask"
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Eraser (E): remove pixels from the mask"
                                      IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Eraser}">
                             <ui:SymbolIcon Symbol="Eraser24" />
                         </RadioButton>
-                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Wand: add touching pixels of a similar colour (Shift or right button subtracts)"
+                        <RadioButton Style="{StaticResource StudioTool}" ToolTip="Wand (W): add touching pixels of a similar colour (Shift or right button subtracts)"
                                      IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Wand}">
                             <ui:SymbolIcon Symbol="Wand24" />
                         </RadioButton>
@@ -73,9 +73,10 @@
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Grid" IsChecked="{Binding ShowGrid}" />
-                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Click="ZoomOut_Click" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Click="ZoomOut_Click" ToolTip="Zoom out (wheel or Ctrl+-)" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Content="Fit" Click="Fit_Click" ToolTip="Fit the frame (Ctrl+0)" />
                             <TextBlock Text="{Binding Zoom, Converter={x:Static studio:StudioConverters.ZoomText}}" Style="{StaticResource Caption}" VerticalAlignment="Center" MinWidth="28" TextAlignment="Center" />
-                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomIn24}" Click="ZoomIn_Click" />
+                            <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomIn24}" Click="ZoomIn_Click" ToolTip="Zoom in (wheel or Ctrl+=)" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding ModeText}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextWrapping="NoWrap" Margin="4,0,12,0" />
@@ -129,7 +130,7 @@
                     <TextBlock Text="{Binding Problems}" Style="{StaticResource Caption}" />
                 </Border>
 
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource StageBackdropBrush}" Focusable="False">
+                <ScrollViewer x:Name="CanvasScroller" PreviewMouseDown="Scroller_PreviewMouseDown" PreviewMouseMove="Scroller_PreviewMouseMove" PreviewMouseUp="Scroller_PreviewMouseUp" LostMouseCapture="Scroller_LostMouseCapture" PreviewMouseWheel="Canvas_MouseWheel" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource StageBackdropBrush}" Focusable="False">
                     <studio:PixelCanvas x:Name="Canvas" Image="{Binding FrameImage}" Overlay="{Binding Overlay}" OverlayOpacity="0.55" Zoom="{Binding Zoom}"
                                         PixelWidth="{Binding Width}" PixelHeight="{Binding Height}" ShowGrid="{Binding ShowGrid}"
                                         PixelDown="Canvas_PixelDown" PixelMove="Canvas_PixelMove" PixelUp="Canvas_PixelUp" />

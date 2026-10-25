@@ -41,4 +41,6 @@ public sealed class PaintSession
 
     /// <summary>Stop previewing; the caller writes <see cref="Image"/> if <see cref="Changed"/>.</summary>
     public RgbaImage End() { context.Overrides.Remove(Path); return Image; }
+
+    public void Cancel() => context.Overrides.Remove(Path);
 }

@@ -18,7 +18,7 @@ public sealed class PointerFactAttribute : FactAttribute
 }
 
 /// <summary>Real Windows input against the production views. These tests own the foreground cursor.</summary>
-public sealed class PointerGestureTests
+public sealed partial class PointerGestureTests
 {
     [PointerFact]
     public void FloatingPanelKeepsCommandsAndDocksBackIntoSavedWorkspace() => EditorUiThread.Run(() =>

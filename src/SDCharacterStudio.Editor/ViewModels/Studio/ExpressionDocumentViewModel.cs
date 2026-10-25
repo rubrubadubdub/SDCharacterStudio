@@ -55,11 +55,14 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
     public ExpressionFrame? Frame => Model.Frames.ElementAtOrDefault(FrameIndex);
     public int[] Box => (IsPortrait ? Rig?.Portrait?.FaceBox : Rig?.FaceBox.GetValueOrDefault(Model.Facing ?? "down")) ?? new[] { 4, 8, 8, 6 };
 
+    partial void OnFrameIndexChanging(int value) => CancelStroke();
     partial void OnFrameIndexChanged(int value) { foreach (var f in Frames) f.IsSelected = f.Index == value; Render(); BuildFields(); }
+    partial void OnToolChanging(StudioTool value) => CancelStroke();
     partial void OnRawSlotsChanged(bool value) => Render();
 
     public override bool Reload()
     {
+        if (!IsOwnCommit) CancelStroke();
         if (Library?.Expressions().Expressions.FirstOrDefault(e => string.Equals(e.Id, ItemId, StringComparison.OrdinalIgnoreCase)) is not { } fresh) return false;
         if (!IsOwnCommit) Model = fresh;
         Title = Model.Id ?? ItemId;
@@ -229,6 +232,15 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
         });
     }
 
+    public void CancelStroke()
+    {
+        if (stroke is not { } active) return;
+        active.Cancel();
+        stroke = null;
+        if (Frame is { } frame) { frame.Offset = strokeBefore.Offset; frame.Image = strokeBefore.Image; }
+        Render();
+    }
+
     private void Save(string label, Action<PackLibrary> apply)
     {
         Commit(label, lib => { apply(lib); lib.SaveExpression(Model); });
@@ -320,5 +332,5 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
         Reload();
     }
 
-    public override void Closing() { if (stroke != null) { stroke.End(); stroke = null; } }
+    public override void Closing() { CancelStroke(); }
 }

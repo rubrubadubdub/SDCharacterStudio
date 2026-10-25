@@ -7,7 +7,17 @@ namespace SDCharacterStudio.Editor.Views.Studio;
 
 public partial class CharacterStudioView : UserControl
 {
-    public CharacterStudioView() => InitializeComponent();
+    public CharacterStudioView()
+    {
+        InitializeComponent();
+        PreviewKeyDown += (_, e) =>
+        {
+            // Leave ordinary keyboard traversal intact in lists, fields and toolbars.
+            if (e.Key != Key.Tab || Keyboard.Modifiers != ModifierKeys.None || Keyboard.FocusedElement is not PixelCanvas) return;
+            StudioWorkspace.SetFocusCanvas(this, !StudioWorkspace.GetFocusCanvas(this));
+            e.Handled = true;
+        };
+    }
 
     /// <summary>Library lists don't scroll by themselves: pass the wheel to the panel's scroller.</summary>
     private void List_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

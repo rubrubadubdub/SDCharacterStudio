@@ -28,6 +28,10 @@ public partial class PoseDocumentViewModel
     private readonly List<(int X, int Y)> lassoPath = new();
     /// <summary>The Move tool lifted the whole picture (no selection): drop the selection after the drag.</summary>
     private bool moveDropsSelection;
+    private SelectionMask? selectionBeforeGesture;
+    private PixelRect? selectionBoundsBeforeGesture;
+    private SelectionMask? lastSelectionBeforeGesture;
+    private bool selectionGestureActive;
 
     public bool IsLassoTool => Tool == StudioTool.Lasso;
     public bool IsWandTool => Tool == StudioTool.Wand;
@@ -82,22 +86,28 @@ public partial class PoseDocumentViewModel
         // Advanced puppet parts (D-48 stage 2): pressing on one drags it.
         if (!modifying && !ctrl && Tool == StudioTool.Select && !IsFlat && PartAt(x, y) != null) return false;
         selectionMode = SelectionMask.ModeFor(shift, alt);
+        selectionBeforeGesture = SelectionShape;
+        selectionBoundsBeforeGesture = Selection;
+        lastSelectionBeforeGesture = lastSelection;
         selectionBase = selectionMode == SelectionMode.Replace ? null : SelectionShape;
         switch (Tool)
         {
             case StudioTool.Wand:
+                selectionGestureActive = false;
                 var picture = Context.RenderFrame(ForRender(), FrameIndex).Image;
                 var picked = SelectionMask.FromCells(Width, Height, PixelTools.Wand(picture, x, y, WandTolerance, global: ctrl));
                 SetShape(Combine(picked));
                 selectionBase = null;
                 return true;
             case StudioTool.Lasso:
+                selectionGestureActive = true;
                 lassoPath.Clear();
                 lassoPath.Add((x, y));
                 strokeStart = (x, y);
                 SetShape(Combine(SelectionMask.FromLasso(Width, Height, lassoPath)));
                 return true;
             default:
+                selectionGestureActive = true;
                 strokeStart = (x, y);
                 SetShape(Combine(SelectionMask.FromRect(Width, Height, new PixelRect(x, y, 1, 1))));
                 return true;
@@ -126,7 +136,22 @@ public partial class PoseDocumentViewModel
         if (Tool == StudioTool.Select && selectionMode == SelectionMode.Replace && Selection is { Width: 1, Height: 1 } && Selection.Value.X == start.X && Selection.Value.Y == start.Y) SetShape(null);
         lassoPath.Clear();
         selectionBase = null;
+        selectionGestureActive = false;
         return true;
+    }
+
+    private void CancelSelectionGesture()
+    {
+        if (!selectionGestureActive) return;
+        SelectionShape = selectionBeforeGesture;
+        Selection = selectionBoundsBeforeGesture;
+        lastSelection = lastSelectionBeforeGesture;
+        strokeStart = null;
+        lassoPath.Clear();
+        selectionBase = null;
+        selectionGestureActive = false;
+        moveDropsSelection = false;
+        RefreshIsolate();
     }
 
     [RelayCommand]

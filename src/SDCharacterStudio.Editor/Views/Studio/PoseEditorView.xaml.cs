@@ -14,8 +14,9 @@ public partial class PoseEditorView : UserControl
     private readonly Stopwatch clock = new();
     /// <summary>Space is down: a drag pans (Aseprite, Photoshop); a tap without a drag plays.</summary>
     private bool spaceHeld, spacePanned;
-    private Point? panFrom;
-    private Point panOffset;
+    private CanvasNavigation? navigation;
+    private Window? ownerWindow;
+    private bool changingDocument;
     /// <summary>The preview keeps playing while you edit (D-49).</summary>
     private readonly DispatcherTimer previewTimer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(33) };
     private readonly Stopwatch previewClock = new();
@@ -27,6 +28,8 @@ public partial class PoseEditorView : UserControl
     public PoseEditorView()
     {
         InitializeComponent();
+        Canvas.PixelCancel += (_, _) => { if (!changingDocument) Pose?.CancelStroke(); ResetNavigation(); };
+        Loaded += (_, _) => navigation = new(CanvasScroller, Canvas, () => Pose?.Zoom ?? 8, z => { if (Pose != null) Pose.Zoom = z; }, () => Pose?.Width ?? 0, () => Pose?.Height ?? 0, CancelActiveStroke);
         timer.Tick += (_, _) =>
         {
             if (Pose is not { IsPlaying: true } pose) { timer.Stop(); return; }
@@ -36,18 +39,38 @@ public partial class PoseEditorView : UserControl
         };
         DataContextChanged += (_, e) =>
         {
-            if (e.OldValue is PoseDocumentViewModel old) old.PropertyChanged -= Pose_PropertyChanged;
+            changingDocument = true;
+            try
+            {
+                if (e.OldValue is PoseDocumentViewModel old) { if (old.IsStroking || Canvas.IsMouseCaptured) old.CancelStroke(); old.PropertyChanged -= Pose_PropertyChanged; }
+                // Capture still belongs to the old document. Its cancellation event
+                // must not reach a floating piece in the newly assigned context.
+                ResetNavigation();
+            }
+            finally { changingDocument = false; }
             if (e.NewValue is PoseDocumentViewModel now) now.PropertyChanged += Pose_PropertyChanged;
             Dispatcher.BeginInvoke(SyncFrames, DispatcherPriority.Loaded);
         };
         previewTimer.Tick += (_, _) => { double ms = previewClock.Elapsed.TotalMilliseconds; previewClock.Restart(); Pose?.TickPreview(Math.Min(ms, 250)); };
         Loaded += (_, _) => { previewClock.Restart(); previewTimer.Start(); SyncFrames(); };
-        Unloaded += (_, _) => { timer.Stop(); previewTimer.Stop(); };
+        Unloaded += (_, _) => { timer.Stop(); previewTimer.Stop(); ResetNavigation(); AttachWindow(null); };
+        Loaded += (_, _) => AttachWindow(Window.GetWindow(this));
+        LostKeyboardFocus += (_, _) => { if (!Canvas.IsKeyboardFocused) ResetNavigation(); };
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewKeyUp += OnPreviewKeyUp;
     }
 
     private PoseDocumentViewModel? Pose => DataContext as PoseDocumentViewModel;
+    private void AttachWindow(Window? window)
+    {
+        if (ownerWindow == window) return;
+        if (ownerWindow != null) ownerWindow.Deactivated -= Window_Deactivated;
+        ownerWindow = window;
+        if (ownerWindow != null) ownerWindow.Deactivated += Window_Deactivated;
+    }
+    private void CancelActiveStroke() { if (!changingDocument && Pose is { IsStroking: true } pose) pose.CancelStroke(); }
+    private void ResetNavigation() { spaceHeld = false; spacePanned = true; navigation?.Reset(); Canvas.Cursor = Cursors.Cross; Canvas.CancelGesture(); CancelActiveStroke(); }
+    private void Window_Deactivated(object? sender, EventArgs e) => ResetNavigation();
 
     private void Pose_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
@@ -72,64 +95,36 @@ public partial class PoseEditorView : UserControl
     /// <summary>The wheel zooms at the pointer (Aseprite); Shift+wheel scrolls sideways.</summary>
     private void Canvas_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (Pose is not { } pose) return;
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { CanvasScroller.ScrollToHorizontalOffset(CanvasScroller.HorizontalOffset - e.Delta); e.Handled = true; return; }
-        ZoomAt(e.GetPosition(CanvasScroller), () => { if (e.Delta > 0) pose.ZoomInCommand.Execute(null); else pose.ZoomOutCommand.Execute(null); });
-        e.Handled = true;
-    }
-
-    /// <summary>Change the zoom keeping the frame pixel under <paramref name="at"/> (viewport coordinates) where it is.</summary>
-    private void ZoomAt(Point at, Action zoom)
-    {
-        var frame = Canvas.ToFramePoint(CanvasScroller.TranslatePoint(at, Canvas));
-        zoom();
-        CanvasScroller.UpdateLayout();
-        var after = Canvas.FromFramePoint(frame);
-        CanvasScroller.ScrollToHorizontalOffset(Math.Max(0, after.X - at.X));
-        CanvasScroller.ScrollToVerticalOffset(Math.Max(0, after.Y - at.Y));
+        navigation?.Wheel(e);
     }
 
     private void Fit_Click(object sender, RoutedEventArgs e) => Fit();
 
     /// <summary>The biggest whole zoom that shows the whole frame.</summary>
-    private void Fit()
-    {
-        if (Pose is not { } pose || pose.Width <= 0 || pose.Height <= 0) return;
-        double room = Math.Min((CanvasScroller.ViewportWidth - 56) / pose.Width, (CanvasScroller.ViewportHeight - 56) / pose.Height);
-        pose.Zoom = Math.Clamp(Math.Floor(room), 1, 64);
-        CanvasScroller.UpdateLayout();
-        CanvasScroller.ScrollToHorizontalOffset((CanvasScroller.ExtentWidth - CanvasScroller.ViewportWidth) / 2);
-        CanvasScroller.ScrollToVerticalOffset((CanvasScroller.ExtentHeight - CanvasScroller.ViewportHeight) / 2);
-    }
+    private void Fit() => navigation?.Fit();
 
     private void Scroller_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (!(e.ChangedButton == MouseButton.Middle || (e.ChangedButton == MouseButton.Left && spaceHeld))) return;
-        panFrom = e.GetPosition(CanvasScroller);
-        panOffset = new Point(CanvasScroller.HorizontalOffset, CanvasScroller.VerticalOffset);
+        bool held = spaceHeld;
+        if (e.ChangedButton != MouseButton.Middle && !(e.ChangedButton == MouseButton.Left && held)) return;
+        navigation?.BeginPan(e, held);
+        // Cancelling the preceding canvas gesture may reset input state. The same
+        // physical Space press still owns every pan until its matching key-up.
+        spaceHeld = held;
         spacePanned = true;
-        CanvasScroller.CaptureMouse();
-        e.Handled = true;
     }
 
     private void Scroller_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (panFrom is not { } from) return;
-        var now = e.GetPosition(CanvasScroller);
-        CanvasScroller.ScrollToHorizontalOffset(panOffset.X - (now.X - from.X));
-        CanvasScroller.ScrollToVerticalOffset(panOffset.Y - (now.Y - from.Y));
-        e.Handled = true;
+        navigation?.MovePan(e);
     }
 
     private void Scroller_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (panFrom == null || e.ChangedButton is not (MouseButton.Middle or MouseButton.Left)) return;
-        panFrom = null;
-        CanvasScroller.ReleaseMouseCapture();
-        e.Handled = true;
+        if (navigation?.EndPan(e) == true && spaceHeld) Canvas.Cursor = Cursors.SizeAll;
     }
 
-    private void Scroller_LostMouseCapture(object sender, MouseEventArgs e) => panFrom = null;
+    private void Scroller_LostMouseCapture(object sender, MouseEventArgs e) { if (e.OriginalSource == CanvasScroller && navigation?.IsPanning == true) ResetNavigation(); }
 
     private void Shortcuts_MouseDown(object sender, MouseButtonEventArgs e) { if (Pose is { } pose) pose.IsShortcutsOpen = false; e.Handled = true; }
 
@@ -216,13 +211,24 @@ public partial class PoseEditorView : UserControl
 
     // ---------------- keys ----------------
 
-    private static bool Typing(KeyEventArgs e) => e.OriginalSource is TextBox or ComboBox or ComboBoxItem || Keyboard.FocusedElement is TextBox;
+    private static bool Typing(KeyEventArgs e) => CanvasNavigation.IsInputControl(e);
 
     /// <summary>Single-key tools while the canvas (not a text box) has the keyboard.</summary>
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (Pose is not { } pose || Typing(e)) return;
+        if (Pose is not { } pose) return;
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Escape)
+        {
+            bool pointerActive = Canvas.IsMouseCaptured || pose.IsStroking || navigation?.IsPanning == true;
+            bool shortcutsOpen = pose.IsShortcutsOpen;
+            ResetNavigation();
+            if (shortcutsOpen) pose.IsShortcutsOpen = false;
+            else if (!pointerActive && !Typing(e)) pose.HandleKey("Escape", false, false);
+            e.Handled = pointerActive || shortcutsOpen || !Typing(e);
+            return;
+        }
+        if (Typing(e)) return;
         var modifiers = Keyboard.Modifiers;
         if (key == Key.Space)
         {
@@ -234,7 +240,6 @@ public partial class PoseEditorView : UserControl
         if (key is Key.LeftAlt or Key.RightAlt) { if (Canvas.IsKeyboardFocused) e.Handled = true; return; }
         // Delete in the frame strip deletes the frames picked there (Shift or Ctrl+click to pick several).
         if (key == Key.Delete && FramesList.IsKeyboardFocusWithin) { pose.DeleteFrameCommand.Execute(null); e.Handled = true; return; }
-        if (key == Key.Escape && pose.IsShortcutsOpen) { pose.IsShortcutsOpen = false; e.Handled = true; return; }
         if (modifiers.HasFlag(ModifierKeys.Control) && key is Key.OemPlus or Key.Add) { pose.ZoomInCommand.Execute(null); e.Handled = true; return; }
         if (modifiers.HasFlag(ModifierKeys.Control) && key is Key.OemMinus or Key.Subtract) { pose.ZoomOutCommand.Execute(null); e.Handled = true; return; }
         if (modifiers.HasFlag(ModifierKeys.Control) && key is Key.D0 or Key.NumPad0) { Fit(); e.Handled = true; return; }

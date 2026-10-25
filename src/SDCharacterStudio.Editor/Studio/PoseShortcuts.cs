@@ -46,6 +46,7 @@ public static class PoseShortcuts
             new Shortcut("Wheel", "Zoom at the pointer"),
             new Shortcut("Space+drag, middle drag", "Pan"),
             new Shortcut("Ctrl+0", "Fit the frame"),
+            new Shortcut("Tab on canvas", "Hide / restore side panels"),
             new Shortcut("Space (tap) or Enter", "Play / stop"),
             new Shortcut(", / .", "Previous / next frame"),
             new Shortcut("Home / End", "First / last frame"),

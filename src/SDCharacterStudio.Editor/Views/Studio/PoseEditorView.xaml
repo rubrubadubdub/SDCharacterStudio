@@ -18,17 +18,18 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid studio:StudioWorkspace.FocusColumns="1,3,4">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="214" />
+            <ColumnDefinition Width="190" />
             <ColumnDefinition Width="*" MinWidth="300" />
             <ColumnDefinition Width="6" />
-            <ColumnDefinition Width="320" MinWidth="250" />
+            <ColumnDefinition Width="280" MinWidth="230" />
         </Grid.ColumnDefinitions>
 
         <!-- ===== Tool rail (Aseprite's keys) ===== -->
         <Border Grid.Column="0" Style="{StaticResource Panel}" Margin="0,0,6,0" Padding="5,6">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
             <StackPanel>
                 <RadioButton Style="{StaticResource RailTool}" ToolTip="Select (M). Drag a box, then drag inside it to move what it shows; Ctrl+drag copies."
                              IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Select}">
@@ -87,6 +88,7 @@
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon FlipVertical24}" Command="{Binding FlipSelectionVerticalCommand}" ToolTip="Flip vertically (Shift+V): the selection, or the whole frame" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon Keyboard24}" Command="{Binding ShowShortcutsCommand}" ToolTip="Keyboard shortcuts (F1 or ?)" Margin="0,8,0,0" />
             </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <!-- ===== Colours ===== -->
@@ -99,73 +101,72 @@
         <!-- ===== Canvas, toolbar, options, frame strip and status ===== -->
         <Border Grid.Column="2" Style="{StaticResource Panel}">
             <DockPanel>
-                <!-- Toolbar -->
+                <!-- Common actions stay visible; display preferences share one small popover. -->
                 <Border DockPanel.Dock="Top" Background="{StaticResource PanelHeaderBrush}" CornerRadius="6,6,0,0" Padding="8,5">
-                    <DockPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Grid" IsChecked="{Binding ShowGrid}" ToolTip="Pixel grid" />
-                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Onion" IsChecked="{Binding ShowOnion}" ToolTip="Onion skin: earlier frames in red, later ones in blue (O or F3)" Margin="1,0,0,0" />
-                            <ToggleButton x:Name="OnionMenu" Style="{StaticResource ToolbarToggle}" Padding="3,4" Margin="0,0,1,0" ToolTip="Onion skin settings">
-                                <ui:SymbolIcon Symbol="ChevronDown24" FontSize="12" />
-                            </ToggleButton>
-                            <Popup PlacementTarget="{Binding ElementName=OnionMenu}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
-                                   IsOpen="{Binding IsChecked, ElementName=OnionMenu}">
-                                <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,4,0,0" Width="260">
-                                    <StackPanel>
-                                        <TextBlock Text="ONION SKIN" Style="{StaticResource PanelTitle}" Margin="0,0,0,8" HorizontalAlignment="Left" />
-                                        <DockPanel Margin="0,0,0,6">
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding OnionBefore}" MinWidth="16" TextAlignment="Right" VerticalAlignment="Center" />
-                                            <TextBlock Text="Frames before" Style="{StaticResource Caption}" Width="96" VerticalAlignment="Center" />
-                                            <Slider Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding OnionBefore}" />
-                                        </DockPanel>
-                                        <DockPanel Margin="0,0,0,6">
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding OnionAfter}" MinWidth="16" TextAlignment="Right" VerticalAlignment="Center" />
-                                            <TextBlock Text="Frames after" Style="{StaticResource Caption}" Width="96" VerticalAlignment="Center" />
-                                            <Slider Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding OnionAfter}" />
-                                        </DockPanel>
-                                        <DockPanel Margin="0,0,0,8">
-                                            <TextBlock DockPanel.Dock="Right" Text="{Binding OnionOpacity, StringFormat=P0}" MinWidth="34" TextAlignment="Right" VerticalAlignment="Center" />
-                                            <TextBlock Text="Opacity" Style="{StaticResource Caption}" Width="96" VerticalAlignment="Center" />
-                                            <Slider Minimum="0.1" Maximum="0.9" SmallChange="0.05" LargeChange="0.1" Value="{Binding OnionOpacity}" />
-                                        </DockPanel>
-                                        <CheckBox Content="Tint: earlier red, later blue" IsChecked="{Binding OnionTint}" />
-                                        <CheckBox Content="Wrap around (for loops)" IsChecked="{Binding OnionWrap}" ToolTip="The first frame also shows the last one, like a loop" />
-                                    </StackPanel>
-                                </Border>
-                            </Popup>
-                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Ghost" IsChecked="{Binding ShowGhost}" ToolTip="The character's real standing frame behind your drawing" />
-                            <ComboBox ItemsSource="{Binding BackdropChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Backdrop}" MinWidth="0" Width="132" Margin="4,0" Padding="8,2"
-                                      ToolTip="{Binding BackdropNote, TargetNullValue='What is behind the pose: checks, dark, light, or the floor where the scene plays'}" />
-                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Slot colours" IsChecked="{Binding RawSlots}" ToolTip="Show the reserved slot colours as painted instead of the character's real colours (P)"
-                                          Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
-                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="All frames" IsChecked="{Binding ApplyToAllFrames}"
-                                          ToolTip="Layer changes, new anchors and Isolate head apply to the same layer in every frame"
-                                          Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
-                            <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Advanced" IsChecked="{Binding Advanced}"
-                                          ToolTip="Layers, anchors, masks and the rig. Off: you edit one picture, and live art stays live by itself." />
-                            <Rectangle Width="1" Height="18" Fill="{StaticResource SubtleLineBrush}" Margin="6,0" />
+                    <WrapPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                            <ui:Button Style="{StaticResource ToolbarButton}" Command="{Binding TogglePlayCommand}" ToolTip="Play / pause (tap Space or Enter)"
+                                       Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                                <ui:Button.Icon><ui:SymbolIcon Symbol="{Binding IsPlaying, Converter={x:Static studio:StudioConverters.PlayIcon}}" /></ui:Button.Icon>
+                            </ui:Button>
+                            <TextBlock Text="{Binding FrameCaption}" Style="{StaticResource Caption}" VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis" ToolTip="{Binding FrameCaption}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
                             <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Command="{Binding ZoomOutCommand}" ToolTip="Zoom out (wheel, Ctrl+-)" />
-                            <TextBlock Text="{Binding Zoom, Converter={x:Static studio:StudioConverters.ZoomText}}" Style="{StaticResource Caption}" VerticalAlignment="Center" MinWidth="28" TextAlignment="Center" />
+                            <TextBlock Text="{Binding Zoom, Converter={x:Static studio:StudioConverters.ZoomText}}" Style="{StaticResource Caption}" VerticalAlignment="Center" MinWidth="38" TextAlignment="Center" />
                             <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomIn24}" Command="{Binding ZoomInCommand}" ToolTip="Zoom in (wheel, Ctrl+=)" />
                             <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomFit24}" Click="Fit_Click" ToolTip="Fit the frame (Ctrl+0)" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <ui:Button Style="{StaticResource ToolbarButton}" Command="{Binding TogglePlayCommand}" ToolTip="Play the pose (Space or Enter): intro once, then the loop"
-                                       Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
-                                <ui:Button.Icon>
-                                    <ui:SymbolIcon Symbol="{Binding IsPlaying, Converter={x:Static studio:StudioConverters.PlayIcon}}" />
-                                </ui:Button.Icon>
-                            </ui:Button>
-                            <TextBlock Text="{Binding FrameCaption}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="4,0,12,0" TextWrapping="NoWrap" />
-                        </StackPanel>
-                    </DockPanel>
+                        <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Grid" IsChecked="{Binding ShowGrid}" ToolTip="Show the pixel grid" Margin="0,0,4,0" />
+                        <ToggleButton x:Name="DisplayMenu" Style="{StaticResource ToolbarToggle}" Content="View &#x25BE;" ToolTip="Onion skin, ghost and background" />
+                        <Popup PlacementTarget="{Binding ElementName=DisplayMenu}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                               IsOpen="{Binding IsChecked, ElementName=DisplayMenu}">
+                            <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Width="280">
+                                <StackPanel>
+                                    <TextBlock Text="CANVAS DISPLAY" Style="{StaticResource PanelTitle}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                                    <CheckBox Content="Standing frame ghost" IsChecked="{Binding ShowGhost}" />
+                                    <CheckBox Content="Onion skin (O / F3)" IsChecked="{Binding ShowOnion}" />
+                                    <Expander Header="Onion skin settings" Margin="0,4">
+                                        <StackPanel Margin="4,4,0,8">
+                                            <DockPanel Margin="0,4">
+                                                <TextBlock Text="Before" Width="60" Style="{StaticResource Caption}" />
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding OnionBefore}" Width="24" TextAlignment="Right" />
+                                                <Slider Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding OnionBefore}" />
+                                            </DockPanel>
+                                            <DockPanel Margin="0,4">
+                                                <TextBlock Text="After" Width="60" Style="{StaticResource Caption}" />
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding OnionAfter}" Width="24" TextAlignment="Right" />
+                                                <Slider Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding OnionAfter}" />
+                                            </DockPanel>
+                                            <DockPanel Margin="0,4">
+                                                <TextBlock Text="Opacity" Width="60" Style="{StaticResource Caption}" />
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding OnionOpacity, StringFormat=P0}" Width="36" TextAlignment="Right" />
+                                                <Slider Minimum="0.1" Maximum="0.9" SmallChange="0.05" LargeChange="0.1" Value="{Binding OnionOpacity}" />
+                                            </DockPanel>
+                                            <CheckBox Content="Tint earlier red, later blue" IsChecked="{Binding OnionTint}" />
+                                            <CheckBox Content="Wrap around for loops" IsChecked="{Binding OnionWrap}" />
+                                        </StackPanel>
+                                    </Expander>
+                                    <TextBlock Text="Background" Style="{StaticResource Caption}" Margin="0,6,0,4" />
+                                    <ComboBox ItemsSource="{Binding BackdropChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Backdrop}" ToolTip="{Binding BackdropNote}" />
+                                    <CheckBox Content="Show raw slot colours (P)" IsChecked="{Binding RawSlots}" Margin="0,6,0,0"
+                                              Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                        <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Advanced" IsChecked="{Binding Advanced}"
+                                      ToolTip="Show layers, anchors, masks and the rig" Margin="4,0,0,0" />
+                        <ToggleButton Style="{StaticResource ToolbarToggle}" Content="All frames" IsChecked="{Binding ApplyToAllFrames}" Margin="4,0,0,0"
+                                      ToolTip="Layer changes, new anchors and Isolate head apply to the same layer in every frame"
+                                      Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
+                    </WrapPanel>
                 </Border>
 
                 <!-- Tool options (Aseprite's context bar) -->
                 <Border DockPanel.Dock="Top" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,0,0,1" Padding="10,3" MinHeight="36">
-                    <StackPanel Orientation="Horizontal">
+                    <WrapPanel>
                         <TextBlock Text="{Binding ToolName}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0" />
-                        <StackPanel Orientation="Horizontal" Visibility="{Binding UsesBrush, Converter={StaticResource VisibleWhen}}">
+                        <WrapPanel Visibility="{Binding UsesBrush, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="Size" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Subtract24}" Command="{Binding SmallerBrushCommand}" ToolTip="Smaller brush ([)" />
                             <TextBlock Text="{Binding BrushSize}" MinWidth="18" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" />
@@ -174,10 +175,10 @@
                                       ToolTip="A 1-px stroke stays one pixel wide on diagonals: no doubled corners (Aseprite)" />
                             <CheckBox Content="Symmetry" IsChecked="{Binding Symmetry}" Margin="8,0,0,0" MinWidth="0" VerticalAlignment="Center"
                                       ToolTip="Mirror what you draw or erase across the frame's centre (the dashed line)" />
-                        </StackPanel>
+                        </WrapPanel>
                         <CheckBox Content="Filled" IsChecked="{Binding FilledShapes}" MinWidth="0" VerticalAlignment="Center" Visibility="{Binding UsesShapes, Converter={StaticResource VisibleWhen}}" />
                         <!-- A floating piece: exact numbers and quick turns (Animate's transform panel). -->
-                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsTransforming, Converter={StaticResource VisibleWhen}}">
+                        <WrapPanel Visibility="{Binding IsTransforming, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="Angle" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
                             <TextBox Text="{Binding TransformAngle, UpdateSourceTrigger=LostFocus, StringFormat=0.#}" Width="56" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" ToolTip="Degrees (Shift while dragging the handle: 15° steps)" />
                             <TextBlock Text="°  Size" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="2,0,4,0" />
@@ -190,14 +191,14 @@
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowRotateClockwise24}" Command="{Binding RotateRightCommand}" ToolTip="A quarter turn right (Shift+R)" />
                             <ui:Button Content="Apply" Appearance="Primary" Command="{Binding ApplyTransformCommand}" ToolTip="Apply (Enter, or click outside)" Margin="10,0,4,0" Padding="10,3" />
                             <ui:Button Content="Cancel" Command="{Binding CancelTransformCommand}" ToolTip="Put it back (Esc)" Padding="10,3" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Visibility="{Binding ShowsSelectionActions, Converter={StaticResource VisibleWhen}}">
-                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsWandTool, Converter={StaticResource VisibleWhen}}" Margin="0,0,10,0">
+                        </WrapPanel>
+                        <WrapPanel Visibility="{Binding ShowsSelectionActions, Converter={StaticResource VisibleWhen}}">
+                            <WrapPanel Visibility="{Binding IsWandTool, Converter={StaticResource VisibleWhen}}" Margin="0,0,10,0">
                                 <TextBlock Text="Tolerance" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <Slider Minimum="0" Maximum="64" Width="90" Value="{Binding WandTolerance}" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center"
                                         ToolTip="0: exactly that colour. Higher: similar colours too." />
                                 <TextBlock Text="{Binding WandTolerance}" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center" />
-                            </StackPanel>
+                            </WrapPanel>
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Resize24}" Command="{Binding TransformCommand}" ToolTip="Transform (Ctrl+T): move, scale and rotate with handles" />
                             <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Isolate" IsChecked="{Binding Isolate}" Margin="2,0,6,0"
                                           ToolTip="Dim everything outside the selection to work on just that part (Shift+I). Edits stay inside the selection anyway." />
@@ -209,7 +210,7 @@
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon SelectAllOff24}" Command="{Binding DeselectCommand}" ToolTip="Deselect (Ctrl+D)" />
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowSwap24}" Command="{Binding InvertSelectionCommand}" ToolTip="Invert the selection (Ctrl+Shift+I)" />
                             <TextBlock Text="Shift adds · Alt takes away" Style="{StaticResource Faint}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                        </StackPanel>
+                        </WrapPanel>
                         <DockPanel Visibility="{Binding IsAnchorTool, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="Anchor" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
                             <ComboBox IsEditable="True" Text="{Binding AnchorName, UpdateSourceTrigger=LostFocus}" MinWidth="110">
@@ -222,7 +223,7 @@
                         </DockPanel>
                         <CheckBox Content="Pick from this layer only" IsChecked="{Binding PickFromLayer}" ToolTip="Off: the eyedropper reads the whole frame." Margin="12,0,0,0" MinWidth="0"
                                   VerticalAlignment="Center" Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
-                    </StackPanel>
+                    </WrapPanel>
                 </Border>
 
                 <!-- Status bar -->
@@ -237,6 +238,9 @@
                 <!-- Frame strip and sequences -->
                 <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,1,0,0" Padding="8,6">
                     <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Margin="0,0,0,6"
+                                   Text="{Binding PickedFrames.Count, StringFormat='{}{0} frames selected: move, transform or delete together'}"
+                                   Visibility="{Binding HasSeveralPicked, Converter={StaticResource VisibleWhen}}" />
                         <ContentControl DockPanel.Dock="Bottom" Content="{Binding}" ContentTemplate="{StaticResource Sequences}" Margin="0,6,0,0" Focusable="False"
                                         Visibility="{Binding ShowsSequenceChips, Converter={StaticResource VisibleWhen}}" />
                         <!-- How it plays, in plain words (Aseprite's tags, simplified). -->

@@ -16,6 +16,46 @@ public class StudioEditorsTests
     }
 
     [Fact]
+    public void CancellingExpressionStrokeRestoresPixelsAndHistory()
+    {
+        var (editor, studio) = CharacterStudioTests.OpenStudio();
+        using var _ = editor;
+        studio.NewExpression("cancel-expression");
+        var expression = Assert.IsType<ExpressionDocumentViewModel>(studio.ActiveDocument);
+        expression.Tool = StudioTool.Pencil;
+        studio.Palette.Primary = 0xFFFF0000;
+        string? path = expression.Model.Frames[0].Image;
+        int history = editor.Shell.Document!.History.UndoCount;
+        expression.PointerDown(expression.Box[0], expression.Box[1], PointerButton.Primary, false);
+        Assert.NotNull(path);
+        Assert.Contains(path!, studio.Context.Overrides.Keys);
+        expression.CancelStroke();
+        Assert.DoesNotContain(path!, studio.Context.Overrides.Keys);
+        Assert.Equal(history, editor.Shell.Document.History.UndoCount);
+        Assert.Equal(path, expression.Model.Frames[0].Image);
+    }
+
+    [Fact]
+    public void CancellingMaskStrokeRestoresPixelsAndHistory()
+    {
+        var (editor, studio) = WithRobinRig();
+        using var _ = editor;
+        studio.OpenItem(LibraryKind.Mask, "robin-head-left");
+        var mask = Assert.IsType<MaskDocumentViewModel>(studio.ActiveDocument);
+        string path = mask.CurrentPath!;
+        var before = studio.Context.PackImage(path)!.Pixels.ToArray();
+        int history = editor.Shell.Document!.History.UndoCount;
+        mask.Tool = MaskTool.Brush;
+        mask.PointerDown(2, 20, PointerButton.Primary, false);
+        Assert.Contains(path, studio.Context.Overrides.Keys);
+        mask.PointerMove(6, 20);
+        mask.CancelStroke();
+        Assert.DoesNotContain(path, studio.Context.Overrides.Keys);
+        Assert.Equal(history, editor.Shell.Document.History.UndoCount);
+        Assert.Equal(before, studio.Context.PackImage(path)!.Pixels);
+    }
+
+    [Fact]
     public void TheMaskEditorPaintsShapesAndChecksEveryVariant()
     {
         var (editor, studio) = WithRobinRig();

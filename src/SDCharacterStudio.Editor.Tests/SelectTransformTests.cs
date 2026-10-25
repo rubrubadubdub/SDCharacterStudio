@@ -95,6 +95,56 @@ public sealed class SelectTransformTests
     }
 
     [Fact]
+    public void CancellingMarqueeRestoresPriorSelectionAndReselectHistory()
+    {
+        var (studio, pose, editor) = Open();
+        using var _ = editor;
+        pose.Tool = StudioTool.Select;
+        pose.PointerDown(1, 1, PointerButton.Primary); pose.PointerMove(2, 2); pose.PointerUp(2, 2);
+        var before = pose.SelectionShape;
+        pose.PointerDown(6, 6, PointerButton.Primary); pose.PointerMove(8, 8);
+        pose.CancelStroke();
+        Assert.Equal(before!.Cells().OrderBy(p => p), pose.SelectionShape!.Cells().OrderBy(p => p));
+        pose.Selection = null;
+        Assert.True(pose.HandleKey("D", true, true));
+        Assert.Equal(before.Cells().OrderBy(p => p), pose.SelectionShape!.Cells().OrderBy(p => p));
+    }
+
+    [Fact]
+    public void CancellingLassoRestoresSelectionAndAllowsNextGesture()
+    {
+        var (studio, pose, editor) = Open();
+        using var _ = editor;
+        pose.Tool = StudioTool.Select;
+        pose.PointerDown(1, 1, PointerButton.Primary); pose.PointerMove(2, 2); pose.PointerUp(2, 2);
+        var before = pose.SelectionShape;
+        pose.Tool = StudioTool.Lasso;
+        pose.PointerDown(6, 6, PointerButton.Primary); pose.PointerMove(8, 6);
+        Assert.True(pose.IsStroking);
+        pose.CancelStroke();
+        Assert.False(pose.IsStroking);
+        Assert.Equal(before!.Cells().OrderBy(p => p), pose.SelectionShape!.Cells().OrderBy(p => p));
+        pose.CancelStroke();
+        pose.PointerDown(4, 4, PointerButton.Primary); pose.PointerMove(5, 5); pose.PointerUp(5, 5);
+        Assert.NotEqual(before.Cells().OrderBy(p => p), pose.SelectionShape!.Cells().OrderBy(p => p));
+    }
+
+    [Fact]
+    public void CancellingPaintDoesNotRestoreStaleSelectionSnapshot()
+    {
+        var (studio, pose, editor) = Open();
+        using var _ = editor;
+        pose.Tool = StudioTool.Select;
+        pose.PointerDown(1, 1, PointerButton.Primary); pose.PointerMove(2, 2); pose.PointerUp(2, 2);
+        var before = pose.SelectionShape;
+        studio.Palette.Primary = 0xFFFF0000;
+        pose.Tool = StudioTool.Pencil;
+        pose.PointerDown(3, 3, PointerButton.Primary);
+        pose.CancelStroke();
+        Assert.Equal(before!.Cells().OrderBy(p => p), pose.SelectionShape!.Cells().OrderBy(p => p));
+    }
+
+    [Fact]
     public void PaintingStaysInsideAShapedSelection()
     {
         var (studio, pose, editor) = Open();
