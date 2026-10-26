@@ -146,7 +146,7 @@ Sprites, poses and animations are made in the **Character Studio**. Switch to it
 - **Display settings:** the pose toolbar keeps play, zoom, Fit and Grid visible. **View** contains onion skin, standing-frame ghost, background and **Mirror the view** (Shift+M). Mirroring shows the canvas flipped to see the drawing fresh; only the view changes, and clicks still land on the pixel you point at.
 - **Cancel safely:** press **Esc** during a brush stroke, selection or drag to put it back. Losing mouse capture or leaving the editor also cancels an unfinished stroke. Undo (Ctrl+Z) reverses a completed stroke in one step.
 - **Onion skin:** open **View > Onion skin settings** to choose the frames before and after, opacity and red/blue tint.
-- **Colours:** the panel shows her colours, every colour **in this picture**, **recent** ones and a colour picker. Colours picked from her sprite paint as her colours, so they follow outfits. **Named colours** are covered in §11.8.
+- **Colours:** the panel shows the character's colours, every colour **in this picture**, **recent** ones and a colour picker. Click a swatch to paint with it (right click: the right button). **Click the big colour square** (or double-click any swatch) to mix a new colour: you paint with it as you mix, the hex box takes a code, and *Done* closes it. Colours picked from the sprite paint as the character's colours, so they follow outfits. **Named colours** are covered in §11.8.
 - **Inside the character only:** with a painting tool, tick *Inside the character only* in the options bar. The brush, shapes, fill and shading then touch only pixels where the character (or your paint) already is, so a pattern or a fold stays inside their outline. With several frames picked, each frame keeps to its own outline.
 - **Shade (D):** left click makes what's under the brush one step darker, right click one step lighter, each pixel once per stroke.
   - On her own colours it steps along her colour (her skin mid to skin dark) and paints her colour, so it still follows sprite mods.
@@ -240,7 +240,7 @@ An **outfit** is your own version of a villager's whole sprite sheet: new clothe
 - **Change it:** the pencil on its row (or right-click, *Change it everywhere…*) opens the colour picker. Pick the new colour and press *Change Coat everywhere*. Every pixel painted with it, in every frame of every outfit and pose, portraits and expressions, changes as one undo step. Shift+click one shade to change just that shade. *Forget the name* leaves the paint as it is.
 
 **Recolour** (the *Recolour* section on the right) changes one of her own colours, still live: the same dress in red, her hair dyed.
-- *Recolour one of her colours* starts with her clothes (shirt, then pants, shoes, hair) and the left colour. Change which of her colours with the list, and the new colour with *Use the left colour*.
+- *Recolour one of their colours* starts with the clothes (shirt, then pants, shoes, hair) and the left colour. Change which colour with the list; change the new colour by clicking it (a picker opens right there, *Recolour* applies it) or with *Use the left colour*.
 - *That colour and its shades* is right for most clothes. Choose *Just that colour* if it catches too much of her, or *Nearby colours too* if some shades stay as they were. Her skin is left alone unless you recolour her skin.
 - It applies to every frame of the pose or outfit. Poses wearing an outfit show the outfit's recolours. Sprite mods still draw her underneath, so a mod that redraws her dress gets recoloured too.
 

@@ -104,7 +104,7 @@
                                                 </DockPanel>
                                                 <DockPanel Margin="0,6,0,0">
                                                     <TextBlock Text="Does" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
-                                                    <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.StepKinds}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Do}" />
+                                                    <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.StepKinds}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Do, Delay=1}" />
                                                 </DockPanel>
                                                 <DockPanel Margin="0,4,0,0">
                                                     <TextBlock Text="Seconds" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
@@ -114,12 +114,12 @@
                                                     <DockPanel Margin="0,6,0,0">
                                                         <TextBlock Text="Pose" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
                                                         <ComboBox ItemsSource="{Binding DataContext.PoseChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                  DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Pose}"
+                                                                  DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Pose, Delay=1}"
                                                                   ToolTip="Their poses, then the ready-made ones (made for them the first time you pick one). Make your own in the Poses shelf." />
                                                     </DockPanel>
                                                     <DockPanel Margin="0,6,0,0">
                                                         <TextBlock Text="Plays" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
-                                                        <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.PlayChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Play}" />
+                                                        <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.PlayChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Play, Delay=1}" />
                                                     </DockPanel>
                                                 </StackPanel>
                                                 <StackPanel Visibility="{Binding IsWalk, Converter={StaticResource VisibleWhen}}" Margin="0,6,0,0">
@@ -137,7 +137,7 @@
                                                 </StackPanel>
                                                 <DockPanel Margin="0,6,0,0" Visibility="{Binding HasFacing, Converter={StaticResource VisibleWhen}}">
                                                     <TextBlock Text="Facing" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
-                                                    <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.FacingChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Facing}" />
+                                                    <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.FacingChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Facing, Delay=1}" />
                                                 </DockPanel>
                                             </StackPanel>
                                         </Border>

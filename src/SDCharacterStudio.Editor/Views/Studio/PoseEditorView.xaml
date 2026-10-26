@@ -156,7 +156,7 @@
                                         </StackPanel>
                                     </Expander>
                                     <TextBlock Text="Background" Style="{StaticResource Caption}" Margin="0,6,0,4" />
-                                    <ComboBox ItemsSource="{Binding BackdropChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Backdrop}" ToolTip="{Binding BackdropNote}" />
+                                    <ComboBox ItemsSource="{Binding BackdropChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Backdrop, Delay=1}" ToolTip="{Binding BackdropNote}" />
                                     <CheckBox Content="Show raw slot colours (P)" IsChecked="{Binding RawSlots}" Margin="0,6,0,0"
                                               Visibility="{Binding Advanced, Converter={StaticResource VisibleWhen}}" />
                                 </StackPanel>
@@ -270,7 +270,7 @@
                         <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="{Binding ShowsPlayOrderRow, Converter={StaticResource VisibleWhen}}">
                             <TextBlock DockPanel.Dock="Left" Text="Plays" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <ComboBox DockPanel.Dock="Left" ItemsSource="{Binding Source={x:Static vm:PoseDocumentViewModel.PlayOrders}}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                                      SelectedValue="{Binding PlayOrderChoice}" MinWidth="200" Margin="0,0,6,0"
+                                      SelectedValue="{Binding PlayOrderChoice, Delay=1}" MinWidth="200" Margin="0,0,6,0"
                                       ToolTip="Loop all: round and round. Once, then loop: getting into the pose, then the rest round and round. Hold the last: once, then stay. Back and forth: 1 2 3 2 1 2 3..." />
                             <TextBox DockPanel.Dock="Left" Text="{Binding LoopFromNumber, UpdateSourceTrigger=LostFocus}" Width="40" Margin="0,0,10,0" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True"
                                      ToolTip="The frame the loop starts at" Visibility="{Binding PlaysOnceThenLoops, Converter={StaticResource VisibleWhen}}" />
@@ -602,15 +602,30 @@
                                         <StackPanel>
                                             <DockPanel>
                                                 <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Dismiss24}" Command="{Binding RemoveCommand}" ToolTip="Back to their own colour" />
-                                                <ComboBox ItemsSource="{Binding Sources}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding From}" ToolTip="Which of their colours (and its shades)" />
+                                                <ComboBox ItemsSource="{Binding Sources}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding From, Delay=1}" ToolTip="Which of their colours (and its shades)" />
                                             </DockPanel>
                                             <DockPanel Margin="0,6,0,0">
                                                 <TextBlock Text="becomes" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                                <Border Width="22" Height="22" CornerRadius="3" BorderThickness="1" BorderBrush="#88FFFFFF" Background="{Binding ToBrush}" ToolTip="{Binding ToText}" />
+                                                <Border x:Name="RecolorTo" Width="22" Height="22" CornerRadius="3" BorderThickness="1" BorderBrush="#88FFFFFF" Background="{Binding ToBrush}" Cursor="Hand"
+                                                        ToolTip="{Binding ToText, StringFormat='{}{0}. Click to change it.'}">
+                                                    <Border.InputBindings>
+                                                        <MouseBinding Gesture="LeftClick" Command="{Binding PickCommand}" />
+                                                        <MouseBinding Gesture="LeftDoubleClick" Command="{Binding PickCommand}" />
+                                                    </Border.InputBindings>
+                                                </Border>
+                                                <Popup PlacementTarget="{Binding ElementName=RecolorTo}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" IsOpen="{Binding IsPicking}">
+                                                    <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,4,0,0">
+                                                        <StackPanel>
+                                                            <TextBlock Text="NEW COLOUR" Style="{StaticResource PanelTitle}" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                                                            <studio:ColorPicker Color="{Binding PickColor}" />
+                                                            <ui:Button Content="Recolour" Appearance="Primary" Command="{Binding UsePickCommand}" HorizontalAlignment="Right" Margin="0,10,0,0" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Popup>
                                                 <ui:Button Content="Use the left colour" Command="{Binding UseLeftColourCommand}" Margin="6,0,0,0" Padding="8,3"
-                                                           ToolTip="Pick a colour (a swatch, the picker or a named colour), then press this" />
+                                                           ToolTip="Or click the colour beside &quot;becomes&quot; to mix one" />
                                             </DockPanel>
-                                            <ComboBox ItemsSource="{Binding Source={x:Static vm:RecolorRowViewModel.Ranges}}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RangeChoice}" Margin="0,6,0,0"
+                                            <ComboBox ItemsSource="{Binding Source={x:Static vm:RecolorRowViewModel.Ranges}}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RangeChoice, Delay=1}" Margin="0,6,0,0"
                                                       ToolTip="If it changes too little or too much, widen or narrow it" />
                                         </StackPanel>
                                     </Border>

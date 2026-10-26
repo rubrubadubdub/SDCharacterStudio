@@ -142,20 +142,55 @@ public sealed partial class PaletteViewModel : ObservableObject
         Primary = color;
     }
 
-    /// <summary>The colour picker's colour (D-49); it starts from the left button's colour as you see it.</summary>
+    /// <summary>
+    /// The colour picker's colour (D-49). It starts from the colour it changes (the left button's, or the right's) as you
+    /// see it, and you paint with what you mix as you mix it, like any paint program; closing it remembers the colour.
+    /// </summary>
     [ObservableProperty] private uint pickerColor = 0xFFFFFFFF;
     [ObservableProperty] private bool isPickerOpen;
+    /// <summary>The picker changes the right button's colour (clicked the right square) instead of the left's.</summary>
+    [ObservableProperty] private bool pickingSecondary;
+    private bool seedingPicker, mixed;
     partial void OnIsPickerOpenChanged(bool value)
     {
-        if (value) PickerColor = Shown(Primary, always: true) is var shown && shown >> 24 != 0 ? shown | 0xFF000000 : 0xFFFFFFFF;
-        else EditingNamed = null;
+        if (value)
+        {
+            seedingPicker = true;
+            try { PickerColor = Shown(PickingSecondary ? Secondary : Primary, always: true) is var shown && shown >> 24 != 0 ? shown | 0xFF000000 : 0xFFFFFFFF; }
+            finally { seedingPicker = false; }
+            return;
+        }
+        if (mixed) Remember(PickerColor);
+        mixed = false; EditingNamed = null; PickingSecondary = false;
     }
+    partial void OnPickerColorChanged(uint value)
+    {
+        // Opening the picker on her skin doesn't turn the live skin into a plain colour: only mixing does.
+        if (seedingPicker || !IsPickerOpen || EditingNamed != null) return;
+        mixed = true;
+        if (PickingSecondary) Secondary = value; else Primary = value;
+    }
+
+    /// <summary>Click the left colour square: mix it.</summary>
+    [RelayCommand] private void EditPrimary() { IsPickerOpen = false; PickingSecondary = false; IsPickerOpen = true; }
+    /// <summary>Click the right colour square: mix it.</summary>
+    [RelayCommand] private void EditSecondary() { IsPickerOpen = false; PickingSecondary = true; IsPickerOpen = true; }
+    /// <summary>Double-click a swatch: paint with it, and open the picker on it to change it a little.</summary>
+    [RelayCommand]
+    private void EditSwatch(SwatchViewModel? swatch)
+    {
+        if (swatch == null || swatch.Color >> 24 == 0) return;
+        Primary = swatch.Color;
+        EditPrimary();
+    }
+    public string PickerTitle => IsEditingNamed ? $"CHANGE {EditingNamed?.ToUpperInvariant()}" : PickingSecondary ? "RIGHT BUTTON COLOUR" : "LEFT BUTTON COLOUR";
+    partial void OnPickingSecondaryChanged(bool value) => OnPropertyChanged(nameof(PickerTitle));
 
     // ---------------- named colours (change once, changes everywhere) ----------------
 
     public ObservableCollection<NamedColorRowViewModel> Named { get; } = new();
     /// <summary>The named colour the picker is changing (null: the picker mixes a colour to paint with).</summary>
-    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsEditingNamed), nameof(EditingNamedLabel))] private string? editingNamed;
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsEditingNamed), nameof(EditingNamedLabel), nameof(PickerTitle))] private string? editingNamed;
     private int? editingShade;
     public bool IsEditingNamed => EditingNamed != null;
     public string EditingNamedLabel => editingShade switch { 0 => $"Change {EditingNamed} dark everywhere", 2 => $"Change {EditingNamed} light everywhere", _ => $"Change {EditingNamed} everywhere" };
@@ -213,8 +248,14 @@ public sealed partial class PaletteViewModel : ObservableObject
     [RelayCommand]
     private void ForgetNamed(NamedColorRowViewModel? row) { if (row != null) studio.ForgetNamedColor(row.Name); }
 
-    /// <summary>Paint with the picker's colour (left button).</summary>
-    [RelayCommand] private void UsePicked() { Primary = PickerColor; Remember(PickerColor); IsPickerOpen = false; }
+    /// <summary>Done: paint with the picker's colour (on the button it's for).</summary>
+    [RelayCommand]
+    private void UsePicked()
+    {
+        if (PickingSecondary) Secondary = PickerColor; else Primary = PickerColor;
+        mixed = true;
+        IsPickerOpen = false;
+    }
 
     /// <summary>Keep the picker's colour in your colours, and paint with it.</summary>
     [RelayCommand]

@@ -7,6 +7,8 @@ namespace SDCharacterStudio.Editor.Views.Studio;
 
 public partial class CharacterStudioView : UserControl
 {
+    static CharacterStudioView() => Infrastructure.DropdownWheel.Register();
+
     public CharacterStudioView()
     {
         InitializeComponent();

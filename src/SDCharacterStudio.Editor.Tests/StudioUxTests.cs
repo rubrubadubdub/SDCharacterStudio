@@ -106,4 +106,51 @@ public sealed class StudioUxTests
         Assert.DoesNotContain("Nudge x", labels);
         Assert.DoesNotContain(expression.Fields, f => f is ListField);
     }
+
+    [Fact]
+    public void ClickingTheColourOpensThePickerAndYouPaintWithWhatYouMix()
+    {
+        var (editor, studio) = CharacterStudioTests.OpenStudio();
+        using var _ = editor;
+        CharacterStudioTests.NewPose(studio);
+        var palette = studio.Palette;
+        uint skin = palette.Primary;   // her live skin colour
+
+        palette.EditPrimaryCommand.Execute(null);
+        Assert.True(palette.IsPickerOpen);
+        Assert.Equal(skin, palette.Primary);   // just opening it keeps her live skin
+        palette.PickerColor = 0xFF2E8B57;
+        Assert.Equal(0xFF2E8B57u, palette.Primary);   // mixing paints with it right away
+        palette.IsPickerOpen = false;
+        Assert.Equal(0xFF2E8B57u, palette.Recent.First().Color);
+
+        palette.EditSecondaryCommand.Execute(null);
+        palette.PickerColor = 0xFF102030;
+        Assert.Equal(0xFF102030u, palette.Secondary);
+        Assert.Equal(0xFF2E8B57u, palette.Primary);
+        palette.IsPickerOpen = false;
+
+        var swatch = palette.InPicture.First(s => s.Color >> 24 != 0);
+        palette.EditSwatchCommand.Execute(swatch);
+        Assert.Equal(swatch.Color, palette.Primary);
+        Assert.True(palette.IsPickerOpen);
+        Assert.False(palette.PickingSecondary);
+    }
+
+    [Fact]
+    public void ClickingARecoloursNewColourMixesItRightThere()
+    {
+        var (editor, studio) = CharacterStudioTests.OpenStudio();
+        using var _ = editor;
+        var pose = CharacterStudioTests.NewPose(studio);
+        pose.AddRecolor();
+        var row = pose.Recolors.Single();
+        row.PickCommand.Execute(null);
+        Assert.True(row.IsPicking);
+        Assert.Equal(row.To | 0xFF000000, row.PickColor);
+        row.PickColor = 0xFF3366CC;
+        row.UsePickCommand.Execute(null);
+        Assert.Equal(0xFF3366CCu, pose.Recolors.Single().To | 0xFF000000);
+        Assert.Equal("Change recolour", editor.Shell.Document!.History.UndoLabel);
+    }
 }

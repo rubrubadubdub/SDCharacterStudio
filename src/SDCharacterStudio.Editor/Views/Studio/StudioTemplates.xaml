@@ -83,11 +83,12 @@
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
 
-    <!-- One palette swatch: left click = primary colour, right click = secondary. -->
+    <!-- One palette swatch: left click = primary colour, right click = secondary, double-click = change it a little. -->
     <DataTemplate x:Key="Swatch" DataType="{x:Type vm:SwatchViewModel}">
         <Border Width="20" Height="20" Margin="0,0,3,3" CornerRadius="3" BorderThickness="1" BorderBrush="#55FFFFFF" Background="{Binding Display}" ToolTip="{Binding Tooltip}" Cursor="Hand">
             <Border.InputBindings>
                 <MouseBinding Gesture="LeftClick" Command="{Binding DataContext.PickPrimaryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding DataContext.EditSwatchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
                 <MouseBinding Gesture="RightClick" Command="{Binding DataContext.PickSecondaryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
             </Border.InputBindings>
         </Border>
@@ -103,10 +104,20 @@
                         <TextBlock Text="COLOURS" Style="{StaticResource PanelTitle}" Margin="0,0,0,6" HorizontalAlignment="Left" />
                         <DockPanel Margin="0,0,0,8">
                             <Grid Width="44" Height="40" DockPanel.Dock="Left" Margin="0,0,8,0">
-                                <Border Width="26" Height="26" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4" BorderThickness="1" BorderBrush="#88FFFFFF"
-                                        Background="{Binding SecondaryBrush}" ToolTip="{Binding SecondaryName, StringFormat='Right button: {0}'}" />
-                                <Border Width="26" Height="26" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="4" BorderThickness="1" BorderBrush="White"
-                                        Background="{Binding PrimaryBrush}" ToolTip="{Binding PrimaryName, StringFormat='Left button: {0}'}" />
+                                <Border Width="26" Height="26" HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4" BorderThickness="1" BorderBrush="#88FFFFFF" Cursor="Hand"
+                                        Background="{Binding SecondaryBrush}" ToolTip="{Binding SecondaryName, StringFormat='Right button: {0}. Click to change it.'}">
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" Command="{Binding EditSecondaryCommand}" />
+                                        <MouseBinding Gesture="LeftDoubleClick" Command="{Binding EditSecondaryCommand}" />
+                                    </Border.InputBindings>
+                                </Border>
+                                <Border Width="26" Height="26" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="4" BorderThickness="1" BorderBrush="White" Cursor="Hand"
+                                        Background="{Binding PrimaryBrush}" ToolTip="{Binding PrimaryName, StringFormat='Left button: {0}. Click to change it.'}">
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" Command="{Binding EditPrimaryCommand}" />
+                                        <MouseBinding Gesture="LeftDoubleClick" Command="{Binding EditPrimaryCommand}" />
+                                    </Border.InputBindings>
+                                </Border>
                             </Grid>
                             <StackPanel>
                                 <TextBlock Text="{Binding PrimaryName}" FontSize="12" TextTrimming="CharacterEllipsis" />
@@ -114,7 +125,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon ArrowSwap24}" Command="{Binding SwapCommand}" ToolTip="Swap the colours (X)" />
                                     <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Eraser24}" Command="{Binding PickTransparentCommand}" ToolTip="Right button paints transparent" />
-                                    <ToggleButton x:Name="PickerToggle" Style="{StaticResource ToolbarToggle}" Padding="5,3" IsChecked="{Binding IsPickerOpen}" ToolTip="Mix a colour of your own">
+                                    <ToggleButton x:Name="PickerToggle" Style="{StaticResource ToolbarToggle}" Padding="5,3" IsChecked="{Binding IsPickerOpen}" ToolTip="Mix a colour of your own (or click the colour square)">
                                         <ui:SymbolIcon Symbol="Color24" />
                                     </ToggleButton>
                                 </StackPanel>
@@ -123,11 +134,15 @@
                         <Popup PlacementTarget="{Binding ElementName=PickerToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" IsOpen="{Binding IsPickerOpen}">
                             <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,4,0,0">
                                 <StackPanel>
+                                    <TextBlock Text="{Binding PickerTitle}" Style="{StaticResource PanelTitle}" HorizontalAlignment="Left" Margin="0,0,0,8" />
                                     <studio:ColorPicker Color="{Binding PickerColor}" />
+                                    <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" MaxWidth="240" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                               Visibility="{Binding IsEditingNamed, Converter={StaticResource VisibleWhen}, ConverterParameter=not}"
+                                               Text="You paint with it as you mix. Type a hex code (#2E8B57) in the box if you have one." />
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0" HorizontalAlignment="Right"
                                                 Visibility="{Binding IsEditingNamed, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
                                         <ui:Button Content="Add to my colours" Command="{Binding AddPickedCommand}" Margin="0,0,6,0" />
-                                        <ui:Button Content="Paint with it" Appearance="Primary" Command="{Binding UsePickedCommand}" />
+                                        <ui:Button Content="Done" Appearance="Primary" Command="{Binding UsePickedCommand}" />
                                     </StackPanel>
                                     <!-- Changing a named colour: everywhere it's painted, as one undo step. -->
                                     <ui:Button Content="{Binding EditingNamedLabel}" Appearance="Primary" Command="{Binding ApplyNamedCommand}" Margin="0,10,0,0" HorizontalAlignment="Right"
@@ -214,7 +229,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock Style="{StaticResource Faint}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="Left click a swatch for the left button, right click for the right. Hold Alt on the canvas to pick a colour." />
+                                   Text="Click a swatch to paint with it (right click: the right button). Click the big square, or double-click a swatch, to mix a new colour. Alt+click the canvas takes a colour from it." />
                     </StackPanel>
     </DataTemplate>
 

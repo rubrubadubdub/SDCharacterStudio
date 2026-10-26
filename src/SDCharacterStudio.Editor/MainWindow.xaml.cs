@@ -20,6 +20,8 @@ public partial class MainWindow : FluentWindow
     private PackDocument? layoutProject;
     public WorkspaceHost? WorkspaceHost { get; private set; }
 
+    static MainWindow() => Infrastructure.DropdownWheel.Register();
+
     public MainWindow()
     {
         InitializeComponent();

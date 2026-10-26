@@ -29,6 +29,18 @@ public sealed partial class RecolorRowViewModel : ObservableObject
     public string RangeChoice { get => Range <= 12 ? "12" : Range >= 40 ? "40" : "25"; set { if (int.TryParse(value, out int range) && range != Range) owner.ChangeRecolor(Index, r => r.Range = range); } }
     [RelayCommand] private void UseLeftColour() => owner.ChangeRecolor(Index, r => r.To = $"#{owner.Palette.Resolved(owner.Palette.Primary) & 0xFFFFFF:X6}");
     [RelayCommand] private void Remove() => owner.RemoveRecolor(Index);
+
+    /// <summary>Click the new colour: a picker right there, starting from it.</summary>
+    [ObservableProperty] private bool isPicking;
+    [ObservableProperty] private uint pickColor;
+    partial void OnIsPickingChanged(bool value) { if (value) PickColor = To | 0xFF000000; }
+    [RelayCommand] private void Pick() => IsPicking = true;
+    [RelayCommand]
+    private void UsePick()
+    {
+        IsPicking = false;
+        if ((PickColor | 0xFF000000) != (To | 0xFF000000)) owner.ChangeRecolor(Index, r => r.To = $"#{PickColor & 0xFFFFFF:X6}");
+    }
 }
 
 /// <summary>

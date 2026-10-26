@@ -142,7 +142,7 @@
     <DataTemplate DataType="{x:Type vm:ChoiceField}">
         <ContentControl Style="{StaticResource FieldFrame}">
             <Grid>
-                <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" IsEditable="{Binding IsEditable}"
+                <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selected, Delay=1}" IsEditable="{Binding IsEditable}"
                           Text="{Binding Text, UpdateSourceTrigger=LostFocus}" TextSearch.TextPath="Label" IsTextSearchEnabled="True"
                           ItemTemplate="{StaticResource ChoiceItemTemplate}" inf:Behaviors.CommitOnEnter="True" HorizontalAlignment="Stretch"
                           Visibility="{Binding IsLong, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
@@ -277,7 +277,7 @@
                                 ToolTip="{Binding Category}">
                             <TextBlock Text="{Binding KindLabel}" FontSize="12.5" />
                         </Border>
-                        <ComboBox Style="{StaticResource PillCombo}" ItemsSource="{Binding SubjectOptions}" SelectedItem="{Binding Subject}" DisplayMemberPath="Label"
+                        <ComboBox Style="{StaticResource PillCombo}" ItemsSource="{Binding SubjectOptions}" SelectedItem="{Binding Subject, Delay=1}" DisplayMemberPath="Label"
                                   Visibility="{Binding SubjectIsShort, Converter={StaticResource VisibleWhen}}" />
                         <views:SearchablePicker Width="170" Margin="0,0,6,6" ItemsSource="{Binding SubjectOptions}" SelectedItem="{Binding Subject}" Noun="choices"
                                                 Visibility="{Binding SubjectIsLong, Converter={StaticResource VisibleWhen}}" />
@@ -286,9 +286,9 @@
                                   ToolTip="Pick a flag the project uses, or type a new name" Visibility="{Binding SubjectIsTyped, Converter={StaticResource VisibleWhen}}" />
                         <ui:Button Content="{Binding ItemLabel}" Command="{Binding PickItemCommand}" Margin="0,0,6,6" Padding="9,3" FontSize="12.5"
                                    Visibility="{Binding SubjectIsItem, Converter={StaticResource VisibleWhen}}" />
-                        <ComboBox Style="{StaticResource PillCombo}" ItemsSource="{Binding CompareOptions}" SelectedItem="{Binding Compare}" DisplayMemberPath="Label"
+                        <ComboBox Style="{StaticResource PillCombo}" ItemsSource="{Binding CompareOptions}" SelectedItem="{Binding Compare, Delay=1}" DisplayMemberPath="Label"
                                   Visibility="{Binding HasCompare, Converter={StaticResource VisibleWhen}}" />
-                        <ComboBox Style="{StaticResource PillCombo}" ItemsSource="{Binding ValueOptions}" SelectedItem="{Binding ValueChoice}" DisplayMemberPath="Label"
+                        <ComboBox Style="{StaticResource PillCombo}" ItemsSource="{Binding ValueOptions}" SelectedItem="{Binding ValueChoice, Delay=1}" DisplayMemberPath="Label"
                                   Visibility="{Binding HasValueOptions, Converter={StaticResource VisibleWhen}}" />
                         <TextBox Style="{StaticResource PillBox}" Text="{Binding Value, UpdateSourceTrigger=LostFocus}" ToolTip="{Binding Hint}"
                                  Visibility="{Binding HasValueText, Converter={StaticResource VisibleWhen}}" />
@@ -314,7 +314,7 @@
             </StackPanel>
             <ItemsControl ItemsSource="{Binding Rows}" IsTabStop="False" />
             <Grid HorizontalAlignment="Left" Margin="0,0,0,4">
-                <ComboBox ItemsSource="{Binding AddOptions}" SelectedItem="{Binding AddChoice}" ItemTemplate="{StaticResource ChoiceItemTemplate}"
+                <ComboBox ItemsSource="{Binding AddOptions}" SelectedItem="{Binding AddChoice, Delay=1}" ItemTemplate="{StaticResource ChoiceItemTemplate}"
                           MinWidth="210" ToolTip="Add a condition: hearts, a story flag, the season, an item…" />
                 <TextBlock Text="＋ Add a condition…" IsHitTestVisible="False" Margin="12,0,30,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             </Grid>
@@ -347,7 +347,7 @@
                 <ContentPresenter Content="{Binding Group}" />
                 <DockPanel Margin="0,6,4,0">
                     <TextBlock Text="then go to" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <ComboBox ItemsSource="{Binding TargetOptions}" SelectedItem="{Binding Target}" ItemTemplate="{StaticResource ChoiceItemTemplate}" />
+                    <ComboBox ItemsSource="{Binding TargetOptions}" SelectedItem="{Binding Target, Delay=1}" ItemTemplate="{StaticResource ChoiceItemTemplate}" />
                 </DockPanel>
             </StackPanel>
         </Border>
@@ -362,7 +362,7 @@
                 <Border CornerRadius="8" Background="{StaticResource PanelHeaderBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" Padding="10,8">
                     <DockPanel>
                         <TextBlock Text="Otherwise" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" />
-                        <ComboBox ItemsSource="{Binding OtherwiseOptions}" SelectedItem="{Binding Otherwise}" ItemTemplate="{StaticResource ChoiceItemTemplate}" />
+                        <ComboBox ItemsSource="{Binding OtherwiseOptions}" SelectedItem="{Binding Otherwise, Delay=1}" ItemTemplate="{StaticResource ChoiceItemTemplate}" />
                     </DockPanel>
                 </Border>
             </StackPanel>

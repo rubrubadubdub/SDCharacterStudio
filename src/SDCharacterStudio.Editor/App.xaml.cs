@@ -43,6 +43,10 @@ public partial class App : Application
             File.AppendAllText(log, $"[{DateTime.Now:O}] {e.Exception}\n\n");
         }
         catch (IOException) { }
+        // WPF's own dropdown hiccup when a pick rebuilds the list the dropdown is in: the pick already happened, so it's
+        // logged, not shown (the studio's dropdowns wait a tick to avoid it; this covers any that don't).
+        if (e.Exception is InvalidOperationException && e.Exception.StackTrace?.Contains("Selector.OnSelectedItemsCollectionChanged", StringComparison.Ordinal) == true)
+        { e.Handled = true; return; }
         shell?.Output.Add("Error", "Unexpected error: " + e.Exception.Message);
         MessageBox.Show(MainWindow!, $"Something went wrong:\n\n{e.Exception.Message}\n\nYour work was autosaved. Details are in {log}.",
             "SDCharacterStudio", MessageBoxButton.OK, MessageBoxImage.Warning);
