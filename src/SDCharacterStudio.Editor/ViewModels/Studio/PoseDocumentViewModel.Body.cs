@@ -151,7 +151,7 @@ public partial class PoseDocumentViewModel
         string facing = PoseFacing;
         Save("Fix her body parts", _ => { }, lib =>
         {
-            var rig = lib.RigFor(who.Key) ?? lib.Rig(RigFactory.EnsureNpcRig(lib, Studio.Shell.Catalog, who.Key))!;
+            var rig = lib.RigFor(who.Key) ?? lib.Rig(RigFactory.EnsureNpcRig(lib, Studio.Shell.Catalog, who.Key, Context))!;
             rig.BodyMap ??= new(StringComparer.OrdinalIgnoreCase);
             string path = rig.BodyMap.TryGetValue(facing, out var existing) ? existing : lib.UniquePath($"art/rigs/{PackDocument.ToContentId(rig.Id!)}/body-{facing}.png");
             lib.WriteImage(path, map);

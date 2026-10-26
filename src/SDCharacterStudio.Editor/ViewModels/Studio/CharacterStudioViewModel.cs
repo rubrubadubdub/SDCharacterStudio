@@ -381,7 +381,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         string maskId = id;
         Edit("New mask " + maskId, lib =>
         {
-            string rigId = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key);
+            string rigId = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key, Context);
             var rig = lib.Rig(rigId)!;
             int neck = rig.NeckPoint.Values.FirstOrDefault()?[1] ?? height / 2 - 1;
             string path = lib.UniquePath($"masks/{maskId}.png");
@@ -398,7 +398,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         if (Character is not { } who || shell.Document == null) return;
         string? id = null;
         if (who.IsFarmer) Edit("Make player rig", lib => id = RigFactory.EnsureFarmerRig(lib));
-        else Edit("Make rig for " + who.Label, lib => id = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key));
+        else Edit("Make rig for " + who.Label, lib => id = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key, Context));
         if (id != null) OpenItem(LibraryKind.Rig, id);
     }
 
@@ -412,7 +412,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         string expressionId = id;
         Edit("New expression " + expressionId, lib =>
         {
-            string rigId = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key);
+            string rigId = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key, Context);
             var rig = lib.Rig(rigId)!;
             var box = rig.FaceBox.TryGetValue("left", out var b) ? b : new[] { 2, 9, 6, 6 };
             string path = lib.UniquePath($"art/expressions/{expressionId}.png");
@@ -431,7 +431,7 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         string id = library.UniqueId(LibraryKind.Portrait, who.Key + " " + name);
         Edit("New portrait " + id, lib =>
         {
-            string rigId = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key);
+            string rigId = RigFactory.EnsureNpcRig(lib, shell.Catalog, who.Key, Context);
             var portrait = new Portrait { Format = "1.0", Id = id, For = rigId, FrameSize = new[] { 64, 64 } };
             foreach (var (emotion, index) in new[] { ("neutral", 0), ("happy", 1), ("sad", 2), ("unique", 3), ("love", 4), ("angry", 5) })
                 portrait.Emotions[emotion] = new PortraitFrame { Layers = { new LiveLayer { Source = new LiveSource { Kind = "Portrait", Npc = who.Key }, Part = "Full", SourceFrame = new SourceFrame { Index = index } } } };

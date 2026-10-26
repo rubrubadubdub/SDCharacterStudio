@@ -45,13 +45,13 @@ public static class PoseCopies
     }
 
     /// <summary>Make the copy (inside an edit). With <paramref name="copyMissingMasks"/>, masks the target lacks start as copies of the source's.</summary>
-    public static string Make(PackLibrary library, ExportCatalog? catalog, string poseId, string targetNpc, bool copyMissingMasks)
+    public static string Make(PackLibrary library, ExportCatalog? catalog, string poseId, string targetNpc, bool copyMissingMasks, StudioContext? context = null)
     {
         var plan = Plan(library, catalog, poseId, targetNpc);
         var pose = library.Pose(poseId)!;
         var sourceRig = library.Rig(pose.For);
         string sourceNpc = sourceRig?.Npc ?? "";
-        string targetRigId = RigFactory.EnsureNpcRig(library, catalog, targetNpc);
+        string targetRigId = RigFactory.EnsureNpcRig(library, catalog, targetNpc, context);
         var targetRig = library.Rig(targetRigId)!;
         if (copyMissingMasks)
             foreach (var (from, to) in plan.MissingMasks)

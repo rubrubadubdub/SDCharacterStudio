@@ -28,7 +28,7 @@ public static class PoseFactory
                     Layers = { new LiveLayer { Source = new LiveSource { Kind = "Farmer" }, Part = "Full", SourceFrame = new SourceFrame { Facing = facing, Stand = true } } } } }
             };
         }
-        string npcRig = RigFactory.EnsureNpcRig(library, studio.Shell.Catalog, who.Key);
+        string npcRig = RigFactory.EnsureNpcRig(library, studio.Shell.Catalog, who.Key, studio.Context);
         var rig = library.Rig(npcRig)!;
         int width = rig.FrameSize[0], height = rig.FrameSize[1];
         if (kind == "sheet")

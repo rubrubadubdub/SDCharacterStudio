@@ -16,7 +16,7 @@ public static class OutfitFactory
     /// <param name="basedOn">The studio's outfit choice: null for her own look, a sprite asset, or an <see cref="StudioContext.OutfitKey"/>.</param>
     public static Pose Create(StudioContext context, PackLibrary library, ExportCatalog? catalog, string npc, string id, string? basedOn)
     {
-        string rigId = RigFactory.EnsureNpcRig(library, catalog, npc);
+        string rigId = RigFactory.EnsureNpcRig(library, catalog, npc, context);
         var rig = library.Rig(rigId)!;
         int width = rig.FrameSize[0], height = rig.FrameSize[1];
         string? outfit = StudioContext.OutfitId(basedOn);

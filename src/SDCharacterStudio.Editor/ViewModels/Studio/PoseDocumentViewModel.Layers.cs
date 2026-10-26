@@ -150,7 +150,7 @@ public partial class PoseDocumentViewModel
 
     private void EnsureRig(PackLibrary library, CharacterChoice who)
     {
-        string rig = who.IsFarmer ? RigFactory.EnsureFarmerRig(library) : RigFactory.EnsureNpcRig(library, Studio.Shell.Catalog, who.Key);
+        string rig = who.IsFarmer ? RigFactory.EnsureFarmerRig(library) : RigFactory.EnsureNpcRig(library, Studio.Shell.Catalog, who.Key, Context);
         Model.For ??= rig;
     }
 

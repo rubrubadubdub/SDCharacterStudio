@@ -162,7 +162,7 @@ public sealed partial class CharacterStudioViewModel
             copyMasks = true;
         }
         string? id = null;
-        Edit($"Copy {poseId} for {who.Label}", lib => id = PoseCopies.Make(lib, shell.Catalog, poseId, who.Key, copyMasks));
+        Edit($"Copy {poseId} for {who.Label}", lib => id = PoseCopies.Make(lib, shell.Catalog, poseId, who.Key, copyMasks, Context));
         if (id != null) OpenItem(LibraryKind.Pose, id);
         return id;
     }

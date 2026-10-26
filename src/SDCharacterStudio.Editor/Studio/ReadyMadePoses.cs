@@ -21,22 +21,30 @@ public static class ReadyMadePoses
         return BodyMaps.Auto(standing, HeadTest(context, rig, facing, standing), facing);
     }
 
-    /// <summary>Is a standing-frame pixel her head? Her rig's head mask, else everything above her neck.</summary>
+    /// <summary>
+    /// Is a standing-frame pixel her head? Her rig's head mask, else where her own head ends (<see cref="HeadFinder"/>),
+    /// else everything above her neck. A rig's untouched average mask (row 15 for everyone) gives way to her own head.
+    /// </summary>
     public static Func<int, int, bool> HeadTest(StudioContext context, CharacterRig? rig, string facing, RgbaImage standing)
     {
         if (rig != null && rig.HeadMask.TryGetValue(facing, out var maskId) && context.FindMask(maskId) is { } mask)
         {
             int stand = rig.Frames.TryGetValue(facing, out var frames) ? frames.Stand : 0;
             string? path = mask.PerFrame.TryGetValue(stand.ToString(System.Globalization.CultureInfo.InvariantCulture), out var perFrame) ? perFrame : mask.Image;
-            if (context.PackImage(path) is { } image && image.Width == standing.Width && image.Height == standing.Height)
+            if (context.PackImage(path) is { } image && image.Width == standing.Width && image.Height == standing.Height
+                && !(mask.PerFrame.Count == 0 && RigFactory.IsAverageHead(image, standing.Width, standing.Height) && OwnHeadRow(context, rig, facing) != null))
             {
                 bool remove = string.Equals(mask.Mode, "remove", StringComparison.OrdinalIgnoreCase);
                 return (x, y) => (image.Pixels[y * image.Width + x] >> 24 != 0) != remove;
             }
         }
+        if (rig != null && OwnHeadRow(context, rig, facing) is int row) return (_, y) => y <= row;
         int neckY = rig != null && rig.NeckPoint.TryGetValue(facing, out var neck) && neck is { Length: 2 } ? neck[1] : standing.Height / 3;
         return (_, y) => y <= neckY;
     }
+
+    private static int? OwnHeadRow(StudioContext context, CharacterRig rig, string facing) =>
+        rig.Npc != null && HeadFinder.Rows(context, rig.Npc, rig) is { } rows && rows.TryGetValue(facing, out int row) ? row : null;
 
     /// <summary>The preset's frames as pixel maps over her standing frame, one per frame.</summary>
     public static IReadOnlyList<RgbaImage> Maps(PosePreset preset, RgbaImage standing, RgbaImage body, string facing) =>
