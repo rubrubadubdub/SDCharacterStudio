@@ -12,6 +12,15 @@ public enum DependencyMode
     Optional,
 }
 
+/// <summary>A named colour ramp (#RRGGBB each): dark, mid and light.</summary>
+public sealed class NamedColor
+{
+    public string Name { get; set; } = "";
+    public string Dark { get; set; } = "#000000";
+    public string Mid { get; set; } = "#000000";
+    public string Light { get; set; } = "#000000";
+}
+
 public sealed class DependencyChoice
 {
     public string Mod { get; set; } = "";
@@ -61,6 +70,11 @@ public sealed class ProjectFile
     /// <summary>The designer's notes on story flags and numbers (the Story panel, D-51): ID → what it means.</summary>
     public Dictionary<string, string> StoryNotes { get; set; } = new(StringComparer.Ordinal);
     public bool StoryboardGraph { get; set; }
+    /// <summary>
+    /// Named colours (after Pixelorama's indexed colours): a ramp the designer paints with and can change later, which
+    /// changes it everywhere it's painted in the pack. Plain colours in the pack's art; only the editor knows the names.
+    /// </summary>
+    public List<NamedColor> Colors { get; set; } = new();
 
     public DependencyMode ModeFor(string mod) => Dependencies.FirstOrDefault(d => string.Equals(d.Mod, mod, StringComparison.OrdinalIgnoreCase))?.Mode ?? DependencyMode.Required;
     public void SetMode(string mod, DependencyMode mode)

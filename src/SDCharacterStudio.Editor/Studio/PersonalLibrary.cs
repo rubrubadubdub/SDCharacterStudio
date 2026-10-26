@@ -146,6 +146,7 @@ public sealed class PersonalLibrary
                 Mask(layer.Mask);
                 Slots(layer.ColorSlots);
                 if (layer is LiveLayer { Source: { } worn } && Core.Compositing.Outfits.IsOutfitSource(worn)) Pose(worn.Outfit);   // the outfit it wears comes along
+                if (layer is LiveLayer { Recolor: { } recolor }) Slots(recolor.SelectMany(r => new[] { r.From, r.To }).OfType<string>().Distinct().ToDictionary(s => s, s => s));   // her samples it recolours
                 switch (layer)
                 {
                     case PaintLayer paint: File_(paint.Image); break;
@@ -265,8 +266,8 @@ public sealed class PersonalLibrary
             link.Items["Rig:" + source.Id] = id;
         }
         string? R(string? id) => id == null ? null : rigs.GetValueOrDefault(id, id);
-        Dictionary<string, string>? Slots(Dictionary<string, string>? slots) => slots?.ToDictionary(p => p.Key,
-            p => p.Value.Split('.') is { Length: 2 } parts && parts[0] != "Farmer" ? $"{R(parts[0])}.{parts[1]}" : p.Value, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string>? Slots(Dictionary<string, string>? slots) => slots?.ToDictionary(p => p.Key, p => Source(p.Value)!, StringComparer.OrdinalIgnoreCase);
+        string? Source(string? source) => source?.Split('.') is { Length: 2 } parts && parts[0] != "Farmer" ? $"{R(parts[0])}.{parts[1]}" : source;
 
         // Expressions.
         var expressions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -298,6 +299,8 @@ public sealed class PersonalLibrary
             {
                 layer.Mask = M(layer.Mask);
                 layer.ColorSlots = Slots(layer.ColorSlots);
+                if (layer is LiveLayer { Recolor: { } recolor })
+                    foreach (var rule in recolor) { rule.From = Source(rule.From); rule.To = Source(rule.To); }
                 if (layer is LiveLayer { Source: { Outfit: { } outfit } worn } && Core.Compositing.Outfits.IsOutfitSource(worn)) worn.Outfit = poses.GetValueOrDefault(outfit, outfit);
                 switch (layer)
                 {

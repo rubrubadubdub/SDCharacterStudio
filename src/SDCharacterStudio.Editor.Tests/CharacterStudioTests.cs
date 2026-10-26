@@ -21,7 +21,7 @@ public class CharacterStudioTests
         studio.Settings.AdvancedPoseTools = false;
         studio.Settings.BrushSize = defaults.BrushSize; studio.Settings.PixelPerfect = defaults.PixelPerfect; studio.Settings.Symmetry = defaults.Symmetry;
         studio.Settings.FilledShapes = defaults.FilledShapes; studio.Settings.OnionBefore = defaults.OnionBefore; studio.Settings.OnionAfter = defaults.OnionAfter;
-        studio.Settings.OnionTint = defaults.OnionTint; studio.Settings.OnionWrap = defaults.OnionWrap;
+        studio.Settings.OnionTint = defaults.OnionTint; studio.Settings.OnionWrap = defaults.OnionWrap; studio.Settings.PaintInside = defaults.PaintInside;
         studio.Character = studio.Characters.First(c => c.Key == character);
         return (editor, studio);
     }

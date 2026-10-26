@@ -89,6 +89,12 @@ public static class OutsideReferences
                 if (layer is EffectLayer effect) Pose(effect.Effect, custom: true);
                 foreach (var (slot, colour) in layer.ColorSlots ?? new())
                     SampledNpc(where, $"{layerPath}.ColorSlots.{slot}", colour, "colours in " + usage);
+                if (layer is LiveLayer { Recolor: { } recolor })
+                    for (int r = 0; r < recolor.Count; r++)
+                    {
+                        SampledNpc(where, $"{layerPath}.Recolor[{r}].From", recolor[r]?.From, "recolour in " + usage);
+                        SampledNpc(where, $"{layerPath}.Recolor[{r}].To", recolor[r]?.To, "recolour in " + usage);
+                    }
             }
         }
         void Pose(string? id, bool custom = false)

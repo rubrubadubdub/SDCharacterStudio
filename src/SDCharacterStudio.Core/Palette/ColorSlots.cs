@@ -15,6 +15,14 @@ public static class ColorSlots
     public const uint Custom2Dark = 0xFF00007F, Custom2Mid = 0xFF0000BF, Custom2Light = 0xFF0000FE;
     public const uint Erase = 0xFF00FF01;
 
+    /// <summary>The reserved colour that paints a slot's shade (0 dark, 1 mid, 2 light), or null when the slot has none.</summary>
+    public static uint? Raw(string slot, int shade)
+    {
+        foreach (var (color, reserved) in Reserved)
+            if (reserved.Shade == shade && string.Equals(reserved.Slot, slot, StringComparison.OrdinalIgnoreCase)) return color;
+        return null;
+    }
+
     internal static readonly IReadOnlyDictionary<uint, (string Slot, int Shade)> Reserved =
         new Dictionary<uint, (string, int)>
         {

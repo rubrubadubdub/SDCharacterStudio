@@ -9,7 +9,7 @@ using Wpf.Ui.Controls;
 
 namespace SDCharacterStudio.Editor.ViewModels;
 
-public enum StudioTool { Pencil, Eraser, Fill, Line, Rectangle, Picker, Select, Anchor, Ellipse, Move, Lasso, Wand }
+public enum StudioTool { Pencil, Eraser, Fill, Line, Rectangle, Picker, Select, Anchor, Ellipse, Move, Lasso, Wand, Shade }
 
 public sealed partial class PoseFrameItem : ObservableObject
 {
@@ -130,6 +130,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         StudioTool.Line => "Draw a straight line (Shift: 45°).",
         StudioTool.Rectangle => "Draw a rectangle (Shift: a square).",
         StudioTool.Ellipse => "Draw an ellipse (Shift: a circle).",
+        StudioTool.Shade => "Left click shades darker, right click lighter: one step along her own colours (they stay live), your named colours, or by eye.",
         StudioTool.Anchor => "Place a point that other layers hang from: a head on the Neck, a prop in the Hand.",
         _ => "",
     };
@@ -154,7 +155,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     public string PinOutfitLabel => IsSheet ? "Make it from the outfit shown" : "Always wear the outfit shown";
     public string UnpinOutfitLabel => IsSheet ? "Make it from her own look" : "Wear what the game gives";
     public string FrameCaption => Frames.Count == 0 ? "" : IsPortrait ? $"Emotion {Badges(FrameIndex)} ({FrameIndex + 1} of {Frames.Count})"
-        : IsSheet ? $"Frame {FrameIndex + 1} of {Frames.Count} · " + (FrameIndex < 16 ? $"walking {SheetFacing(FrameIndex)}, step {FrameIndex % 4 + 1}" : $"her frame {FrameIndex}")
+        : IsSheet ? $"Frame {FrameIndex + 1} of {Frames.Count} · " + (FrameIndex < 16 ? $"walk {SheetFacing(FrameIndex)} {FrameIndex % 4 + 1}" : $"her frame {FrameIndex}")
         : $"Frame {FrameIndex + 1} of {Frames.Count}";
 
     partial void OnFrameIndexChanged(int value)
@@ -180,7 +181,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     partial void OnToolChanging(StudioTool value) { if (IsStroking && !IsTransforming) CancelStroke(); }
     partial void OnToolChanged(StudioTool value)
     {
-        OnPropertyChanged(nameof(IsAnchorTool)); OnPropertyChanged(nameof(UsesBrush)); OnPropertyChanged(nameof(UsesShapes));
+        OnPropertyChanged(nameof(IsAnchorTool)); OnPropertyChanged(nameof(UsesBrush)); OnPropertyChanged(nameof(UsesShapes)); OnPropertyChanged(nameof(UsesPaint));
         OnPropertyChanged(nameof(IsSelectTool)); OnPropertyChanged(nameof(ToolName)); OnPropertyChanged(nameof(IsLassoTool)); OnPropertyChanged(nameof(IsWandTool)); OnPropertyChanged(nameof(ShowsSelectionActions));
         if (IsPaintTool(value)) lastPaintTool = value;
         // Picking up another kind of tool drops a floating piece where it is (Aseprite).
@@ -218,6 +219,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         RebuildSequences();
         NotifyPlayOrder();
         RefreshPresets();
+        RefreshRecolors();
         RefreshBackdrop();
         RebuildLayers();
         RefreshAnchors();

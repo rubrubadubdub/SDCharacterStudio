@@ -366,6 +366,16 @@ public static class PackValidator
                 }
             }
             if(layer is LiveLayer live && live.Source==null)issues.Add(new(ValidationSeverity.Error,file,p+".Source","Live layers require a source.","Schema"));
+            if(layer is LiveLayer {Recolor:{} recolor})
+                for(var r=0;r<recolor.Count;r++)
+                {
+                    var rule=recolor[r];var rp=$"{p}.Recolor[{r}]";
+                    if(rule==null){issues.Add(new(ValidationSeverity.Error,file,rp,"Recolour rule must be an object.","Schema"));continue;}
+                    if(rule.Range<1||rule.Range>180)issues.Add(new(ValidationSeverity.Error,file,rp+".Range","Range is degrees of hue, 1 to 180.","Schema"));
+                    foreach(var (value,name) in new[]{(rule.From,"From"),(rule.To,"To")})
+                        if(string.IsNullOrWhiteSpace(value))issues.Add(new(ValidationSeverity.Error,file,rp+"."+name,$"A recolour needs {name}: a colour such as #C03030, or one of her sampled colours.","Schema"));
+                        else if(!ColorSourceKnown(value,pack,catalog))issues.Add(new(ValidationSeverity.Error,file,rp+"."+name,$"Unknown colour source '{value}'.","V13"));
+                }
             if(layer is ImageLayer image)CheckImage(image.Image,image.FrameSize??frameSize,true,file,p+".Image","V11",files,issues,image.Frame);
             if(layer is PaintLayer paint)CheckImage(paint.Image,frameSize,false,file,p+".Image","V11",files,issues);
             if(layer is LiveLayer {Map:{} map})CheckImage(map,frameSize,false,file,p+".Map","V11",files,issues);
@@ -406,16 +416,20 @@ public static class PackValidator
         foreach(var pair in slots??new())
         {
             if(!Slots.Contains(pair.Key)){issues.Add(new(ValidationSeverity.Error,file,path+"."+pair.Key,"Unknown reserved colour slot.","V13"));continue;}
-            var source=pair.Value;var dot=source?.LastIndexOf('.')??-1;var known=source!=null&&Regex.IsMatch(source,"^#[0-9a-fA-F]{6}$");
-            if(dot>0)
-            {
-                var who=source![..dot];var sample=source[(dot+1)..];
-                known|=who.Equals("Farmer",StringComparison.OrdinalIgnoreCase)&&FarmerSamples.Contains(sample);
-                known|=pack.Characters.Any(r=>(string.Equals(r.Value.Id,who,StringComparison.OrdinalIgnoreCase)||string.Equals(r.Value.Npc,who,StringComparison.OrdinalIgnoreCase))&&(r.Value.ColorSamples?.Keys.Contains(sample,StringComparer.OrdinalIgnoreCase)??false));
-            }
-            known|=source!=null&&(catalog?.ColorSourceExists(source)??false);
-            if(!known)issues.Add(new(ValidationSeverity.Error,file,path+"."+pair.Key,$"Unknown colour source '{source}'.","V13"));
+            if(!ColorSourceKnown(pair.Value,pack,catalog))issues.Add(new(ValidationSeverity.Error,file,path+"."+pair.Key,$"Unknown colour source '{pair.Value}'.","V13"));
         }
+    }
+    /// <summary>A colour source the runtime can read: #RRGGBB, a player colour, or a sample of one of the pack's rigs.</summary>
+    private static bool ColorSourceKnown(string? source,LoadedPack pack,ICatalog? catalog)
+    {
+        var dot=source?.LastIndexOf('.')??-1;var known=source!=null&&Regex.IsMatch(source,"^#[0-9a-fA-F]{6}$");
+        if(dot>0)
+        {
+            var who=source![..dot];var sample=source[(dot+1)..];
+            known|=who.Equals("Farmer",StringComparison.OrdinalIgnoreCase)&&FarmerSamples.Contains(sample);
+            known|=pack.Characters.Any(r=>(string.Equals(r.Value.Id,who,StringComparison.OrdinalIgnoreCase)||string.Equals(r.Value.Npc,who,StringComparison.OrdinalIgnoreCase))&&(r.Value.ColorSamples?.Keys.Contains(sample,StringComparer.OrdinalIgnoreCase)??false));
+        }
+        return known||(source!=null&&(catalog?.ColorSourceExists(source)??false));
     }
     private static void ValidateReferencesAndDependencies(LoadedPack pack,IPackFileSystem? files,ICatalog? catalog,bool export,List<ValidationIssue> issues)
     {

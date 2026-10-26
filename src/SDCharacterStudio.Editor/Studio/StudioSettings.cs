@@ -26,6 +26,8 @@ public sealed class StudioSettings
     public bool PixelPerfect { get; set; } = true;
     public bool Symmetry { get; set; }
     public bool FilledShapes { get; set; }
+    /// <summary>Paint only where she already is (Pixelorama's alpha lock).</summary>
+    public bool PaintInside { get; set; }
     public int OnionBefore { get; set; } = 1;
     public int OnionAfter { get; set; } = 1;
     public bool OnionTint { get; set; } = true;

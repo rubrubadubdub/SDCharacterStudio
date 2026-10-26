@@ -124,10 +124,14 @@
                             <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,4,0,0">
                                 <StackPanel>
                                     <studio:ColorPicker Color="{Binding PickerColor}" />
-                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0" HorizontalAlignment="Right">
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0" HorizontalAlignment="Right"
+                                                Visibility="{Binding IsEditingNamed, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
                                         <ui:Button Content="Add to my colours" Command="{Binding AddPickedCommand}" Margin="0,0,6,0" />
                                         <ui:Button Content="Paint with it" Appearance="Primary" Command="{Binding UsePickedCommand}" />
                                     </StackPanel>
+                                    <!-- Changing a named colour: everywhere it's painted, as one undo step. -->
+                                    <ui:Button Content="{Binding EditingNamedLabel}" Appearance="Primary" Command="{Binding ApplyNamedCommand}" Margin="0,10,0,0" HorizontalAlignment="Right"
+                                               Visibility="{Binding IsEditingNamed, Converter={StaticResource VisibleWhen}}" />
                                 </StackPanel>
                             </Border>
                         </Popup>
@@ -169,6 +173,43 @@
                                             <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
                                         </ContentPresenter.Tag>
                                     </ContentPresenter>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <!-- Named colours: paint with them, change them later everywhere (Pixelorama's indexed colours, made simple). -->
+                        <DockPanel Margin="0,8,0,4">
+                            <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddNamedCommand}"
+                                       ToolTip="Name the left colour (e.g. Coat): you get a dark, mid and light to paint with, and can change them later everywhere at once" />
+                            <TextBlock Text="Named colours" Style="{StaticResource Caption}" VerticalAlignment="Center"
+                                       ToolTip="Change a named colour (the pencil) and every picture painted with it changes: every frame of every outfit and pose." />
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding Named}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:NamedColorRowViewModel}">
+                                    <DockPanel Margin="0,0,0,2" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                        <DockPanel.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Change it everywhere…" Command="{Binding PlacementTarget.Tag.EditNamedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
+                                                <MenuItem Header="Forget the name (the paint stays)" Command="{Binding PlacementTarget.Tag.ForgetNamedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}" />
+                                            </ContextMenu>
+                                        </DockPanel.ContextMenu>
+                                        <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Edit24}" ToolTip="Change it everywhere it's painted"
+                                                   Command="{Binding DataContext.EditNamedCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                        <ItemsControl DockPanel.Dock="Left" ItemsSource="{Binding Shades}" ItemsPanel="{StaticResource SwatchPanel}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:SwatchViewModel}">
+                                                    <Border Width="20" Height="20" Margin="0,0,3,3" CornerRadius="3" BorderThickness="1" BorderBrush="#55FFFFFF" Background="{Binding Display}" ToolTip="{Binding Tooltip}" Cursor="Hand">
+                                                        <Border.InputBindings>
+                                                            <MouseBinding Gesture="LeftClick" Command="{Binding DataContext.PickPrimaryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}" CommandParameter="{Binding}" />
+                                                            <MouseBinding Gesture="RightClick" Command="{Binding DataContext.PickSecondaryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}" CommandParameter="{Binding}" />
+                                                            <MouseBinding Gesture="Shift+LeftClick" Command="{Binding DataContext.EditNamedShadeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl, AncestorLevel=2}}" CommandParameter="{Binding}" />
+                                                        </Border.InputBindings>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="4,0,0,3" TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

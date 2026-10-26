@@ -16,6 +16,7 @@ public static class PoseShortcuts
             new Shortcut("V", "Move what's selected, or the whole picture"),
             new Shortcut("B", "Pencil"),
             new Shortcut("E", "Eraser"),
+            new Shortcut("D", "Shade: left click darker, right click lighter"),
             new Shortcut("G", "Fill (Ctrl+click: that colour everywhere)"),
             new Shortcut("I", "Eyedropper, then back to your tool"),
             new Shortcut("Hold Alt", "Pick a colour with any painting tool"),

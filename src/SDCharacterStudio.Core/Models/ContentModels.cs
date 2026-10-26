@@ -286,7 +286,18 @@ public class LiveLayer : Layer
     /// erased or rearranged freely.
     /// </summary>
     public string? Map { get; set; }
+    /// <summary>
+    /// Her own colours changed, still live (a red dress from her blue one): each rule moves the pixels near one of her
+    /// colours to a new colour, keeping their shading, whatever sprite mod draws her.
+    /// </summary>
+    public List<RecolorRule>? Recolor { get; set; }
 }
+/// <summary>
+/// A live recolour: pixels within <see cref="Range"/> degrees of hue of <see cref="From"/> (a colour source such as
+/// "abigail.Shirt", or "#RRGGBB") take on the hue, saturation and brightness of <see cref="To"/> ("#RRGGBB" or a source),
+/// each shade keeping its place between dark and light.
+/// </summary>
+public class RecolorRule { public string? From { get; set; } public string? To { get; set; } public int Range { get; set; } = 25; }
 public class LiveSource
 {
     public string? Kind { get; set; } public string? Npc { get; set; } public string? Asset { get; set; } public int[]? Rect { get; set; }

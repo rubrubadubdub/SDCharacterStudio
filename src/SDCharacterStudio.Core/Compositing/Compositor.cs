@@ -26,6 +26,7 @@ public static class Compositor
             // Expressions operate on the colored source, and the final mask also clips their pixels.
             // Erase is transparent even on a layer with no explicit slot map.
             ReplaceSlots(pixels, ColorSlotTable.FromMappings(layer.ColorSlots ?? EmptyMappings, resolveColor));
+            if (layer is LiveLayer { Recolor: { Count: > 0 } recolor }) Recolor.Apply(pixels, recolor, resolveColor);   // her colours changed, still live
             transformSource?.Invoke(layer, pixels, resolved.SourceFrameIndex);
             if (layer.Mask is not null)
             {
@@ -50,10 +51,11 @@ public static class Compositor
                 {
                     others ??= new Dictionary<int, RgbaImage>();
                     if (others.TryGetValue(index, out var known)) return known;
-                    var frameLayer = new LiveLayer { Source = live.Source, Part = "Full", SourceFrame = new SourceFrame { Index = index }, ColorSlots = live.ColorSlots };
+                    var frameLayer = new LiveLayer { Source = live.Source, Part = "Full", SourceFrame = new SourceFrame { Index = index }, ColorSlots = live.ColorSlots, Recolor = live.Recolor };
                     var other = sources.Resolve(frameLayer);
                     var copy = new RgbaImage(other.Image.Width, other.Image.Height, (uint[])other.Image.Pixels.Clone());
                     ReplaceSlots(copy, ColorSlotTable.FromMappings(live.ColorSlots ?? EmptyMappings, resolveColor));
+                    Recolor.Apply(copy, live.Recolor, resolveColor);
                     transformSource?.Invoke(frameLayer, copy, other.SourceFrameIndex);
                     return others[index] = copy;
                 }

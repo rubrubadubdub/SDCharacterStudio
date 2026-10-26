@@ -204,10 +204,16 @@ public partial class PoseDocumentViewModel
                 if (c.After.Pixels[i] != c.Before.Pixels[i]) (result ??= StudioImages.Clone(target)).Pixels[i] = c.After.Pixels[i];
             return result;
         }
-        foreach (var (_, flat, frameMap, framePaint) in OtherPickedFlatFrames().ToList())
+        foreach (var (frame, flat, frameMap, framePaint) in OtherPickedFlatFrames().ToList())
         {
+            // "Inside her": each frame keeps the paint inside its own outline.
+            var keep = PaintInside && paint != null && map == null ? Visible(Context.RenderFrame(Model, frame).Image) : null;
             if (Apply(frameMap, map) is { } newMap) lib.WriteImage(flat.Live.Map!, newMap);
-            if (Apply(framePaint, paint) is { } newPaint) lib.WriteImage(flat.Paint.Image!, newPaint);
+            if (Apply(framePaint, paint) is { } newPaint)
+            {
+                if (keep != null) for (int i = 0; i < newPaint.Pixels.Length; i++) if (!keep[i]) newPaint.Pixels[i] = framePaint.Pixels[i];
+                lib.WriteImage(flat.Paint.Image!, newPaint);
+            }
         }
     }
 

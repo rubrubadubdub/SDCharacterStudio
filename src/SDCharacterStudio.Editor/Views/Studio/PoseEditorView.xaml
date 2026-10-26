@@ -55,6 +55,10 @@
                              IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Eraser}">
                     <Grid><ui:SymbolIcon Symbol="Eraser24" /><TextBlock Text="E" Style="{StaticResource RailKey}" /></Grid>
                 </RadioButton>
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Shade (D). Left click darker, right click lighter: one step along her own colours (they stay live), your named colours, or by eye. [ and ] change the brush."
+                             IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Shade}">
+                    <Grid><ui:SymbolIcon Symbol="DarkTheme24" /><TextBlock Text="D" Style="{StaticResource RailKey}" /></Grid>
+                </RadioButton>
                 <RadioButton Style="{StaticResource RailTool}" ToolTip="Fill (G). Ctrl+click fills that colour everywhere."
                              IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Fill}">
                     <Grid><ui:SymbolIcon Symbol="PaintBucket24" /><TextBlock Text="G" Style="{StaticResource RailKey}" /></Grid>
@@ -81,6 +85,8 @@
                     <Grid><ui:SymbolIcon Symbol="Pin24" /><TextBlock Text="N" Style="{StaticResource RailKey}" /></Grid>
                 </RadioButton>
                 <Rectangle Height="1" Fill="{StaticResource SubtleLineBrush}" Margin="2,4,2,8" />
+                <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon BorderOutside24}" Command="{Binding OutlinePaintCommand}"
+                           ToolTip="Outline what you painted: her outline colour around your paint where it meets empty space (on every picked frame)" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon Resize24}" Command="{Binding TransformCommand}" ToolTip="Transform (Ctrl+T): move, scale and rotate the selection with handles" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon ArrowRotateClockwise24}" Command="{Binding RotateRightCommand}" ToolTip="Turn a quarter right (Shift+R)" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon ArrowRotateCounterclockwise24}" Command="{Binding RotateLeftCommand}" ToolTip="Turn a quarter left (Ctrl+Shift+R)" />
@@ -177,6 +183,9 @@
                                       ToolTip="Mirror what you draw or erase across the frame's centre (the dashed line)" />
                         </WrapPanel>
                         <CheckBox Content="Filled" IsChecked="{Binding FilledShapes}" MinWidth="0" VerticalAlignment="Center" Visibility="{Binding UsesShapes, Converter={StaticResource VisibleWhen}}" />
+                        <CheckBox Content="Inside her only" IsChecked="{Binding PaintInside}" Margin="12,0,0,0" MinWidth="0" VerticalAlignment="Center"
+                                  Visibility="{Binding UsesPaint, Converter={StaticResource VisibleWhen}}"
+                                  ToolTip="Paint only where she (or your paint) already is: patterns and folds stay inside her outline (Pixelorama's alpha lock)" />
                         <!-- A floating piece: exact numbers and quick turns (Animate's transform panel). -->
                         <WrapPanel Visibility="{Binding IsTransforming, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="Angle" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
@@ -539,6 +548,42 @@
                         </ItemsControl>
                         <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Text="The game export has no sprite sheet for this character."
                                    Visibility="{Binding SheetFrames.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" />
+                    </StackPanel>
+
+                    <!-- Recolour her, still live (her dress, her hair...). -->
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="RECOLOUR" IsChecked="{Binding RecolorOpen}" Visibility="{Binding CanRecolor, Converter={StaticResource VisibleWhen}}"
+                                  ToolTip="Change one of her own colours on every frame, still live: the same dress in red, her hair dyed. Sprite mods still draw her underneath." />
+                    <StackPanel Margin="0,4,0,8">
+                        <StackPanel.Visibility>
+                            <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
+                                <Binding Path="CanRecolor" />
+                                <Binding Path="RecolorOpen" />
+                            </MultiBinding>
+                        </StackPanel.Visibility>
+                        <ItemsControl ItemsSource="{Binding Recolors}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:RecolorRowViewModel}">
+                                    <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="8,6" Margin="0,0,0,6">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Dismiss24}" Command="{Binding RemoveCommand}" ToolTip="Back to her own colour" />
+                                                <ComboBox ItemsSource="{Binding Sources}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding From}" ToolTip="Which of her colours (and its shades)" />
+                                            </DockPanel>
+                                            <DockPanel Margin="0,6,0,0">
+                                                <TextBlock Text="becomes" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                <Border Width="22" Height="22" CornerRadius="3" BorderThickness="1" BorderBrush="#88FFFFFF" Background="{Binding ToBrush}" ToolTip="{Binding ToText}" />
+                                                <ui:Button Content="Use the left colour" Command="{Binding UseLeftColourCommand}" Margin="6,0,0,0" Padding="8,3"
+                                                           ToolTip="Pick a colour (a swatch, the picker or a named colour), then press this" />
+                                            </DockPanel>
+                                            <ComboBox ItemsSource="{Binding Source={x:Static vm:RecolorRowViewModel.Ranges}}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RangeChoice}" Margin="0,6,0,0"
+                                                      ToolTip="If it changes too little or too much of her, widen or narrow it" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ui:Button Content="Recolour one of her colours" Icon="{ui:SymbolIcon Color24}" Command="{Binding AddRecolorCommand}" HorizontalAlignment="Stretch"
+                                   ToolTip="Her next colour (shirt, pants, hair...) becomes the left colour; change either afterwards" />
                     </StackPanel>
 
                     <!-- Outfit -->

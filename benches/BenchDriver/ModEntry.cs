@@ -113,6 +113,7 @@ public sealed class ModEntry : Mod
                 Write("assertion-results/" + id + ".json", new { Id = id, Check = check, Ok = true, Data = Execute(check, request) });
             }
             catch (JsonReaderException) { continue; }
+            catch (IOException) { continue; }   // the test is still putting the request in place: read it next tick
             catch (Exception ex) { Write("assertion-results/" + id + ".json", new { Id = id, Ok = false, Error = ex.ToString() }); }
             File.Move(path, Path.ChangeExtension(path, ".done"), true);
         }
@@ -160,17 +161,20 @@ public sealed class ModEntry : Mod
             case "looks":
                 // What villagers wear (outfit checks): each event actor's sheet and one of its pixels, and the same pixel of
                 // every stand-in a pose draws (generated textures have no asset name).
-                int x = (int?)request["X"] ?? 0, y = (int?)request["Y"] ?? 0;
+                // With W and H: a block of pixels from there (row by row) instead of one.
+                int x = (int?)request["X"] ?? 0, y = (int?)request["Y"] ?? 0, w = (int?)request["W"] ?? 1, h = (int?)request["H"] ?? 1;
+                JToken Look(Microsoft.Xna.Framework.Graphics.Texture2D texture, int left, int top) => w == 1 && h == 1 ? (JToken?)Pixel(texture, left, top) ?? JValue.CreateNull()
+                    : new JArray(Enumerable.Range(0, w * h).Select(i => Pixel(texture, left + i % w, top + i / w)));
                 return new JObject
                 {
                     ["Actors"] = new JArray((Game1.CurrentEvent?.actors ?? new List<NPC>()).Select(a => new JObject
                     {
                         ["Name"] = a.Name, ["Sheet"] = a.Sprite.loadedTexture, ["Size"] = new JArray(a.Sprite.Texture.Width, a.Sprite.Texture.Height),
-                        ["Pixel"] = Pixel(a.Sprite.Texture, x, y), ["Invisible"] = a.IsInvisible,
+                        ["Pixel"] = Look(a.Sprite.Texture, x, y), ["Invisible"] = a.IsInvisible,
                     })),
                     ["StandIns"] = new JArray((Game1.currentLocation?.temporarySprites.ToList() ?? new List<TemporaryAnimatedSprite>())
                         .Where(s => s.texture != null && string.IsNullOrEmpty(s.texture.Name) && s.sourceRect.Width > 0)
-                        .Select(s => Pixel(s.texture, s.sourceRect.X + x, s.sourceRect.Y + y))),
+                        .Select(s => Look(s.texture, s.sourceRect.X + x, s.sourceRect.Y + y))),
                 };
             case "finish":
                 Write("finished.json", new { Ok = true, Tick = ticks });

@@ -73,9 +73,13 @@ public static class PoseCopies
                 string swapped = SwapName(layer.Mask, sourceRig?.Id, sourceNpc, targetRigId, targetNpc);
                 if (library.Mask(swapped) != null) layer.Mask = swapped;
             }
+            string Swap(string value) => value.Split('.') is { Length: 2 } parts && string.Equals(parts[0], sourceRig?.Id, StringComparison.OrdinalIgnoreCase)
+                && targetRig.ColorSamples.ContainsKey(parts[1]) ? $"{targetRigId}.{parts[1]}" : value;
             if (layer.ColorSlots != null)
-                layer.ColorSlots = layer.ColorSlots.ToDictionary(p => p.Key, p => p.Value.Split('.') is { Length: 2 } parts && string.Equals(parts[0], sourceRig?.Id, StringComparison.OrdinalIgnoreCase)
-                    && targetRig.ColorSamples.ContainsKey(parts[1]) ? $"{targetRigId}.{parts[1]}" : p.Value, StringComparer.OrdinalIgnoreCase);
+                layer.ColorSlots = layer.ColorSlots.ToDictionary(p => p.Key, p => Swap(p.Value), StringComparer.OrdinalIgnoreCase);
+            // Her shirt recoloured becomes their shirt recoloured.
+            if (layer is LiveLayer { Recolor: { } recolor })
+                foreach (var rule in recolor) { if (rule.From != null) rule.From = Swap(rule.From); if (rule.To != null) rule.To = Swap(rule.To); }
             switch (layer)
             {
                 case LiveLayer live when Core.Compositing.Outfits.IsOutfitSource(live.Source):

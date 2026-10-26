@@ -27,6 +27,19 @@ public sealed partial class SwatchViewModel : ObservableObject
     }
 }
 
+/// <summary>A named colour in the palette: its name and its three shades to paint with.</summary>
+public sealed class NamedColorRowViewModel
+{
+    public NamedColorRowViewModel(NamedRamp ramp)
+    {
+        Name = ramp.Name;
+        Shades = new[] { ("dark", ramp.Dark), ("", ramp.Mid), ("light", ramp.Light) }
+            .Select(s => new SwatchViewModel($"{ramp.Name}{(s.Item1.Length > 0 ? " " + s.Item1 : "")}", s.Item2) { Hint = $"{ramp.Name}{(s.Item1.Length > 0 ? " " + s.Item1 : "")} {StudioImages.Hex(s.Item2)}. Left click: left button, right click: right button. Shift+click: change just this shade." }).ToList();
+    }
+    public string Name { get; }
+    public IReadOnlyList<SwatchViewModel> Shades { get; }
+}
+
 /// <summary>
 /// The palette (doc 07 §6.1): reserved slot swatches first, by name; then the character's sampled colours (read-only);
 /// then the designer's own colours. Left click sets the primary colour, right click the secondary.
@@ -132,7 +145,73 @@ public sealed partial class PaletteViewModel : ObservableObject
     /// <summary>The colour picker's colour (D-49); it starts from the left button's colour as you see it.</summary>
     [ObservableProperty] private uint pickerColor = 0xFFFFFFFF;
     [ObservableProperty] private bool isPickerOpen;
-    partial void OnIsPickerOpenChanged(bool value) { if (value) PickerColor = Shown(Primary, always: true) is var shown && shown >> 24 != 0 ? shown | 0xFF000000 : 0xFFFFFFFF; }
+    partial void OnIsPickerOpenChanged(bool value)
+    {
+        if (value) PickerColor = Shown(Primary, always: true) is var shown && shown >> 24 != 0 ? shown | 0xFF000000 : 0xFFFFFFFF;
+        else EditingNamed = null;
+    }
+
+    // ---------------- named colours (change once, changes everywhere) ----------------
+
+    public ObservableCollection<NamedColorRowViewModel> Named { get; } = new();
+    /// <summary>The named colour the picker is changing (null: the picker mixes a colour to paint with).</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsEditingNamed), nameof(EditingNamedLabel))] private string? editingNamed;
+    private int? editingShade;
+    public bool IsEditingNamed => EditingNamed != null;
+    public string EditingNamedLabel => editingShade switch { 0 => $"Change {EditingNamed} dark everywhere", 2 => $"Change {EditingNamed} light everywhere", _ => $"Change {EditingNamed} everywhere" };
+
+    private void RefreshNamed()
+    {
+        Named.Clear();
+        foreach (var ramp in studio.NamedColors()) Named.Add(new NamedColorRowViewModel(ramp));
+    }
+
+    /// <summary>Name the left colour (as you see it): it becomes a dark, mid and light to paint with and change later.</summary>
+    [RelayCommand]
+    private void AddNamed()
+    {
+        uint shown = Shown(Primary, always: true);
+        uint mid = shown >> 24 != 0 ? shown : PickerColor;
+        string? name = studio.Shell.Ui.Prompt("Name a colour", $"Name for {StudioImages.Hex(mid | 0xFF000000)} (e.g. \"Coat\"). Change it later and it changes everywhere it's painted.", "Coat",
+            v => string.IsNullOrWhiteSpace(v) ? "Give it a name." : null);
+        if (string.IsNullOrWhiteSpace(name) || studio.AddNamedColor(name, mid) is not { } ramp) return;
+        Primary = ramp.Mid;
+    }
+
+    /// <summary>Open the picker to change a named colour (its whole ramp around a new mid).</summary>
+    [RelayCommand]
+    private void EditNamed(NamedColorRowViewModel? row)
+    {
+        if (row == null) return;
+        IsPickerOpen = true;
+        editingShade = null;
+        EditingNamed = row.Name;
+        OnPropertyChanged(nameof(EditingNamedLabel));
+        PickerColor = row.Shades[1].Color;
+    }
+
+    /// <summary>Open the picker to change one shade of a named colour.</summary>
+    [RelayCommand]
+    private void EditNamedShade(SwatchViewModel? swatch)
+    {
+        if (swatch == null || Named.FirstOrDefault(r => r.Shades.Contains(swatch)) is not { } row) return;
+        IsPickerOpen = true;
+        editingShade = row.Shades.ToList().IndexOf(swatch);
+        EditingNamed = row.Name;
+        OnPropertyChanged(nameof(EditingNamedLabel));
+        PickerColor = swatch.Color;
+    }
+
+    [RelayCommand]
+    private void ApplyNamed()
+    {
+        if (EditingNamed is not { } name) return;
+        studio.ChangeNamedColor(name, PickerColor, editingShade);
+        IsPickerOpen = false;
+    }
+
+    [RelayCommand]
+    private void ForgetNamed(NamedColorRowViewModel? row) { if (row != null) studio.ForgetNamedColor(row.Name); }
 
     /// <summary>Paint with the picker's colour (left button).</summary>
     [RelayCommand] private void UsePicked() { Primary = PickerColor; Remember(PickerColor); IsPickerOpen = false; }
@@ -223,6 +302,7 @@ public sealed partial class PaletteViewModel : ObservableObject
     /// <summary>The chosen character's sampled ramps, and slot swatches resolved with them when asked.</summary>
     public void Refresh()
     {
+        RefreshNamed();
         Sampled.Clear();
         SampledFrom = null;
         ramps = new Dictionary<string, ColorRamp>(StringComparer.OrdinalIgnoreCase);

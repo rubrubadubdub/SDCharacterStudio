@@ -21,7 +21,9 @@ public class NativeCostumeTests
 {
     private readonly List<string> log = new();
     private string evidence = "";
-    private void Note(string line) { log.Add($"{DateTime.Now:HH:mm:ss.fff} {line}"); File.WriteAllLines(Path.Combine(evidence, "editor-native-costume.log"), log); }
+    /// <summary>Each test keeps its own evidence (xUnit makes a new instance per test).</summary>
+    private string logName = "editor-native-costume.log";
+    private void Note(string line) { log.Add($"{DateTime.Now:HH:mm:ss.fff} {line}"); File.WriteAllLines(Path.Combine(evidence, logName), log); }
 
     [Fact]
     public async Task CostumesDrawForTheStageAndLastAsLongAsTheSceneSays()
@@ -83,6 +85,7 @@ public class NativeCostumeTests
     [Fact]
     public async Task YourOutfitIsWornInTheGame()
     {
+        logName = "editor-native-outfit.log";
         string? pipe = Environment.GetEnvironmentVariable("SDCS_NATIVE_PIPE");
         string? driver = Environment.GetEnvironmentVariable("SDCS_NATIVE_DRIVER");
         if (string.IsNullOrEmpty(pipe) || string.IsNullOrEmpty(driver) || Environment.GetEnvironmentVariable("SDCS_NATIVE_SUITE") != "costume") return;
@@ -158,6 +161,72 @@ public class NativeCostumeTests
         // The outfit was made on the small test export (16 frames); in the game it covers her whole sheet.
         Xunit.Assert.Equal(ownSize, wornSize);
         Note("PASS outfit");
+    }
+
+    /// <summary>
+    /// A live recolour in the real game: a pose of Robin with her shirt recoloured green, drawn by the runtime (the same
+    /// Core code as the editor), shows green where her own sprite has none.
+    /// </summary>
+    [Fact]
+    public async Task ARecolourShowsInTheGame()
+    {
+        logName = "editor-native-recolour.log";
+        string? pipe = Environment.GetEnvironmentVariable("SDCS_NATIVE_PIPE");
+        string? driver = Environment.GetEnvironmentVariable("SDCS_NATIVE_DRIVER");
+        if (string.IsNullOrEmpty(pipe) || string.IsNullOrEmpty(driver) || Environment.GetEnvironmentVariable("SDCS_NATIVE_SUITE") != "costume") return;
+        evidence = Environment.GetEnvironmentVariable("SDCS_NATIVE_EVIDENCE") ?? driver;
+        Directory.CreateDirectory(evidence);
+
+        using var editor = new EditorHarness(pipeName: pipe);
+        var shell = editor.Shell;
+        await WaitReady(shell);
+        var doc = editor.NewProject("Green Shirt", "Player.GreenShirt", "ScienceHouse");
+        shell.IsCharacterStudio = true;
+        var studio = shell.CharacterStudio;
+        studio.Settings.AdvancedPoseTools = false;
+        studio.Character = studio.Characters.First(c => c.Key == "Robin");
+        studio.Outfit = studio.Outfits[0];
+        string green = studio.NewPose("character", "green", "down")!;
+        var pose = (PoseDocumentViewModel)studio.ActiveDocument!;
+        studio.Palette.Primary = 0xFF30C040;
+        pose.AddRecolor();
+        pose.Recolors.Single().RangeChoice = "40";
+        Note("recolour: " + string.Join(", ", pose.Recolors.Select(r => $"{r.From} -> {r.ToText}")));
+        shell.IsCharacterStudio = false;
+        var scene = shell.Scene!;
+        doc.Edit("Stage", () =>
+        {
+            scene.Actors[0].Start = new Position { Tile = new[] { 16, 9 } };
+            scene.Actors.Add(new Actor { Id = "Robin", Kind = "Npc", Npc = "Robin", Start = new Position { Tile = new[] { 17, 6 } }, Facing = "down" });
+            scene.Beats.Add(new WaitBeat { Duration = 1000 });
+            scene.Beats.Add(new PoseBeat { Actor = "Robin", Pose = green, Play = "loop" });
+            scene.Beats.Add(new WaitBeat { Duration = 2500 });
+            scene.Beats.Add(new PoseBeat { Actor = "Robin", Release = true });
+            scene.Beats.Add(new WaitBeat { Duration = 800 });
+        });
+        var problems = shell.ValidateNow();
+        Note("recolour validation: " + (problems.Errors == 0 ? "no errors" : string.Join(" | ", problems.Problems.Select(p => p.Message))));
+        Xunit.Assert.Equal(0, problems.Errors);
+
+        static int Greens(JToken? block) => block is JArray pixels ? pixels.Count(p => (string?)p is { Length: 9 } hex
+            && Core.Palette.Shading.Hsv(Convert.ToUInt32(hex[1..], 16)) is var hsv && Convert.ToUInt32(hex[1..3], 16) == 255 && hsv.Hue is >= 100 and <= 150 && hsv.Saturation > 0.3) : 0;
+        await shell.PreviewInGameCommand.ExecuteAsync(null);
+        int own = -1, best = 0;
+        bool started = false;
+        var deadline = DateTime.UtcNow.AddSeconds(45);
+        while (DateTime.UtcNow < deadline)
+        {
+            var looks = (JObject)(await Ask(driver, "looks", new JObject { ["X"] = 0, ["Y"] = 0, ["W"] = 16, ["H"] = 32 }))["Data"]!;
+            var robin = ((JArray)looks["Actors"]!).OfType<JObject>().FirstOrDefault(a => (string?)a["Name"] == "Robin");
+            if (robin != null) { started = true; if (own < 0) { own = Greens(robin["Pixel"]); Note($"green pixels in her own frame 0: {own}"); } }
+            foreach (var block in (JArray)looks["StandIns"]!)
+                if (Greens(block) is var count && count > best) { best = count; Note($"green pixels in the stand-in: {count}"); }
+            if (started && robin == null) break;
+            await Task.Delay(150);
+        }
+        Xunit.Assert.True(started, "The scene never started.");
+        Xunit.Assert.True(best >= 4 && best > own, $"The recoloured pose showed {best} green pixels; her own frame has {own}.");
+        Note("PASS recolour");
     }
 
     /// <summary>A driver request (assertions/&lt;id&gt;.json) and its answer.</summary>

@@ -29,7 +29,7 @@ public partial class PoseDocumentViewModel
     private void LoadOptions()
     {
         var s = Studio.Settings;
-        brushSize = Math.Clamp(s.BrushSize, 1, MaxBrush); pixelPerfect = s.PixelPerfect; symmetry = s.Symmetry; filledShapes = s.FilledShapes;
+        brushSize = Math.Clamp(s.BrushSize, 1, MaxBrush); pixelPerfect = s.PixelPerfect; symmetry = s.Symmetry; filledShapes = s.FilledShapes; paintInside = s.PaintInside;
         onionBefore = Math.Clamp(s.OnionBefore, 0, MaxOnion); onionAfter = Math.Clamp(s.OnionAfter, 0, MaxOnion); onionTint = s.OnionTint; onionWrap = s.OnionWrap;
     }
 #pragma warning restore MVVMTK0034
@@ -47,9 +47,9 @@ public partial class PoseDocumentViewModel
     partial void OnOnionTintChanged(bool value) { Studio.Settings.OnionTint = value; Studio.Settings.Save(); Render(); }
     partial void OnOnionWrapChanged(bool value) { Studio.Settings.OnionWrap = value; Studio.Settings.Save(); Render(); }
 
-    public static bool IsPaintTool(StudioTool tool) => tool is StudioTool.Pencil or StudioTool.Eraser or StudioTool.Fill or StudioTool.Line or StudioTool.Rectangle or StudioTool.Ellipse;
+    public static bool IsPaintTool(StudioTool tool) => tool is StudioTool.Pencil or StudioTool.Eraser or StudioTool.Fill or StudioTool.Line or StudioTool.Rectangle or StudioTool.Ellipse or StudioTool.Shade;
     /// <summary>Tools that draw with a brush (its size and symmetry apply).</summary>
-    public bool UsesBrush => Tool is StudioTool.Pencil or StudioTool.Eraser;
+    public bool UsesBrush => Tool is StudioTool.Pencil or StudioTool.Eraser or StudioTool.Shade;
     public bool UsesShapes => Tool is StudioTool.Rectangle or StudioTool.Ellipse;
 
     /// <summary>The selection's actions show in the options bar for every selection tool and Move.</summary>
@@ -61,7 +61,7 @@ public partial class PoseDocumentViewModel
     {
         StudioTool.Select => "Select (M)", StudioTool.Pencil => "Pencil (B)", StudioTool.Eraser => "Eraser (E)", StudioTool.Fill => "Fill (G)",
         StudioTool.Picker => "Eyedropper (I)", StudioTool.Line => "Line (L)", StudioTool.Rectangle => "Rectangle (U)", StudioTool.Ellipse => "Ellipse (Shift+U)",
-        StudioTool.Anchor => "Anchor (N)", StudioTool.Move => "Move (V)", StudioTool.Lasso => "Lasso (Q)", StudioTool.Wand => "Magic wand (W)", _ => Tool.ToString(),
+        StudioTool.Anchor => "Anchor (N)", StudioTool.Move => "Move (V)", StudioTool.Lasso => "Lasso (Q)", StudioTool.Wand => "Magic wand (W)", StudioTool.Shade => "Shade (D)", _ => Tool.ToString(),
     };
 
     [RelayCommand] private void BiggerBrush() => BrushSize = Math.Min(MaxBrush, BrushSize + 1);

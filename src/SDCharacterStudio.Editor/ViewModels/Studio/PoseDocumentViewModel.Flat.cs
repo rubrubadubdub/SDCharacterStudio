@@ -91,9 +91,11 @@ public partial class PoseDocumentViewModel
                 ApplyFlatMove(gesture, 0, 0);
                 return true;
             case StudioTool.Fill:
-                FlatFill(flat, images, x, y, ctrl, color);
+                BeginInside();
+                try { FlatFill(flat, images, x, y, ctrl, color); }
+                finally { insideHer = null; }
                 return true;
-            case StudioTool.Pencil or StudioTool.Line or StudioTool.Rectangle:
+            case StudioTool.Pencil or StudioTool.Line or StudioTool.Rectangle or StudioTool.Ellipse or StudioTool.Shade:
                 LayerIndex = 1;   // your own pixels go on the paint image, over the live picture
                 return false;
             default:

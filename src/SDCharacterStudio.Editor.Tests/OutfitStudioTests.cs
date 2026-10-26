@@ -53,7 +53,7 @@ public sealed class OutfitStudioTests
         // The outfit editor: no play order, no ready-made poses, frames stay in place.
         Assert.True(outfit.IsSheet);
         Assert.False(outfit.ShowsPlayOrder); Assert.False(outfit.ShowsReadyMade); Assert.False(outfit.CanChangeFrames);
-        Assert.Equal("Frame 6 of 16 · walking right, step 2", (outfit.FrameIndex = 5) == 5 ? outfit.FrameCaption : null);
+        Assert.Equal("Frame 6 of 16 · walk right 2", (outfit.FrameIndex = 5) == 5 ? outfit.FrameCaption : null);
         outfit.AddFrameCommand.Execute(null);
         Assert.Equal(16, studio.Library.Pose(id)!.Frames.Count);
         Assert.Equal("Frames stay in place", ((FakeUi)editor.Shell.Ui).Toasts[^1].Title);

@@ -121,6 +121,7 @@ public partial class PoseDocumentViewModel
         }
         if (!CanPaint(out var target)) return;
         BeginStroke(target!, tool == StudioTool.Eraser ? 0u : color);
+        if (tool == StudioTool.Shade) BeginShade(lighter: button == PointerButton.Secondary);
         strokeStart = shift && lastPoint is { } from && tool == StudioTool.Pencil ? from : (x, y);
         switch (tool)
         {
@@ -128,7 +129,7 @@ public partial class PoseDocumentViewModel
                 if (target!.ToImage(x, y) is { } p) strokeChanged |= FillAt(p.X, p.Y, ctrl);
                 EndStroke("Fill");
                 return;
-            case StudioTool.Pencil or StudioTool.Eraser:
+            case StudioTool.Pencil or StudioTool.Eraser or StudioTool.Shade:
                 strokePath.Clear();
                 DrawSegment(strokeStart.Value, (x, y));
                 break;
@@ -160,7 +161,7 @@ public partial class PoseDocumentViewModel
             return;
         }
         if (stroke == null) return;
-        if (Tool is StudioTool.Pencil or StudioTool.Eraser) { DrawSegment(strokeLast ?? (x, y), (x, y)); strokeLast = (x, y); }
+        if (Tool is StudioTool.Pencil or StudioTool.Eraser or StudioTool.Shade) { DrawSegment(strokeLast ?? (x, y), (x, y)); strokeLast = (x, y); }
         else if (Tool is StudioTool.Line or StudioTool.Rectangle or StudioTool.Ellipse) Preview(x, y, shift);
     }
 
@@ -174,7 +175,7 @@ public partial class PoseDocumentViewModel
         if (dragFrom != null) { dragFrom = null; dragPiece = null; EndStroke("Move pixels"); FinishMove(); return; }
         if (stroke == null) return;
         lastPoint = (x, y);
-        EndStroke(Tool switch { StudioTool.Eraser => "Erase", StudioTool.Line => "Draw line", StudioTool.Rectangle => "Draw rectangle", StudioTool.Ellipse => "Draw ellipse", _ => "Draw" });
+        EndStroke(Tool switch { StudioTool.Eraser => "Erase", StudioTool.Line => "Draw line", StudioTool.Rectangle => "Draw rectangle", StudioTool.Ellipse => "Draw ellipse", StudioTool.Shade => "Shade", _ => "Draw" });
     }
 
     /// <summary>Abandon an in-progress stroke (Esc, or the canvas lost the mouse).</summary>
@@ -185,7 +186,7 @@ public partial class PoseDocumentViewModel
         CancelSelectionGesture();
         if (dragFrom != null) Selection = floatingRect;
         stroke = null; strokeBase = null; dragFrom = null; dragPiece = null; strokeStart = null; strokeLast = null;
-        strokePath.Clear();
+        strokePath.Clear(); insideHer = null; EndShade();
         strokeChanged = false;
         if (partsWorking != null) { partsWorking = null; RefreshPartsOverlay(); }
         CancelDirect();
@@ -203,6 +204,7 @@ public partial class PoseDocumentViewModel
         stroke = target with { Image = working };
         strokeColor = color;
         strokeChanged = false;
+        BeginInside();   // before the stroke shows: "inside her" means the picture as it was
         Context.Overrides[target.Path] = working;
     }
 
@@ -215,10 +217,14 @@ public partial class PoseDocumentViewModel
         {
             // Drawing on a picture with several frames picked draws the same pixels on all of them.
             bool all = HasSeveralPicked && before != null && Flat is { } flat && string.Equals(flat.Paint.Image, done.Path, StringComparison.OrdinalIgnoreCase);
+            var cells = shaded.ToList();
+            bool lighter = shadeLighter, shading = shadeShown != null;
             if (strokeChanged) Save(all ? OnPicked(label) : label, _ => { }, lib =>
             {
                 lib.WriteImage(done.Path, done.Image);
-                if (all) CopyChangesToOtherPicked(lib, null, (before!, done.Image));
+                // Shading works out each frame from its own colours; other strokes put the same pixels everywhere.
+                if (all && shading) ShadeOtherPicked(lib, cells, lighter);
+                else if (all) CopyChangesToOtherPicked(lib, null, (before!, done.Image));
             }, rebuildFields: false);
             if (strokeChanged && strokeColor >> 24 != 0) Palette.Remember(strokeColor);
         }
@@ -226,6 +232,7 @@ public partial class PoseDocumentViewModel
         {
             Context.Overrides.Remove(done.Path);
             Context.InvalidatePack();
+            insideHer = null; EndShade();
         }
         Render();
         RenderThumbnails();
@@ -239,6 +246,7 @@ public partial class PoseDocumentViewModel
         {
             if (strokePath.Count > 0 && strokePath[^1] == point) continue;
             strokePath.Add(point);
+            if (Tool == StudioTool.Shade) { ShadeDab(point.X, point.Y); continue; }
             foreach (var (px, py) in BrushAt(point.X, point.Y))
                 if (stroke.ToImage(px, py) is { } p && InsideSelection(px, py)) strokeChanged |= PixelTools.Set(stroke.Image, p.X, p.Y, strokeColor);
             if (PixelPerfect && BrushSize == 1 && PixelPerfectCorner(strokePath) is { } corner)
@@ -297,7 +305,7 @@ public partial class PoseDocumentViewModel
         return changed;
     }
 
-    private bool InsideSelection(int x, int y) => SelectionShape?.Contains(x, y) ?? (Selection is not { } rect || rect.Contains(x, y));
+    private bool InsideSelection(int x, int y) => InsideHer(x, y) && (SelectionShape?.Contains(x, y) ?? (Selection is not { } rect || rect.Contains(x, y)));
 
     /// <summary>A canvas rectangle in a target's image coordinates (unflipped targets only; flipped ones use the cell).</summary>
     private static PixelRect Translate(PixelRect rect, PaintTarget target) =>
@@ -508,6 +516,7 @@ public partial class PoseDocumentViewModel
         switch (key)
         {
             case "B": Tool = StudioTool.Pencil; return true;
+            case "D": Tool = StudioTool.Shade; return true;
             case "E": Tool = StudioTool.Eraser; return true;
             case "G": Tool = StudioTool.Fill; return true;
             case "L": Tool = StudioTool.Line; return true;
