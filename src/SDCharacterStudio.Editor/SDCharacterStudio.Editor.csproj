@@ -21,6 +21,7 @@
     <None Include="..\SDCharacterStudio.Engine\bin\$(Configuration)\net6.0\Sdcs.cs" Link="Embed\Sdcs.cs" CopyToOutputDirectory="PreserveNewest" Visible="false" />
     <PackageReference Include="Mono.Cecil" Version="0.11.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NVorbis" Version="0.10.5" GeneratePathProperty="true" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="WPF-UI" Version="3.0.5" />
     <PackageReference Include="Dirkster.AvalonDock" Version="4.74.1" />
@@ -28,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\**\*.png" />
+    <None Include="$(PkgNVorbis)/LICENSE" Link="Licenses/NVorbis.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="SDCharacterStudio.Editor.Tests" />
   </ItemGroup>
   <!-- Character Studio (M8): the runtime's pure source-resolution and animation-timing rules, compiled in so editor

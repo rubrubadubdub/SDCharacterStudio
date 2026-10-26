@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SDCharacterStudio.Core.Models;
+using SDCharacterStudio.Core.Audio;
 using SDCharacterStudio.Core.Serialization;
 using SDCharacterStudio.Core.Validation;
 
@@ -67,6 +68,7 @@ public sealed class EventCompiler
     private sealed class Session
     {
         private readonly string key;
+        private readonly string packId;
         private readonly string packHash;
         private readonly JObject scene;
         private readonly Func<string, string?>? translate;
@@ -84,7 +86,7 @@ public sealed class EventCompiler
         private string? endScript;
 
         public Session(string pack, JObject scene, Func<string, string?>? translate, List<ValidationIssue> issues, string file)
-        { key = pack + "." + (string?)scene["Id"]; packHash = Ids.PackHash(pack); this.scene = scene; this.translate = translate; this.issues = issues; this.file = file; }
+        { packId = pack; key = pack + "." + (string?)scene["Id"]; packHash = Ids.PackHash(pack); this.scene = scene; this.translate = translate; this.issues = issues; this.file = file; }
 
         public CompiledCutscene Run()
         {
@@ -275,7 +277,7 @@ public sealed class EventCompiler
                 case "Costume": return Custom(EngineNames.Command("Costume"));
                 case "Wait": return "pause " + Nonnegative(beat, "Duration", path);
                 case "Sound": return Present(beat, "Pitch") ? Custom(EngineNames.Command("Sound")) : "playSound " + Arg("Cue");
-                case "Music": return "playMusic " + Arg("Cue");
+                case "Music": return "playMusic " + PackMusic.ResolveCue(packId, Arg("Cue"));
                 case "Fade":
                     string direction = Arg("To");
                     if (direction is not ("black" or "clear")) throw new Problem(path + ".To", "Fade target must be black or clear.");
@@ -317,7 +319,7 @@ public sealed class EventCompiler
                 : Tile((scene["Camera"] as JObject)?["Tile"] ?? actors.FirstOrDefault()?["Start"]?["Tile"] ?? new JArray(0, 0), "Camera.Tile");
             var entries = headerActors.Select((actor, i) => Argument((string?)actor["Id"], $"Actors[{i}].Id") + " "
                 + Tile(actor["Start"]?["Tile"], $"Actors[{i}].Start.Tile") + " " + Facing((string?)actor["Facing"] ?? "down", $"Actors[{i}].Facing"));
-            return new() { Argument((string?)scene["Music"] ?? "none", "Music"), camera, string.Join(" ", entries) };
+            return new() { Argument(PackMusic.ResolveCue(packId, (string?)scene["Music"] ?? "none"), "Music"), camera, string.Join(" ", entries) };
         }
 
         private void AddTemporaryActors(List<string> parts)

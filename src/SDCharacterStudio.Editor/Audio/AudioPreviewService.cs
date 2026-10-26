@@ -21,7 +21,10 @@ public sealed class AudioPreviewService(string hostPath, string catalogDirectory
         get { lock (gate) return status.State == AudioHostState.Playing && DateTime.UtcNow >= playingUntil ? new(AudioHostState.Ready, "Ready") : status; }
     }
 
-    public async Task<AudioPreviewResult> PlayAsync(string cue, int? pitch = null, CancellationToken cancellation = default)
+    public Task<AudioPreviewResult> PlayAsync(string cue, int? pitch = null, CancellationToken cancellation = default)
+        => PlayFromCatalogAsync(cue, catalogDirectory, pitch, cancellation);
+
+    public async Task<AudioPreviewResult> PlayFromCatalogAsync(string cue, string sourceCatalog, int? pitch = null, CancellationToken cancellation = default)
     {
         if (string.IsNullOrWhiteSpace(cue)) return AudioPreviewResult.Failure("Sound cue is empty.");
         CancellationTokenSource request;
@@ -36,7 +39,7 @@ public sealed class AudioPreviewService(string hostPath, string catalogDirectory
         {
             await io.WaitAsync(request.Token).ConfigureAwait(false); entered = true;
             request.Token.ThrowIfCancellationRequested();
-            var reply = await SendAsync(new JObject { ["Op"] = "play", ["Cue"] = cue, ["Pitch"] = pitch, ["Catalog"] = catalogDirectory, ["MaxSeconds"] = 10 }, request.Token).ConfigureAwait(false);
+            var reply = await SendAsync(new JObject { ["Op"] = "play", ["Cue"] = cue, ["Pitch"] = pitch, ["Catalog"] = sourceCatalog, ["MaxSeconds"] = 10 }, request.Token).ConfigureAwait(false);
             if (reply["Ok"]?.Value<bool>() != true)
             {
                 string error = (string?)reply["Error"] ?? "Audio preview failed.";

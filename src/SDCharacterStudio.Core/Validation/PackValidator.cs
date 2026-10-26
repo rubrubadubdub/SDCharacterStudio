@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using SDCharacterStudio.Core.Loading;
 using SDCharacterStudio.Core.Models;
 using SDCharacterStudio.Core.Serialization;
+using SDCharacterStudio.Core.Audio;
 
 namespace SDCharacterStudio.Core.Validation;
 
@@ -190,9 +191,32 @@ public static class PackValidator
     {
         var issues=new List<ValidationIssue>();
         if(pack.Index is { } index)CheckFormat(index.Format,"studio.json","Format",issues);
+        if (pack.Index is { Music: null })
+            issues.Add(new(ValidationSeverity.Error, "studio.json", "Music", "Music must be an object (use {} when no tracks are imported).", "Audio"));
+        if (pack.Index?.Music is { } music)
+            foreach (var pair in music)
+            {
+                var path = $"Music.{pair.Key}.File";
+                CheckId(pair.Key, "studio.json", $"Music.{pair.Key}", issues);
+                if (string.IsNullOrWhiteSpace(pair.Value?.File) || !PackPath.IsSafe(pair.Value.File) ||
+                    !pair.Value.File.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) && !pair.Value.File.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase))
+                    issues.Add(new(ValidationSeverity.Error, "studio.json", path, "Music file must be a safe WAV or OGG pack path.", "Audio"));
+                else if (files != null && !files.Exists(pair.Value.File))
+                    issues.Add(new(ValidationSeverity.Error, "studio.json", path, $"Music file '{pair.Value.File}' does not exist.", "Audio"));
+            }
         if(pack.Manifest is { } manifest && !string.Equals(manifest.ContentPackFor?.UniqueID,"Player.SDCharacterStudio",StringComparison.OrdinalIgnoreCase))issues.Add(new(ValidationSeverity.Error,"manifest.json","ContentPackFor.UniqueID","ContentPackFor must identify Player.SDCharacterStudio.","Schema"));
         CheckDuplicates(pack.Cutscenes.Select(x=>(x.Value.Id,x.File,"Id")),issues);CheckDuplicates(pack.Characters.Select(x=>(x.Value.Id,x.File,"Id")),issues);CheckDuplicates(pack.Poses.Select(x=>(x.Value.Id,x.File,"Id")),issues);CheckDuplicates(pack.Portraits.Select(x=>(x.Value.Id,x.File,"Id")),issues);
         foreach(var scene in pack.Cutscenes){issues.AddRange(ValidateCutscene(scene.Value,scene.File,catalog));issues.AddRange(ValidateEventKey(pack.Manifest?.UniqueID??"",scene.Value,scene.File));}
+        foreach (var scene in pack.Cutscenes)
+            foreach (var (token, path) in Tokens(JObject.FromObject(scene.Value, PackJson.CreateSerializer())))
+                if (token.Type == JTokenType.String && (token.Parent as JProperty)?.Name is "Music" or "Cue" &&
+                    token.Value<string>() is { } reference && reference.StartsWith(PackMusic.ReferencePrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!PackMusic.TryGetId(reference, out var id) || string.IsNullOrWhiteSpace(id))
+                        issues.Add(new(ValidationSeverity.Error, scene.File, path, "Imported music reference requires a track ID after 'music:'.", "Audio"));
+                    else if (pack.Index?.Music?.ContainsKey(id) != true)
+                        issues.Add(new(ValidationSeverity.Error, scene.File, path, $"Unknown imported music '{id}'.", "Audio"));
+                }
         foreach(var rig in pack.Characters)
         {
             CheckFormat(rig.Value.Format,rig.File,"Format",issues);CheckId(rig.Value.Id,rig.File,"Id",issues);

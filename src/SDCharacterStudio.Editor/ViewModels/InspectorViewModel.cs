@@ -76,7 +76,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         Fields.Add(new TextField("ID", "Id", () => scene.Id, v => scene.Id = PackDocument.ToContentId(v ?? scene.Id ?? "scene"), Commit)
         { AllowNull = false, Rebuild = true, Help = "Used in the event ID (<pack>.<id>). Changing it after release makes the scene count as unseen again." });
         Fields.Add(new ChoiceField("Location", "Location", LocationOptions(), () => scene.Location, v => scene.Location = v, Commit) { IsEditable = true, Help = "Where the scene plays. The stage shows this map." });
-        Fields.Add(new ChoiceField("Music", "Music", MusicOptions(), () => scene.Music, v => scene.Music = v ?? "none", Commit) { IsEditable = true });
+        MusicFields("Music", () => scene.Music, v => scene.Music = v ?? "none");
         Fields.Add(new BoolField("Camera follows the player", "Camera", () => scene.Camera?.Type == JTokenType.String, v => scene.Camera = v ? "follow" : new JObject { ["Tile"] = new JArray(10, 10) }, Commit) { Rebuild = true });
         if (scene.Camera?.Type != JTokenType.String)
             Fields.Add(Tile("Camera centre", "Camera.Tile", () => (scene.Camera as JObject)?["Tile"]?.ToObject<int[]>() ?? scene.Actors.FirstOrDefault()?.Start?.Tile,
@@ -345,7 +345,7 @@ public sealed partial class InspectorViewModel : ObservableObject
                 Fields.Add(new ActionField("■  Stop sound", () => shell.StopSoundPreviewCommand.Execute(null)));
                 break;
             case MusicBeat music:
-                Fields.Add(new ChoiceField("Music", "Cue", MusicOptions(), () => music.Cue, v => music.Cue = v, Commit) { IsEditable = true });
+                MusicFields("Cue", () => music.Cue, v => music.Cue = v);
                 break;
             case EffectBeat effect:
                 Fields.Add(new ChoiceField("Effect", "Effect", EffectOptions(), () => effect.Effect, v => effect.Effect = v, Commit) { IsEditable = true });
@@ -731,7 +731,9 @@ public sealed partial class InspectorViewModel : ObservableObject
         .Concat((shell.Document?.Library.Costumes?.Value.Costumes ?? new()).Where(c => c.Id != null).Select(c => new ChoiceItem(c.Id, c.Id!, string.Join(", ", c.Set.Keys))));
 
     private IEnumerable<ChoiceItem> SoundOptions() => (Catalog?.Sounds ?? new[] { "dwop", "coin", "shwip", "thudStep", "money", "getNewSpecialItem" }).Select(s => new ChoiceItem(s, s));
-    private IEnumerable<ChoiceItem> MusicOptions() => new[] { new ChoiceItem("none", "Silence (none)"), new ChoiceItem("continue", "Keep the current music") }.Concat(SoundOptions());
+    private IEnumerable<ChoiceItem> MusicOptions() => new[] { new ChoiceItem("none", "Silence (none)"), new ChoiceItem("continue", "Keep the current music") }
+        .Concat((shell.Document?.Studio.Music ?? new()).Select(p => new ChoiceItem(Core.Audio.PackMusic.Reference(p.Key), p.Value?.Name ?? p.Key, "Imported music")))
+        .Concat(SoundOptions());
 
     private static IEnumerable<ChoiceItem> FacingOptions() => new[] { new ChoiceItem("down", "Down ▼"), new ChoiceItem("left", "Left ◀"), new ChoiceItem("up", "Up ▲"), new ChoiceItem("right", "Right ▶") };
     private static IEnumerable<ChoiceItem> EmotionOptions() => Ids.Emotions.Keys.Select(e => new ChoiceItem(e, char.ToUpperInvariant(e[0]) + e[1..], e == "neutral" ? null : Ids.Emotions[e]));
