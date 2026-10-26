@@ -511,6 +511,7 @@ public partial class PoseDocumentViewModel
                 case "U": Tool = StudioTool.Ellipse; return true;
                 case "R": RotateRight(); return true;
                 case "I": ToggleIsolate(); return true;
+                case "M": MirrorView = !MirrorView; return true;
                 case "OemQuestion" or "Oem2": ShowShortcuts(); return true;
             }
         switch (key)

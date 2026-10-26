@@ -66,6 +66,9 @@ public static class PoseCopies
                 }
         pose.Id = plan.NewId;
         pose.For = targetRigId;
+        // Linked frames share a picture: copy each picture once, so the copy's frames stay linked.
+        var copied = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        string? Once(string? path) => path == null ? null : copied.TryGetValue(path, out var done) ? done : copied[path] = LibraryCopies.CopyImage(library, path, $"art/poses/{plan.NewId}/");
         foreach (var layer in pose.Frames.SelectMany(f => f.Layers))
         {
             if (layer.Mask != null)
@@ -85,15 +88,15 @@ public static class PoseCopies
                 case LiveLayer live when Core.Compositing.Outfits.IsOutfitSource(live.Source):
                     // Their outfit is theirs: the copy wears the other character's own look.
                     live.Source = new LiveSource { Kind = "Npc", Npc = targetNpc };
-                    if (live.Map != null) live.Map = LibraryCopies.CopyImage(library, live.Map, $"art/poses/{plan.NewId}/");
+                    if (live.Map != null) live.Map = Once(live.Map);
                     break;
                 case LiveLayer live when live.Source?.Kind is "Npc" or "Portrait" && string.Equals(live.Source.Npc, sourceNpc, StringComparison.OrdinalIgnoreCase):
                     live.Source.Npc = targetNpc;
                     // A flat picture's map points at sprite pixels; the other character's sprite has the same layout.
-                    if (live.Map != null) live.Map = LibraryCopies.CopyImage(library, live.Map, $"art/poses/{plan.NewId}/");
+                    if (live.Map != null) live.Map = Once(live.Map);
                     break;
                 case PaintLayer paint:
-                    paint.Image = LibraryCopies.CopyImage(library, paint.Image, $"art/poses/{plan.NewId}/");
+                    paint.Image = Once(paint.Image);
                     break;
             }
         }

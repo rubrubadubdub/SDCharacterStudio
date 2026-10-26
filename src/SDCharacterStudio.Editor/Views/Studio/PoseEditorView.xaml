@@ -131,6 +131,8 @@
                                 <StackPanel>
                                     <TextBlock Text="CANVAS DISPLAY" Style="{StaticResource PanelTitle}" HorizontalAlignment="Left" Margin="0,0,0,8" />
                                     <CheckBox Content="Standing frame ghost" IsChecked="{Binding ShowGhost}" />
+                                    <CheckBox Content="Mirror the view (Shift+M)" IsChecked="{Binding MirrorView}"
+                                              ToolTip="Shows the canvas flipped, to see the drawing fresh. Only the view: the pose doesn't change." />
                                     <CheckBox Content="Onion skin (O / F3)" IsChecked="{Binding ShowOnion}" />
                                     <Expander Header="Onion skin settings" Margin="0,4">
                                         <StackPanel Margin="4,4,0,8">
@@ -247,9 +249,20 @@
                 <!-- Frame strip and sequences -->
                 <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="0,1,0,0" Padding="8,6">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource Caption}" Margin="0,0,0,6"
-                                   Text="{Binding PickedFramesText}"
-                                   Visibility="{Binding HasSeveralPicked, Converter={StaticResource VisibleWhen}}" />
+                        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6" Visibility="{Binding HasSeveralPicked, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Style="{StaticResource Caption}" Text="{Binding PickedFramesText}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <ui:Button Content="Link them" Icon="{ui:SymbolIcon Link24}" Command="{Binding LinkPickedCommand}" Padding="8,2" Margin="0,0,6,0"
+                                       Visibility="{Binding CanLink, Converter={StaticResource VisibleWhen}}"
+                                       ToolTip="The picked frames share this frame's picture from now on: draw on one and all of them change (a hold, a blink)" />
+                            <ui:Button Content="Reverse them" Icon="{ui:SymbolIcon ArrowSwap24}" Command="{Binding ReversePickedCommand}" Padding="8,2"
+                                       Visibility="{Binding CanChangeFrames, Converter={StaticResource VisibleWhen}}"
+                                       ToolTip="The picked frames swap end for end, in their places: the gesture plays backwards" />
+                        </WrapPanel>
+                        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6" Visibility="{Binding IsLinked, Converter={StaticResource VisibleWhen}}">
+                            <ui:SymbolIcon Symbol="Link24" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource Caption}" Text="{Binding LinkedText}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <ui:Button Content="Unlink this frame" Command="{Binding UnlinkFrameCommand}" Padding="8,2" ToolTip="Give this frame its own copy of the picture, to change on its own" />
+                        </WrapPanel>
                         <ContentControl DockPanel.Dock="Bottom" Content="{Binding}" ContentTemplate="{StaticResource Sequences}" Margin="0,6,0,0" Focusable="False"
                                         Visibility="{Binding ShowsSequenceChips, Converter={StaticResource VisibleWhen}}" />
                         <!-- How it plays, in plain words (Aseprite's tags, simplified). -->
@@ -261,6 +274,8 @@
                             </RadioButton>
                             <TextBox Text="{Binding LoopFromNumber, UpdateSourceTrigger=LostFocus}" Width="40" Margin="0,0,10,0" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" />
                             <RadioButton Content="Once, then hold the last" GroupName="PlayOrder" IsChecked="{Binding HoldsLast}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame once, then stay on the last one" />
+                            <RadioButton Content="Back and forth" GroupName="PlayOrder" IsChecked="{Binding PlaysBackAndForth}" MinWidth="0" Margin="0,0,10,0"
+                                         ToolTip="Forwards, then backwards, round and round: 1 2 3 2 1 2 3... (a wave, a sway, a breath)" />
                             <TextBlock Text="{Binding PlayOrderText}" Style="{StaticResource Faint}" VerticalAlignment="Center" />
                         </WrapPanel>
                         <StackPanel DockPanel.Dock="Left" Margin="0,0,8,0" Visibility="{Binding CanChangeFrames, Converter={StaticResource VisibleWhen}}">
@@ -302,7 +317,12 @@
                                             ShowGrid="{Binding ShowGrid}" Pivot="{Binding Pivot}" Anchors="{Binding Anchors}" Selection="{Binding Selection}"
                                             SelectionShape="{Binding SelectionShape}" TransformBox="{Binding TransformBox}" Overlay="{Binding CanvasOverlay}" OverlayOpacity="{Binding CanvasOverlayOpacity}"
                                             BrushSize="{Binding BrushSize}" Symmetry="{Binding Symmetry}" BackdropImage="{Binding BackdropImage}" BackdropBrush="{Binding BackdropBrush}"
-                                            PixelDown="Canvas_PixelDown" PixelMove="Canvas_PixelMove" PixelUp="Canvas_PixelUp" />
+                                            PixelDown="Canvas_PixelDown" PixelMove="Canvas_PixelMove" PixelUp="Canvas_PixelUp">
+                            <!-- Mirror view: only the display flips; clicks still land on the pixel you point at. -->
+                            <studio:PixelCanvas.LayoutTransform>
+                                <ScaleTransform ScaleX="{Binding ViewScaleX}" />
+                            </studio:PixelCanvas.LayoutTransform>
+                        </studio:PixelCanvas>
                     </ScrollViewer>
 
                     <!-- An empty frame says what to do -->

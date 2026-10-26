@@ -63,10 +63,13 @@ public static class LibraryCopies
         {
             case LibraryKind.Pose when library.Pose(id) is { } pose:
                 pose.Id = newId;
+                // Linked frames share a picture: copy each picture once, so the copy's frames stay linked.
+                var copied = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                string? Once(string? path) => path == null ? null : copied.TryGetValue(path, out var done) ? done : copied[path] = CopyImage(library, path, $"art/poses/{newId}/");
                 foreach (var layer in pose.Frames.SelectMany(f => f.Layers).OfType<PaintLayer>())
-                    layer.Image = CopyImage(library, layer.Image, $"art/poses/{newId}/");
+                    layer.Image = Once(layer.Image);
                 foreach (var layer in pose.Frames.SelectMany(f => f.Layers).OfType<LiveLayer>().Where(l => l.Map != null))
-                    layer.Map = CopyImage(library, layer.Map, $"art/poses/{newId}/");
+                    layer.Map = Once(layer.Map);
                 library.SavePose(pose);
                 break;
             case LibraryKind.Clip when library.Clip(id) is { } clip:

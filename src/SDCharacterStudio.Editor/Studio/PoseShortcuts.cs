@@ -52,6 +52,7 @@ public static class PoseShortcuts
             new Shortcut(", / .", "Previous / next frame"),
             new Shortcut("Home / End", "First / last frame"),
             new Shortcut("O or F3", "Onion skin"),
+            new Shortcut("Shift+M", "Mirror the view (only how you see it)"),
             new Shortcut("Ctrl+Z / Ctrl+Y", "Undo / redo"),
             new Shortcut("F1 or ?", "This sheet"),
         }),

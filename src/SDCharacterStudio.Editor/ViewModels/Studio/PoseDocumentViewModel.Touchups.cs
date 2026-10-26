@@ -114,7 +114,8 @@ public partial class PoseDocumentViewModel
     [RelayCommand]
     public void OutlinePaint()
     {
-        var frames = (HasSeveralPicked ? PickedFrames : new[] { FrameIndex }).Distinct().ToList();
+        // Linked frames share a picture: outline it once.
+        var frames = (HasSeveralPicked ? PickedFrames : new[] { FrameIndex }).Distinct().GroupBy(i => PictureOf(Model.Frames.ElementAtOrDefault(i)) ?? $"#{i}", StringComparer.OrdinalIgnoreCase).Select(g => g.Contains(FrameIndex) ? FrameIndex : g.First()).ToList();
         var work = new List<(FlatFrame Flat, RgbaImage Paint)>();
         foreach (int index in frames)
         {

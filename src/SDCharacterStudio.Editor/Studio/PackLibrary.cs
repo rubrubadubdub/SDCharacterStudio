@@ -115,6 +115,9 @@ public sealed class PackLibrary
         }
     }
 
+    /// <summary>Remove a pack image nothing uses any more (inside an edit, so undo brings it back).</summary>
+    public void RemoveImage(string path) => doc.RemoveAsset(path);
+
     /// <summary>A pack image as it would be saved now, or null when missing or not a PNG.</summary>
     public RgbaImage? ReadImage(string? path)
     {

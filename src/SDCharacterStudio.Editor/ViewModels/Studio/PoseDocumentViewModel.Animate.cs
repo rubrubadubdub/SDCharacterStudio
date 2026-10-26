@@ -47,7 +47,7 @@ public partial class PoseDocumentViewModel
     public bool LoopsAll { get => LoopFrom == 0; set { if (value) SetPlayOrder(0); } }
     public bool PlaysOnceThenLoops { get => LoopFrom > 0 && LoopFrom < Model.Frames.Count - 1; set { if (value) SetPlayOrder(Math.Max(1, Math.Min(LoopFromNumber - 1, Model.Frames.Count - 1))); } }
     public bool HoldsLast { get => Model.Frames.Count > 1 && LoopFrom == Model.Frames.Count - 1; set { if (value) SetPlayOrder(Model.Frames.Count - 1); } }
-    public bool HasCustomOrder => LoopFrom == null;
+    public bool HasCustomOrder => LoopFrom == null && !IsBackAndForth(Model);
     /// <summary>The intro/loop/outro chips: under Advanced, or whenever the order is a custom one.</summary>
     public bool ShowsSequenceChips => !IsPortrait && (Advanced || HasCustomOrder);
     /// <summary>The first looping frame as people count (1-based), for the options row.</summary>
@@ -56,7 +56,7 @@ public partial class PoseDocumentViewModel
         get => LoopFrom is > 0 and var k ? k + 1 : 2;
         set { if (value >= 2 && value <= Model.Frames.Count) SetPlayOrder(value - 1); }
     }
-    public string PlayOrderText => LoopFrom switch
+    public string PlayOrderText => IsBackAndForth(Model) ? $"Plays 1–{Model.Frames.Count} and back, again and again" : LoopFrom switch
     {
         null => "A custom order (see Advanced)",
         0 => Model.Frames.Count == 1 ? "One frame: it holds" : $"Loops all {Model.Frames.Count} frames",
@@ -74,7 +74,7 @@ public partial class PoseDocumentViewModel
 
     private void NotifyPlayOrder()
     {
-        foreach (var name in new[] { nameof(LoopFrom), nameof(LoopsAll), nameof(PlaysOnceThenLoops), nameof(HoldsLast), nameof(HasCustomOrder), nameof(LoopFromNumber), nameof(PlayOrderText), nameof(ShowsSequenceChips) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(LoopFrom), nameof(LoopsAll), nameof(PlaysOnceThenLoops), nameof(HoldsLast), nameof(HasCustomOrder), nameof(LoopFromNumber), nameof(PlayOrderText), nameof(ShowsSequenceChips), nameof(PlaysBackAndForth) }) OnPropertyChanged(name);
         foreach (var frame in Frames) frame.Role = RoleOf(frame.Index);
         RestartPreview();
     }
@@ -86,9 +86,11 @@ public partial class PoseDocumentViewModel
     /// <summary>Keep a simple order simple when frames change: <paramref name="change"/> mutates the pose, then the order is rebuilt.</summary>
     private void KeepingOrder(Pose pose, Action<Pose> change, Func<int, int>? newLoopFrom = null)
     {
+        bool backAndForth = IsBackAndForth(pose);
         int? k = SimpleLoopFrom(pose);
         change(pose);
-        if (k is { } before) SetLoopFrom(pose, newLoopFrom?.Invoke(before) ?? before);
+        if (backAndForth) pose.Loop = BackAndForthOrder(pose.Frames.Count);
+        else if (k is { } before) SetLoopFrom(pose, newLoopFrom?.Invoke(before) ?? before);
     }
 
     /// <summary>Move a frame to another place in the strip (a drag), or copy it there (Ctrl+drag). One undo step.</summary>
@@ -108,6 +110,7 @@ public partial class PoseDocumentViewModel
         int target = to > from ? to - 1 : to;
         Save("Move frame", pose =>
         {
+            if (IsBackAndForth(pose)) { var moving = pose.Frames[from]; pose.Frames.RemoveAt(from); pose.Frames.Insert(target, moving); return; }   // by position
             int? k = SimpleLoopFrom(pose);
             var frame = pose.Frames[from];
             pose.Frames.RemoveAt(from);
@@ -187,7 +190,7 @@ public partial class PoseDocumentViewModel
         var set = picked.ToHashSet();
         foreach (var frame in Frames) frame.IsPicked = set.Contains(frame.Index);
         if (current is { } index && index != FrameIndex && index >= 0 && index < Model.Frames.Count) FrameIndex = index;
-        OnPropertyChanged(nameof(PickedFrames)); OnPropertyChanged(nameof(HasSeveralPicked)); OnPropertyChanged(nameof(PickedFramesText));
+        OnPropertyChanged(nameof(PickedFrames)); OnPropertyChanged(nameof(HasSeveralPicked)); OnPropertyChanged(nameof(PickedFramesText)); OnPropertyChanged(nameof(CanLink));
     }
 
     /// <summary>
@@ -223,9 +226,11 @@ public partial class PoseDocumentViewModel
     /// <summary>The other picked frames that are one picture, with their images.</summary>
     private IEnumerable<(int Frame, FlatFrame Flat, RgbaImage Map, RgbaImage Paint)> OtherPickedFlatFrames()
     {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (PictureOf(Frame) is { } current) seen.Add(current);
         foreach (int index in PickedFrames)
         {
-            if (index == FrameIndex || FlatOf(Model.Frames.ElementAtOrDefault(index)) is not { } flat) continue;
+            if (index == FrameIndex || FlatOf(Model.Frames.ElementAtOrDefault(index)) is not { } flat || !seen.Add(flat.Paint.Image!)) continue;
             if (Context.PackImage(flat.Live.Map) is not { } map || Context.PackImage(flat.Paint.Image) is not { } paint) continue;
             if (map.Width != Width || map.Height != Height || paint.Width != Width || paint.Height != Height) continue;
             yield return (index, flat, map, paint);

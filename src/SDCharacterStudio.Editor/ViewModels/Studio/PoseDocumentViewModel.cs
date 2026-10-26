@@ -26,6 +26,12 @@ public sealed partial class PoseFrameItem : ObservableObject
     [ObservableProperty] private bool isPicked;
     /// <summary>What the frame does when the pose plays: "once", "loop", "end", or null (not played).</summary>
     [ObservableProperty] private string? role;
+    /// <summary>Linked frames share one picture: the same colour marks each group in the strip.</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsLinked))] private string? linkColor;
+    [ObservableProperty] private string? linkText;
+    public bool IsLinked => LinkColor != null;
+    /// <summary>An outfit's frames in groups: "Walking down" over the first of each (its frames are the game's).</summary>
+    [ObservableProperty] private string? group;
     public double Duration
     {
         get => Document.Model.Frames.ElementAtOrDefault(Index)?.Duration ?? 0;
@@ -168,6 +174,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         Render();
         BuildFields();
         OnPropertyChanged(nameof(FrameCaption)); OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten));
+        OnPropertyChanged(nameof(IsLinked)); OnPropertyChanged(nameof(LinkedText));
     }
     partial void OnLayerIndexChanged(int value) { foreach (var row in Layers) row.IsSelected = row.Index == value; Selection = null; BuildFields(); }
     partial void OnLayerIndexChanging(int value) { if (IsStroking && !IsTransforming) CancelStroke(); }
@@ -215,7 +222,12 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         }
         int clamped = Math.Clamp(FrameIndex, 0, Math.Max(0, Model.Frames.Count - 1));
         if (clamped != FrameIndex) { FrameIndex = clamped; }
-        foreach (var frame in Frames) { frame.IsSelected = frame.Index == FrameIndex; frame.Badges = Badges(frame.Index); }
+        foreach (var frame in Frames)
+        {
+            frame.IsSelected = frame.Index == FrameIndex; frame.Badges = Badges(frame.Index);
+            frame.Group = !IsSheet ? null : frame.Index < 16 ? (frame.Index % 4 == 0 ? $"Walking {SheetFacing(frame.Index)}" : "") : frame.Index == 16 ? "Her other frames" : "";
+        }
+        RefreshLinks();
         RebuildSequences();
         NotifyPlayOrder();
         RefreshPresets();
@@ -388,10 +400,12 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         int first = doomed[0];
         Save(doomed.Count == 1 ? "Delete frame" : $"Delete {doomed.Count} frames", pose =>
         {
+            bool backAndForth = IsBackAndForth(pose);
             foreach (int index in doomed.OrderByDescending(i => i)) pose.Frames.RemoveAt(index);
             int Shift(int i) => i - doomed.Count(d => d < i);
             int[] Remap(int[] list) => list.Where(i => !doomed.Contains(i)).Select(Shift).ToArray();
             pose.Intro = Remap(pose.Intro); pose.Loop = Remap(pose.Loop); pose.Outro = Remap(pose.Outro);
+            if (backAndForth) pose.Loop = BackAndForthOrder(pose.Frames.Count);
         });
         FrameIndex = Math.Min(first, Model.Frames.Count - 1);
         PickFrames(new[] { FrameIndex });
@@ -407,6 +421,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         if (to < 0 || to >= Model.Frames.Count || FramesStayInPlace()) return;
         Save("Move frame", pose =>
         {
+            if (IsBackAndForth(pose)) { (pose.Frames[from], pose.Frames[to]) = (pose.Frames[to], pose.Frames[from]); return; }   // by position
             if (SimpleLoopFrom(pose) is { } k)
             {
                 // A simple order goes by position (like Aseprite's tags): the frames trade places, the order stays.

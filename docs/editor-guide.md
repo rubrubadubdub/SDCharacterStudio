@@ -143,7 +143,7 @@ Sprites, poses and animations are made in the **Character Studio**. Switch to it
 - **Brushes:** `[` and `]` change the brush size. The options bar above the canvas has *Pixel-perfect* (no doubled corners on diagonals) and *Symmetry*.
 - **Zoom and pan:** in poses, expressions and masks, the wheel zooms at the pointer in crisp whole-pixel steps. Space+drag or a middle drag pans; Ctrl+0 fits the frame. In poses, tapping Space or pressing Enter plays.
 - **More drawing room:** click **Focus canvas**, or press **Tab while the canvas has focus**, to hide the library and side panels. Repeat to restore them with your splitter widths intact.
-- **Display settings:** the pose toolbar keeps play, zoom, Fit and Grid visible. **View** contains onion skin, standing-frame ghost and background.
+- **Display settings:** the pose toolbar keeps play, zoom, Fit and Grid visible. **View** contains onion skin, standing-frame ghost, background and **Mirror the view** (Shift+M). Mirroring shows the canvas flipped to see the drawing fresh; only the view changes, and clicks still land on the pixel you point at.
 - **Cancel safely:** press **Esc** during a brush stroke, selection or drag to put it back. Losing mouse capture or leaving the editor also cancels an unfinished stroke. Undo (Ctrl+Z) reverses a completed stroke in one step.
 - **Onion skin:** open **View > Onion skin settings** to choose the frames before and after, opacity and red/blue tint.
 - **Colours:** the panel shows her colours, every colour **in this picture**, **recent** ones and a colour picker. Colours picked from her sprite paint as her colours, so they follow outfits. **Named colours** are covered in §11.8.
@@ -164,8 +164,9 @@ Sprites, poses and animations are made in the **Character Studio**. Switch to it
 - **Moving:** V moves what's selected, or the whole picture when nothing is.
 - **Animating:**
   - **The preview** at the top right keeps playing the pose (1×, 2× or game size) while you edit.
-  - **Plays:** under the frames, choose *Loop all*, *Once, then loop from frame N*, or *Once, then hold the last*. Coloured bands on the frames show it: amber plays once, green loops. New and moved frames keep the order.
-  - **Several frames at once:** Shift or Ctrl+click frames to pick several. Drawing, erasing, a move, transform, flip or clear then applies to all of them, as one undo step.
+  - **Plays:** under the frames, choose *Loop all*, *Once, then loop from frame N*, *Once, then hold the last*, or *Back and forth* (forwards, then backwards: 1 2 3 4 3 2 1 2..., for a wave or a sway). Coloured bands on the frames show it: amber plays once, green loops. New and moved frames keep the order.
+  - **Several frames at once:** Shift or Ctrl+click frames to pick several. Drawing, erasing, a move, transform, flip or clear then applies to all of them, as one undo step. *Reverse them* swaps the picked frames end for end, in their places.
+  - **Linked frames:** pick frames and press *Link them*, and they share the current frame's picture: draw on one and all of them change (a hold, a blink's open frames). Linked frames show a chain in the same colour under them. *Unlink this frame* gives a frame its own copy again. Duplicating the pose, or copying it for someone else, keeps the links.
   - **Reordering:** drag a frame to move it; Ctrl+drag copies it.
   - **A breathing loop:** *Make a breathing loop* adds a frame with her upper body a pixel lower and loops the two slowly.
 - **Her outfits:** the **Outfit** picker under the character shows your own outfits for her first (§11.7), then every outfit the game knows for her: seasons, festivals (the Flower Dance, Spirit's Eve...) and mods' outfits, named with the mod that adds them. The whole studio then shows her in it. Poses stay live: in the game she wears whatever the day gives her. *Always wear the outfit shown* pins one to a pose; a mod's outfit makes that mod a requirement.
@@ -224,6 +225,7 @@ Expression tools use **B / E / G / I** for pencil, eraser, fill and picker; **X*
 An **outfit** is your own version of a villager's whole sprite sheet: new clothes for Abigail, a raincoat for Robin.
 - **Make one:** press **+** beside *Outfit* under the character (or on the *Outfits* shelf) and name it. It starts from what the studio shows: her own look, a game outfit (the Flower Dance…), or another of your outfits. Every frame of her sheet is there, in the game's places: the four walking directions first, then her special frames.
 - **Paint the clothes on:** each frame is one picture, like a pose. Pick the four steps of a walk in the strip (Shift+click) and draw once to draw on all of them; then fix each step where she moves. Her face and hair stay live, so they follow sprite mods under your paint. The preview walks her in the direction of the frame you're on. Frames can't be added, removed or moved: the game picks them by their place.
+- **The frame strip** labels the groups: *Walking down*, *Walking right*, *Walking up*, *Walking left*, then *Her other frames*.
 - **See her in it:** your outfits come first in the *Outfit* picker (marked *your outfit*). Picked, the whole studio shows her in it: the character card, poses, *Her frames* and the ready-made poses.
 - **Poses in your outfit:** with your outfit shown, start a pose's frame from *Her frames*. The pose then always wears that outfit (the *Outfit* section says so), and stays linked: paint more on the outfit and every pose made from it shows it.
 - **In scenes:** see §11.5. In the game the outfit replaces her sheet while she wears it, so walking and the game's own animations keep working.

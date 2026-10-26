@@ -221,6 +221,9 @@
     <!-- A frame in the strip: thumbnail, number, duration, sequence badges. -->
     <DataTemplate x:Key="FrameThumb" DataType="{x:Type vm:PoseFrameItem}">
         <StackPanel Width="64" Margin="2">
+            <!-- An outfit's groups: "Walking down" over the first frame of each. -->
+            <TextBlock Text="{Binding Group}" FontSize="10" Opacity="0.7" TextTrimming="CharacterEllipsis" Margin="0,0,0,1"
+                       Visibility="{Binding Document.IsSheet, Converter={StaticResource VisibleWhen}}" />
             <!-- What the frame does when it plays: once (amber), loop (green), end (violet). -->
             <Border Height="4" CornerRadius="2" Margin="0,0,0,2" Background="{Binding Role, Converter={x:Static studio:StudioConverters.RoleBrush}}"
                     ToolTip="{Binding Role, Converter={x:Static studio:StudioConverters.RoleText}}" />
@@ -234,6 +237,11 @@
                          inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" ToolTip="How long this frame shows, in milliseconds"
                          Visibility="{Binding ShowsDuration, Converter={StaticResource VisibleWhen}}" />
             </DockPanel>
+            <!-- Linked frames: a chain in the group's colour. -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" ToolTip="{Binding LinkText}" Visibility="{Binding IsLinked, Converter={StaticResource VisibleWhen}}">
+                <ui:SymbolIcon Symbol="Link24" FontSize="11" Foreground="{Binding LinkColor}" />
+                <Border Width="20" Height="3" CornerRadius="1.5" Margin="3,0,0,0" VerticalAlignment="Center" Background="{Binding LinkColor}" />
+            </StackPanel>
             <TextBlock Text="{Binding Badges}" Style="{StaticResource Faint}" FontSize="10" TextAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
         </StackPanel>
     </DataTemplate>
