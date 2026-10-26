@@ -204,7 +204,7 @@ public partial class PoseDocumentViewModel
         stroke = target with { Image = working };
         strokeColor = color;
         strokeChanged = false;
-        BeginInside();   // before the stroke shows: "inside her" means the picture as it was
+        BeginInside();   // before the stroke shows: "inside the character" means the picture as it was
         Context.Overrides[target.Path] = working;
     }
 

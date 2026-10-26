@@ -60,7 +60,7 @@ public sealed class StudioBasicsTests
         // Removing her own pixels has a button now that the simple palette hides Erase.
         expression.RemoveHerPixelsCommand.Execute(null);
         Assert.Equal(ColorSlots.Erase, studio.Palette.Primary);
-        Assert.Equal("Erase (removes her own pixels)", studio.Palette.PrimaryName);
+        Assert.Equal("Erase (removes their own pixels)", studio.Palette.PrimaryName);
 
         // Several frames go at once; picking them all keeps frame 1.
         expression.AddFrameCommand.Execute(null);

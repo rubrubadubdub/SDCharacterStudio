@@ -120,7 +120,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
 
     /// <summary>What the current tool does, in plain words.</summary>
     public string ToolHint => IsPeeking
-        ? "Select what you want from her frame (box, lasso or wand), then Copy into this frame (Enter or Ctrl+C). Esc goes back."
+        ? "Select what you want from the game frame (box, lasso or wand), then Copy into this frame (Enter or Ctrl+C). Esc goes back."
         : IsTransforming
         ? "Drag inside to move, a corner or edge to scale (Shift keeps proportions), the round handle to rotate (Shift: 15° steps). Enter applies, Esc cancels."
         : Tool switch
@@ -136,7 +136,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         StudioTool.Line => "Draw a straight line (Shift: 45°).",
         StudioTool.Rectangle => "Draw a rectangle (Shift: a square).",
         StudioTool.Ellipse => "Draw an ellipse (Shift: a circle).",
-        StudioTool.Shade => "Left click shades darker, right click lighter: one step along her own colours (they stay live), your named colours, or by eye.",
+        StudioTool.Shade => "Left click shades darker, right click lighter: one step along the character's own colours (they stay live), your named colours, or by eye.",
         StudioTool.Anchor => "Place a point that other layers hang from: a head on the Neck, a prop in the Hand.",
         _ => "",
     };
@@ -154,15 +154,20 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     public bool ShowsPlayOrder => !IsPortrait && !IsSheet;
     /// <summary>An outfit keeps every frame in its place: no add, delete or move.</summary>
     public bool CanChangeFrames => !IsSheet;
-    /// <summary>Ready-made poses make a pose; an outfit is clothes on all her frames.</summary>
-    public bool ShowsReadyMade => !IsSheet;
+    /// <summary>Ready-made poses make a pose; an outfit is clothes on all her frames, a portrait is faces.</summary>
+    public bool ShowsReadyMade => !IsSheet && !IsPortrait;
+    /// <summary>Body parts, sprite frames and outfits are the sprite's: a portrait has none of them.</summary>
+    public bool ShowsBodyParts => IsFlat && !IsPortrait;
+    public bool ShowsSpriteSections => !IsPortrait;
     public string PickedFramesText => $"{PickedFrames.Count} frames picked: drawing, erasing and moving apply to all of them";
     public string SheetFramesHint => IsSheet ? "Click: start this frame again from it · Shift+click: copy part of it" : "Click: start from it · Ctrl+click: new frame · Shift+click: copy part of it";
     public string PinOutfitLabel => IsSheet ? "Make it from the outfit shown" : "Always wear the outfit shown";
-    public string UnpinOutfitLabel => IsSheet ? "Make it from her own look" : "Wear what the game gives";
-    public string FrameCaption => Frames.Count == 0 ? "" : IsPortrait ? $"Emotion {Badges(FrameIndex)} ({FrameIndex + 1} of {Frames.Count})"
-        : IsSheet ? $"Frame {FrameIndex + 1} of {Frames.Count} · " + (FrameIndex < 16 ? $"walk {SheetFacing(FrameIndex)} {FrameIndex % 4 + 1}" : $"her frame {FrameIndex}")
+    public string UnpinOutfitLabel => IsSheet ? "Make it from their own look" : "Wear what the game gives";
+    public string FrameCaption => Frames.Count == 0 ? "" : IsPortrait ? $"{Capitalized(Badges(FrameIndex))} · {FrameIndex + 1}/{Frames.Count}"
+        : IsSheet ? $"Frame {FrameIndex + 1} of {Frames.Count} · " + (FrameIndex < 16 ? $"walk {SheetFacing(FrameIndex)} {FrameIndex % 4 + 1}" : $"game frame {FrameIndex}")
         : $"Frame {FrameIndex + 1} of {Frames.Count}";
+
+    private static string Capitalized(string? text) => string.IsNullOrEmpty(text) ? "" : char.ToUpperInvariant(text[0]) + text[1..];
 
     partial void OnFrameIndexChanged(int value)
     {
@@ -173,7 +178,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         RefreshAnchors();
         Render();
         BuildFields();
-        OnPropertyChanged(nameof(FrameCaption)); OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten));
+        OnPropertyChanged(nameof(FrameCaption)); OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten)); OnPropertyChanged(nameof(ShowsBodyParts));
         OnPropertyChanged(nameof(IsLinked)); OnPropertyChanged(nameof(LinkedText));
     }
     partial void OnLayerIndexChanged(int value) { foreach (var row in Layers) row.IsSelected = row.Index == value; Selection = null; BuildFields(); }
@@ -208,7 +213,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
             if (LoadModel() is not { } fresh) return false;
             Model = fresh;
         }
-        Title = Model.Id ?? ItemId;
+        Title = LibraryNames.Friendly(Model.Id ?? ItemId, Model.For, Library?.Whose(Model.For));
         RebuildAll(rebuildFieldsOnReload || !IsOwnCommit);
         return true;
     }
@@ -225,7 +230,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         foreach (var frame in Frames)
         {
             frame.IsSelected = frame.Index == FrameIndex; frame.Badges = Badges(frame.Index);
-            frame.Group = !IsSheet ? null : frame.Index < 16 ? (frame.Index % 4 == 0 ? $"Walking {SheetFacing(frame.Index)}" : "") : frame.Index == 16 ? "Her other frames" : "";
+            frame.Group = !IsSheet ? null : frame.Index < 16 ? (frame.Index % 4 == 0 ? $"Walking {SheetFacing(frame.Index)}" : "") : frame.Index == 16 ? "Other frames" : "";
         }
         RefreshLinks();
         RebuildSequences();
@@ -239,8 +244,8 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
         RenderThumbnails();
         if (fields) BuildFields();
         OnPropertyChanged(nameof(Width)); OnPropertyChanged(nameof(Height)); OnPropertyChanged(nameof(Pivot)); OnPropertyChanged(nameof(IsSheet)); OnPropertyChanged(nameof(FrameCaption));
-        OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten));
-        foreach (var name in new[] { nameof(ShowsPlayOrder), nameof(CanChangeFrames), nameof(ShowsReadyMade), nameof(SheetFramesHint), nameof(PinOutfitLabel), nameof(UnpinOutfitLabel) }) OnPropertyChanged(name);
+        OnPropertyChanged(nameof(IsFlat)); OnPropertyChanged(nameof(CanFlatten)); OnPropertyChanged(nameof(ShowsBodyParts));
+        foreach (var name in new[] { nameof(ShowsPlayOrder), nameof(ShowsPlayOrderRow), nameof(CanChangeFrames), nameof(ShowsReadyMade), nameof(SheetFramesHint), nameof(PinOutfitLabel), nameof(UnpinOutfitLabel) }) OnPropertyChanged(name);
     }
 
     protected virtual string? Badges(int index)
@@ -334,7 +339,7 @@ public partial class PoseDocumentViewModel : StudioDocumentViewModel
     private bool FramesStayInPlace()
     {
         if (!IsSheet) return false;
-        Ui.Toast("Frames stay in place", "An outfit has every frame of her sprite sheet, in the game's order, so frames can't be added, removed or moved. Start a frame again from one of her frames instead.", ToastKind.Info);
+        Ui.Toast("Frames stay in place", "An outfit has every frame of their sprite sheet, in the game's order, so frames can't be added, removed or moved. Start a frame again from one of the game frames instead.", ToastKind.Info);
         return true;
     }
 

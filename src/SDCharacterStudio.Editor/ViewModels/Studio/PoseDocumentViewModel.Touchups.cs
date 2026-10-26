@@ -136,7 +136,7 @@ public partial class PoseDocumentViewModel
         }
         if (work.Count == 0)
         {
-            Ui.Toast("Nothing to outline", IsFlat ? "Nothing you painted reaches the edge of her yet: paint past her outline, then outline it." : "Outlining works on a pose that is one picture.", ToastKind.Info);
+            Ui.Toast("Nothing to outline", IsFlat ? "Nothing you painted reaches the edge of the character yet: paint past their outline, then outline it." : "Outlining works on a pose that is one picture.", ToastKind.Info);
             return;
         }
         Save(work.Count > 1 ? $"Outline on {work.Count} frames" : "Outline what you painted", _ => { }, lib => { foreach (var (flat, image) in work) lib.WriteImage(flat.Paint.Image!, image); }, rebuildFields: false);

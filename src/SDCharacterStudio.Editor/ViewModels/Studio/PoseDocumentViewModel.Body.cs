@@ -35,7 +35,7 @@ public partial class PoseDocumentViewModel
     partial void OnShowPartsChanged(bool value)
     {
         if (value && !IsStandingPicture())
-            Ui.Toast("Her standing frame", "Body parts are set on her standing frame. Start this frame from it (Her frames) or open a new pose to fix them.", ToastKind.Info);
+            Ui.Toast("The standing frame", "Body parts are set on the standing frame. Start this frame from it (Game frames) or open a new pose to fix them.", ToastKind.Info);
         RefreshPartsOverlay();
         OnPropertyChanged(nameof(CanvasOverlay)); OnPropertyChanged(nameof(CanvasOverlayOpacity));
     }
@@ -107,7 +107,7 @@ public partial class PoseDocumentViewModel
         var parts = PartsOnCanvas();
         var cells = Enumerable.Range(0, parts.Length).Where(i => parts[i] == part || (part == "arms" && BodyMaps.IsArm(parts[i]))).Select(i => (i % Width, i / Width));
         var shape = SelectionMask.FromCells(Width, Height, cells);
-        if (shape.IsEmpty) { Ui.Toast("No " + (part == "arms" ? "arms" : BodyMaps.Find(part)?.Label.ToLowerInvariant() ?? part), "This frame doesn't show that part. Fix her parts with Show parts.", ToastKind.Info); return; }
+        if (shape.IsEmpty) { Ui.Toast("No " + (part == "arms" ? "arms" : BodyMaps.Find(part)?.Label.ToLowerInvariant() ?? part), "This frame doesn't show that part. Fix the parts with Show parts.", ToastKind.Info); return; }
         if (!IsSelectionTool(Tool) && Tool != StudioTool.Move) Tool = StudioTool.Select;
         SetShape(shape);
     }
@@ -149,7 +149,7 @@ public partial class PoseDocumentViewModel
         partsWorking = null;
         if (PoseCharacter() is not { IsFarmer: false } who) return true;
         string facing = PoseFacing;
-        Save("Fix her body parts", _ => { }, lib =>
+        Save("Fix the body parts", _ => { }, lib =>
         {
             var rig = lib.RigFor(who.Key) ?? lib.Rig(RigFactory.EnsureNpcRig(lib, Studio.Shell.Catalog, who.Key, Context))!;
             rig.BodyMap ??= new(StringComparer.OrdinalIgnoreCase);
@@ -261,7 +261,7 @@ public partial class PoseDocumentViewModel
         if (StandingImage(facing) is not { } standing || BodyMapFor(facing, out _) is not { } body)
         { Ui.Toast("No standing frame", "Ready-made poses start from the character's standing sprite, which the game export doesn't have for this pose.", ToastKind.Info); return; }
         if (standing.Width != Width || standing.Height != Height)
-        { Ui.Toast("A different size", "Ready-made poses need a pose the size of her sprite.", ToastKind.Info); return; }
+        { Ui.Toast("A different size", "Ready-made poses need a pose the size of their sprite.", ToastKind.Info); return; }
         var maps = ReadyMadePoses.Maps(preset, standing, body, facing);
         int at = FrameIndex;
         Save("Ready-made pose: " + preset.Title, pose =>

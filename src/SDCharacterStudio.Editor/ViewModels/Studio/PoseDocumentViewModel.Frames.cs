@@ -49,8 +49,8 @@ public partial class PoseDocumentViewModel
     public bool CanPinOutfit => PoseCharacter() is { IsFarmer: false } && (WearableShownOutfit != null || PinnedOutfit != null);
     public string OutfitText => PinnedOutfit is { } pinned
         ? IsSheet ? $"Made from: {Studio.OutfitName(pinned)}." : $"This pose always wears: {Studio.OutfitName(pinned)}."
-        : IsSheet ? "Made from her own look: it follows seasons and sprite mods under your paint."
-        : "In the game she wears whatever the season or festival gives her. Pick an outfit above to see her in it.";
+        : IsSheet ? "Made from their own look: it follows seasons and sprite mods under your paint."
+        : "In the game they wear whatever the season or festival gives them. Pick an outfit above to see them in it.";
 
     /// <summary>Always wear the outfit the studio is showing (or, with null, whatever the game gives her). One undo step.</summary>
     [RelayCommand]
@@ -58,7 +58,7 @@ public partial class PoseDocumentViewModel
     {
         if (PoseCharacter() is not { IsFarmer: false } who) return;
         if (string.Equals(StudioContext.OutfitId(asset), Model.Id, StringComparison.OrdinalIgnoreCase))
-        { Ui.Toast("Not itself", "An outfit can't be made from itself. Pick her own look or another outfit.", ToastKind.Info); return; }
+        { Ui.Toast("Not itself", "An outfit can't be made from itself. Pick their own look or another outfit.", ToastKind.Info); return; }
         Save(asset == null ? "Wear what the game gives" : "Wear " + Studio.OutfitName(asset), pose => Wear(pose, who.Key, asset));
         OutfitChanged();
     }
@@ -131,10 +131,10 @@ public partial class PoseDocumentViewModel
     [RelayCommand]
     public void StartFromSheetFrame(int index)
     {
-        if (Flat is not { } flat) { Ui.Toast("One picture only", "Starting from her frames works on a pose that is one picture.", ToastKind.Info); return; }
+        if (Flat is not { } flat) { Ui.Toast("One picture only", "Starting from game frames works on a pose that is one picture.", ToastKind.Info); return; }
         var (map, paint) = FreshPicture();
         bool wears = false;
-        Save($"Start from her frame {index}", pose =>
+        Save($"Start from game frame {index}", pose =>
         {
             var live = (LiveLayer)pose.Frames[FrameIndex].Layers[0];
             live.SourceFrame = new SourceFrame { Index = index };
@@ -148,12 +148,12 @@ public partial class PoseDocumentViewModel
     [RelayCommand]
     public void AddSheetFrame(int index)
     {
-        if (Frame is null || Flat is null) { Ui.Toast("One picture only", "Adding her frames works on a pose that is one picture.", ToastKind.Info); return; }
+        if (Frame is null || Flat is null) { Ui.Toast("One picture only", "Adding game frames works on a pose that is one picture.", ToastKind.Info); return; }
         if (IsSheet) { StartFromSheetFrame(index); return; }   // an outfit's frames stay in their places
         int at = FrameIndex + 1;
         var (map, paint) = FreshPicture();
         bool wears = false;
-        Save($"Add her frame {index}", pose => KeepingOrder(pose, p =>
+        Save($"Add game frame {index}", pose => KeepingOrder(pose, p =>
         {
             var copy = CopyFrame(p.Frames[FrameIndex], at);
             ((LiveLayer)copy.Layers[0]).SourceFrame = new SourceFrame { Index = index };

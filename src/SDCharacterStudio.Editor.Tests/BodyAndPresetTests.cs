@@ -48,7 +48,7 @@ public sealed class BodyAndPresetTests
         pose.PartBrush = "head";
         pose.BrushSize = 1;
         pose.PointerDown(bx, by, PointerButton.Primary); pose.PointerUp(bx, by);
-        Assert.Equal("Fix her body parts", editor.Shell.Document!.History.UndoLabel);
+        Assert.Equal("Fix the body parts", editor.Shell.Document!.History.UndoLabel);
         var rig = studio.Library!.RigFor("Robin")!;
         Assert.True(rig.BodyMap!.ContainsKey("left"));
         Assert.Equal("head", BodyMaps.PartAt(pose.BodyMapFor("left", out bool saved)!, bx, by));

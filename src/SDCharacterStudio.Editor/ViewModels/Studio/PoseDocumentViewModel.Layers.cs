@@ -580,7 +580,7 @@ public partial class PoseDocumentViewModel
             References.RenamePose(lib, Studio.Shell.Document!, old, next);
         });
         ItemId = next;
-        Title = next;
+        Title = LibraryNames.Friendly(next, Model.For, Library?.Whose(Model.For));
         Reload();
     }
 

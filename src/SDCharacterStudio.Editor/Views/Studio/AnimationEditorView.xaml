@@ -92,7 +92,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:FlipbookStepViewModel}">
                                         <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource SubtleLineBrush}" BorderThickness="1" CornerRadius="6"
-                                                Width="210" Margin="0,0,8,0" Padding="10,6" VerticalAlignment="Top">
+                                                Width="230" Margin="0,0,8,0" Padding="10,6" VerticalAlignment="Top">
                                             <StackPanel>
                                                 <DockPanel>
                                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -102,16 +102,25 @@
                                                     </StackPanel>
                                                     <TextBlock Text="{Binding Number, StringFormat='Step {0}'}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                                 </DockPanel>
-                                                <ComboBox Margin="0,6,0,0" ItemsSource="{x:Static vm:AnimationDocumentViewModel.StepKinds}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Do}" />
+                                                <DockPanel Margin="0,6,0,0">
+                                                    <TextBlock Text="Does" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
+                                                    <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.StepKinds}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Do}" />
+                                                </DockPanel>
                                                 <DockPanel Margin="0,4,0,0">
                                                     <TextBlock Text="Seconds" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
                                                     <ui:NumberBox Value="{Binding Seconds, Mode=TwoWay}" Minimum="0.05" Maximum="60" SmallChange="0.1" MaxDecimalPlaces="2" ClearButtonEnabled="False" />
                                                 </DockPanel>
                                                 <StackPanel Visibility="{Binding IsPose, Converter={StaticResource VisibleWhen}}">
-                                                    <ComboBox Margin="0,6,0,0" ItemsSource="{Binding DataContext.PoseChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                              DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Pose}"
-                                                              ToolTip="Her poses, then the ready-made ones (made for her the first time you pick one). Make your own in the Poses shelf." />
-                                                    <ComboBox Margin="0,6,0,0" ItemsSource="{x:Static vm:AnimationDocumentViewModel.PlayChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Play}" />
+                                                    <DockPanel Margin="0,6,0,0">
+                                                        <TextBlock Text="Pose" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
+                                                        <ComboBox ItemsSource="{Binding DataContext.PoseChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                  DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Pose}"
+                                                                  ToolTip="Their poses, then the ready-made ones (made for them the first time you pick one). Make your own in the Poses shelf." />
+                                                    </DockPanel>
+                                                    <DockPanel Margin="0,6,0,0">
+                                                        <TextBlock Text="Plays" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
+                                                        <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.PlayChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Play}" />
+                                                    </DockPanel>
                                                 </StackPanel>
                                                 <StackPanel Visibility="{Binding IsWalk, Converter={StaticResource VisibleWhen}}" Margin="0,6,0,0">
                                                     <StackPanel Orientation="Horizontal">
@@ -126,8 +135,10 @@
                                                         <ui:NumberBox Value="{Binding Distance, Mode=TwoWay}" Minimum="1" Maximum="40" SmallChange="1" MaxDecimalPlaces="0" ClearButtonEnabled="False" />
                                                     </DockPanel>
                                                 </StackPanel>
-                                                <ComboBox Margin="0,6,0,0" ItemsSource="{x:Static vm:AnimationDocumentViewModel.FacingChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Facing}"
-                                                          Visibility="{Binding HasFacing, Converter={StaticResource VisibleWhen}}" />
+                                                <DockPanel Margin="0,6,0,0" Visibility="{Binding HasFacing, Converter={StaticResource VisibleWhen}}">
+                                                    <TextBlock Text="Facing" Style="{StaticResource Caption}" VerticalAlignment="Center" Width="58" />
+                                                    <ComboBox ItemsSource="{x:Static vm:AnimationDocumentViewModel.FacingChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Facing}" />
+                                                </DockPanel>
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>

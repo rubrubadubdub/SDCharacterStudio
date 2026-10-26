@@ -51,11 +51,11 @@
                              IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Pencil}">
                     <Grid><ui:SymbolIcon Symbol="Edit24" /><TextBlock Text="B" Style="{StaticResource RailKey}" /></Grid>
                 </RadioButton>
-                <RadioButton Style="{StaticResource RailTool}" ToolTip="Eraser (E). Erases what you see, even her own pixels."
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Eraser (E). Erases what you see, even the character's own pixels."
                              IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Eraser}">
                     <Grid><ui:SymbolIcon Symbol="Eraser24" /><TextBlock Text="E" Style="{StaticResource RailKey}" /></Grid>
                 </RadioButton>
-                <RadioButton Style="{StaticResource RailTool}" ToolTip="Shade (D). Left click darker, right click lighter: one step along her own colours (they stay live), your named colours, or by eye. [ and ] change the brush."
+                <RadioButton Style="{StaticResource RailTool}" ToolTip="Shade (D). Left click darker, right click lighter: one step along the character's own colours (they stay live), your named colours, or by eye. [ and ] change the brush."
                              IsChecked="{Binding Tool, Converter={x:Static studio:StudioConverters.EnumIs}, ConverterParameter=Shade}">
                     <Grid><ui:SymbolIcon Symbol="DarkTheme24" /><TextBlock Text="D" Style="{StaticResource RailKey}" /></Grid>
                 </RadioButton>
@@ -86,7 +86,7 @@
                 </RadioButton>
                 <Rectangle Height="1" Fill="{StaticResource SubtleLineBrush}" Margin="2,4,2,8" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon BorderOutside24}" Command="{Binding OutlinePaintCommand}"
-                           ToolTip="Outline what you painted: her outline colour around your paint where it meets empty space (on every picked frame)" />
+                           ToolTip="Outline what you painted: the character's outline colour around your paint where it meets empty space (on every picked frame)" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon Resize24}" Command="{Binding TransformCommand}" ToolTip="Transform (Ctrl+T): move, scale and rotate the selection with handles" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon ArrowRotateClockwise24}" Command="{Binding RotateRightCommand}" ToolTip="Turn a quarter right (Shift+R)" />
                 <ui:Button Style="{StaticResource RailButton}" Icon="{ui:SymbolIcon ArrowRotateCounterclockwise24}" Command="{Binding RotateLeftCommand}" ToolTip="Turn a quarter left (Ctrl+Shift+R)" />
@@ -115,7 +115,7 @@
                                        Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
                                 <ui:Button.Icon><ui:SymbolIcon Symbol="{Binding IsPlaying, Converter={x:Static studio:StudioConverters.PlayIcon}}" /></ui:Button.Icon>
                             </ui:Button>
-                            <TextBlock Text="{Binding FrameCaption}" Style="{StaticResource Caption}" VerticalAlignment="Center" MaxWidth="100" TextTrimming="CharacterEllipsis" ToolTip="{Binding FrameCaption}" />
+                            <TextBlock Text="{Binding FrameCaption}" Style="{StaticResource Caption}" VerticalAlignment="Center" MaxWidth="130" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip="{Binding FrameCaption}" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
                             <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ZoomOut24}" Command="{Binding ZoomOutCommand}" ToolTip="Zoom out (wheel, Ctrl+-)" />
@@ -185,9 +185,9 @@
                                       ToolTip="Mirror what you draw or erase across the frame's centre (the dashed line)" />
                         </WrapPanel>
                         <CheckBox Content="Filled" IsChecked="{Binding FilledShapes}" MinWidth="0" VerticalAlignment="Center" Visibility="{Binding UsesShapes, Converter={StaticResource VisibleWhen}}" />
-                        <CheckBox Content="Inside her only" IsChecked="{Binding PaintInside}" Margin="12,0,0,0" MinWidth="0" VerticalAlignment="Center"
+                        <CheckBox Content="Inside the character only" IsChecked="{Binding PaintInside}" Margin="12,0,0,0" MinWidth="0" VerticalAlignment="Center"
                                   Visibility="{Binding UsesPaint, Converter={StaticResource VisibleWhen}}"
-                                  ToolTip="Paint only where she (or your paint) already is: patterns and folds stay inside her outline (Pixelorama's alpha lock)" />
+                                  ToolTip="Paint only where the character (or your paint) already is: patterns and folds stay inside their outline (Pixelorama's alpha lock)" />
                         <!-- A floating piece: exact numbers and quick turns (Animate's transform panel). -->
                         <WrapPanel Visibility="{Binding IsTransforming, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="Angle" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
@@ -266,18 +266,16 @@
                         <ContentControl DockPanel.Dock="Bottom" Content="{Binding}" ContentTemplate="{StaticResource Sequences}" Margin="0,6,0,0" Focusable="False"
                                         Visibility="{Binding ShowsSequenceChips, Converter={StaticResource VisibleWhen}}" />
                         <!-- How it plays, in plain words (Aseprite's tags, simplified). -->
-                        <WrapPanel DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="{Binding ShowsPlayOrder, Converter={StaticResource VisibleWhen}}">
-                            <TextBlock Text="Plays:" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <RadioButton Content="Loop all" GroupName="PlayOrder" IsChecked="{Binding LoopsAll}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame, round and round" />
-                            <RadioButton GroupName="PlayOrder" IsChecked="{Binding PlaysOnceThenLoops}" MinWidth="0" Margin="0,0,4,0" ToolTip="The first frames once (getting into the pose), then the rest round and round">
-                                <TextBlock Text="Once, then loop from frame" />
-                            </RadioButton>
-                            <TextBox Text="{Binding LoopFromNumber, UpdateSourceTrigger=LostFocus}" Width="40" Margin="0,0,10,0" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True" />
-                            <RadioButton Content="Once, then hold the last" GroupName="PlayOrder" IsChecked="{Binding HoldsLast}" MinWidth="0" Margin="0,0,10,0" ToolTip="Every frame once, then stay on the last one" />
-                            <RadioButton Content="Back and forth" GroupName="PlayOrder" IsChecked="{Binding PlaysBackAndForth}" MinWidth="0" Margin="0,0,10,0"
-                                         ToolTip="Forwards, then backwards, round and round: 1 2 3 2 1 2 3... (a wave, a sway, a breath)" />
-                            <TextBlock Text="{Binding PlayOrderText}" Style="{StaticResource Faint}" VerticalAlignment="Center" />
-                        </WrapPanel>
+                        <!-- How it plays, one line: a choice and, for "once, then loop", which frame the loop starts at. -->
+                        <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="{Binding ShowsPlayOrderRow, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock DockPanel.Dock="Left" Text="Plays" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <ComboBox DockPanel.Dock="Left" ItemsSource="{Binding Source={x:Static vm:PoseDocumentViewModel.PlayOrders}}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                      SelectedValue="{Binding PlayOrderChoice}" MinWidth="200" Margin="0,0,6,0"
+                                      ToolTip="Loop all: round and round. Once, then loop: getting into the pose, then the rest round and round. Hold the last: once, then stay. Back and forth: 1 2 3 2 1 2 3..." />
+                            <TextBox DockPanel.Dock="Left" Text="{Binding LoopFromNumber, UpdateSourceTrigger=LostFocus}" Width="40" Margin="0,0,10,0" inf:Behaviors.CommitOnEnter="True" inf:Behaviors.SelectAllOnFocus="True"
+                                     ToolTip="The frame the loop starts at" Visibility="{Binding PlaysOnceThenLoops, Converter={StaticResource VisibleWhen}}" />
+                            <TextBlock Text="{Binding PlayOrderText}" Style="{StaticResource Faint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
                         <StackPanel DockPanel.Dock="Left" Margin="0,0,8,0" Visibility="{Binding CanChangeFrames, Converter={StaticResource VisibleWhen}}">
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddFrameCommand}" ToolTip="Add a frame after this one (a copy, with its own paint)" />
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Delete24}" Command="{Binding DeleteFrameCommand}" ToolTip="Delete this frame, or every frame you picked (Shift or Ctrl+click in the strip). Delete key too." />
@@ -329,7 +327,7 @@
                     <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="12,0,12,16" Padding="12,6" CornerRadius="6" Background="#CC1E2024" IsHitTestVisible="False"
                             Visibility="{Binding IsFrameEmpty, Converter={StaticResource VisibleWhen}}">
                         <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" MaxWidth="420" TextAlignment="Center"
-                                   Text="This frame is empty. Start it from one of her frames (Her frames, on the right), paste (Ctrl+V), or draw." />
+                                   Text="This frame is empty. Start it from one of their frames (Game frames, on the right), paste (Ctrl+V), or draw." />
                     </Border>
 
                     <!-- Copying part of one of her frames -->
@@ -431,9 +429,20 @@
                         <StackPanel>
                             <TextBlock Text="An outfit" Style="{StaticResource Caption}" FontWeight="SemiBold" Margin="0,0,0,4" />
                             <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
-                                       Text="Every frame of her sprite sheet, in the game's places. Paint the clothes on her. Pick the four steps of a walk in the strip (Shift+click) to draw on all of them at once." />
+                                       Text="Every frame of their sprite sheet, in the game's places. Paint the clothes on them. Pick the four steps of a walk in the strip (Shift+click) to draw on all of them at once." />
                             <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0"
-                                       Text="Pick it under Outfit (top left) to see her in it, and start poses from its frames. In a scene, a Costume beat puts it on." />
+                                       Text="Pick it under Outfit (top left) to see them in it, and start poses from its frames. In a scene, a Costume beat puts it on." />
+                        </StackPanel>
+                    </Border>
+                    <!-- A portrait: what it is and where it shows. -->
+                    <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="10,8" Margin="0,0,0,8"
+                            Visibility="{Binding IsPortrait, Converter={StaticResource VisibleWhen}}">
+                        <StackPanel>
+                            <TextBlock Text="A portrait" Style="{StaticResource Caption}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                       Text="One face per frame, in the game's order: neutral, happy, sad, unique, love, angry. Paint over the real portrait; what you don't paint stays the game's (and follows portrait mods)." />
+                            <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="In a scene, a Say beat shows it (Composed portrait), or a Costume beat changes the portrait for the rest of the scene. Dialogue picks the face: $h happy, $s sad, $u unique, $l love, $a angry." />
                         </StackPanel>
                     </Border>
                     <!-- An older pose made of layers: offer to make it one picture (D-48). -->
@@ -448,7 +457,7 @@
 
                     <!-- Ready-made poses -->
                     <ToggleButton Style="{StaticResource SectionHeader}" Content="READY-MADE POSES" IsChecked="{Binding PresetsOpen}" Visibility="{Binding ShowsReadyMade, Converter={StaticResource VisibleWhen}}"
-                                  ToolTip="Poses and little animations made for her body from her standing sprite. Point at one to watch it in the preview; click it to make this frame that pose (the moving ones add frames after it). They keep following sprite mods." />
+                                  ToolTip="Poses and little animations made for this character's body from their standing sprite. Point at one to watch it in the preview; click it to make this frame that pose (the moving ones add frames after it). They keep following sprite mods." />
                     <StackPanel Margin="0,4,0,8">
                         <StackPanel.Visibility>
                             <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
@@ -480,9 +489,9 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Visibility="{Binding HasPresetPictures, Converter={StaticResource VisibleWhen}, ConverterParameter=not}"
-                                   Text="Ready-made poses are drawn from her standing sprite, which the game export doesn't have for this pose." />
+                                   Text="Ready-made poses are drawn from the standing sprite, which the game export doesn't have for this pose." />
                         <ui:Button Content="Breathing loop" Icon="{ui:SymbolIcon ArrowRepeatAll24}" Command="{Binding MakeIdleLoopCommand}" HorizontalAlignment="Stretch" Margin="0,4,0,0"
-                                   ToolTip="Adds a frame with her upper body a pixel lower and loops the two slowly, like a character standing and breathing. Still her own pixels." />
+                                   ToolTip="Adds a frame with the upper body a pixel lower and loops the two slowly, like a character standing and breathing. Still their own pixels." />
                         <!-- A layered pose (made with Advanced): the older helpers. -->
                         <StackPanel Visibility="{Binding IsFlat, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
                             <ItemsControl ItemsSource="{Binding Recipes}" Focusable="False" Margin="0,6,0,0">
@@ -504,22 +513,22 @@
                     </StackPanel>
 
                     <!-- Her body (D-49): parts from her standing frame, fixed with a brush, saved for her. -->
-                    <ToggleButton Style="{StaticResource SectionHeader}" Content="HER BODY" IsChecked="{Binding BodyOpen}" Visibility="{Binding IsFlat, Converter={StaticResource VisibleWhen}}"
-                                  ToolTip="Select a part of her, then drag it, turn it (Ctrl+T) or flip it. The ready-made poses use these parts." />
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="BODY PARTS" IsChecked="{Binding BodyOpen}" Visibility="{Binding ShowsBodyParts, Converter={StaticResource VisibleWhen}}"
+                                  ToolTip="Select a part of the character, then drag it, turn it (Ctrl+T) or flip it. The ready-made poses use these parts." />
                     <StackPanel Margin="0,4,0,8">
                         <StackPanel.Visibility>
                             <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
-                                <Binding Path="IsFlat" />
+                                <Binding Path="ShowsBodyParts" />
                                 <Binding Path="BodyOpen" />
                             </MultiBinding>
                         </StackPanel.Visibility>
                         <WrapPanel>
-                            <ui:Button Content="Head" Command="{Binding SelectPartCommand}" CommandParameter="head" Margin="0,0,4,4" Padding="8,3" ToolTip="Select her head" />
-                            <ui:Button Content="Body" Command="{Binding SelectPartCommand}" CommandParameter="body" Margin="0,0,4,4" Padding="8,3" ToolTip="Select her body" />
+                            <ui:Button Content="Head" Command="{Binding SelectPartCommand}" CommandParameter="head" Margin="0,0,4,4" Padding="8,3" ToolTip="Select the head" />
+                            <ui:Button Content="Body" Command="{Binding SelectPartCommand}" CommandParameter="body" Margin="0,0,4,4" Padding="8,3" ToolTip="Select the body" />
                             <ui:Button Content="Arms" Command="{Binding SelectPartCommand}" CommandParameter="arms" Margin="0,0,4,4" Padding="8,3" ToolTip="Select both arms (front and back views)" />
-                            <ui:Button Content="Legs" Command="{Binding SelectPartCommand}" CommandParameter="legs" Margin="0,0,4,4" Padding="8,3" ToolTip="Select her legs" />
+                            <ui:Button Content="Legs" Command="{Binding SelectPartCommand}" CommandParameter="legs" Margin="0,0,4,4" Padding="8,3" ToolTip="Select the legs" />
                             <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Show parts" IsChecked="{Binding ShowParts}" Margin="0,0,0,4"
-                                          ToolTip="Colour her parts on the canvas. If one is wrong (long hair that belongs to her head), paint it right: it's saved for her and this facing." />
+                                          ToolTip="Colour the parts on the canvas. If one is wrong (long hair that belongs to the head), paint it right: it's saved for this character and facing." />
                         </WrapPanel>
                         <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="10,8" Margin="0,4,0,0" Visibility="{Binding ShowParts, Converter={StaticResource VisibleWhen}}">
                             <StackPanel>
@@ -539,15 +548,21 @@
                                     </ListBox.ItemTemplate>
                                 </ListBox>
                                 <ui:Button Content="Start over (automatic)" Command="{Binding ResetBodyPartsCommand}" Margin="0,6,0,0" Padding="8,3"
-                                           ToolTip="Forget your fixes for this facing and guess her parts again" />
+                                           ToolTip="Forget your fixes for this facing and guess the parts again" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
 
                     <!-- Her real frames: walking, special frames, festival frames on her sheet. -->
-                    <ToggleButton Style="{StaticResource SectionHeader}" Content="HER FRAMES" IsChecked="{Binding ShowSheetFrames}"
-                                  ToolTip="Every frame of her sprite in the outfit shown. Click: start this frame from it. Ctrl+click: add it as a new frame. Shift+click: copy part of it into this frame. All stay live." />
-                    <StackPanel Visibility="{Binding ShowSheetFrames, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="GAME FRAMES" IsChecked="{Binding ShowSheetFrames}" Visibility="{Binding ShowsSpriteSections, Converter={StaticResource VisibleWhen}}"
+                                  ToolTip="Every frame of their sprite in the outfit shown. Click: start this frame from it. Ctrl+click: add it as a new frame. Shift+click: copy part of it into this frame. All stay live." />
+                    <StackPanel Margin="0,4,0,8">
+                        <StackPanel.Visibility>
+                            <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
+                                <Binding Path="ShowsSpriteSections" />
+                                <Binding Path="ShowSheetFrames" />
+                            </MultiBinding>
+                        </StackPanel.Visibility>
                         <TextBlock Style="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,0,0,6" Text="{Binding SheetFramesHint}" />
                         <ItemsControl ItemsSource="{Binding SheetFrames}" Focusable="False">
                             <ItemsControl.ItemsPanel>
@@ -572,7 +587,7 @@
 
                     <!-- Recolour her, still live (her dress, her hair...). -->
                     <ToggleButton Style="{StaticResource SectionHeader}" Content="RECOLOUR" IsChecked="{Binding RecolorOpen}" Visibility="{Binding CanRecolor, Converter={StaticResource VisibleWhen}}"
-                                  ToolTip="Change one of her own colours on every frame, still live: the same dress in red, her hair dyed. Sprite mods still draw her underneath." />
+                                  ToolTip="Change one of their own colours on every frame, still live: the same shirt in red, the hair dyed. Sprite mods still draw them underneath." />
                     <StackPanel Margin="0,4,0,8">
                         <StackPanel.Visibility>
                             <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
@@ -586,8 +601,8 @@
                                     <Border Background="{StaticResource PanelHeaderBrush}" CornerRadius="6" Padding="8,6" Margin="0,0,0,6">
                                         <StackPanel>
                                             <DockPanel>
-                                                <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Dismiss24}" Command="{Binding RemoveCommand}" ToolTip="Back to her own colour" />
-                                                <ComboBox ItemsSource="{Binding Sources}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding From}" ToolTip="Which of her colours (and its shades)" />
+                                                <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Dismiss24}" Command="{Binding RemoveCommand}" ToolTip="Back to their own colour" />
+                                                <ComboBox ItemsSource="{Binding Sources}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding From}" ToolTip="Which of their colours (and its shades)" />
                                             </DockPanel>
                                             <DockPanel Margin="0,6,0,0">
                                                 <TextBlock Text="becomes" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,6,0" />
@@ -596,20 +611,26 @@
                                                            ToolTip="Pick a colour (a swatch, the picker or a named colour), then press this" />
                                             </DockPanel>
                                             <ComboBox ItemsSource="{Binding Source={x:Static vm:RecolorRowViewModel.Ranges}}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding RangeChoice}" Margin="0,6,0,0"
-                                                      ToolTip="If it changes too little or too much of her, widen or narrow it" />
+                                                      ToolTip="If it changes too little or too much, widen or narrow it" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <ui:Button Content="Recolour one of her colours" Icon="{ui:SymbolIcon Color24}" Command="{Binding AddRecolorCommand}" HorizontalAlignment="Stretch"
-                                   ToolTip="Her next colour (shirt, pants, hair...) becomes the left colour; change either afterwards" />
+                        <ui:Button Content="Recolour one of their colours" Icon="{ui:SymbolIcon Color24}" Command="{Binding AddRecolorCommand}" HorizontalAlignment="Stretch"
+                                   ToolTip="Their next colour (shirt, pants, hair...) becomes the left colour; change either afterwards" />
                     </StackPanel>
 
                     <!-- Outfit -->
-                    <ToggleButton Style="{StaticResource SectionHeader}" Content="OUTFIT" IsChecked="{Binding OutfitOpen}"
-                                  ToolTip="In the game she wears whatever the season or festival gives her. Pick an outfit under the character to see her in it." />
-                    <StackPanel Visibility="{Binding OutfitOpen, Converter={StaticResource VisibleWhen}}" Margin="0,4,0,8">
+                    <ToggleButton Style="{StaticResource SectionHeader}" Content="OUTFIT" IsChecked="{Binding OutfitOpen}" Visibility="{Binding ShowsSpriteSections, Converter={StaticResource VisibleWhen}}"
+                                  ToolTip="In the game they wear whatever the season or festival gives them. Pick an outfit under the character to see them in it." />
+                    <StackPanel Margin="0,4,0,8">
+                        <StackPanel.Visibility>
+                            <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
+                                <Binding Path="ShowsSpriteSections" />
+                                <Binding Path="OutfitOpen" />
+                            </MultiBinding>
+                        </StackPanel.Visibility>
                         <TextBlock Text="{Binding OutfitText}" Style="{StaticResource Faint}" TextWrapping="Wrap" />
                         <WrapPanel Margin="0,6,0,0" Visibility="{Binding CanPinOutfit, Converter={StaticResource VisibleWhen}}">
                             <ui:Button Content="{Binding PinOutfitLabel}" Command="{Binding PinShownOutfitCommand}" Margin="0,0,6,6"

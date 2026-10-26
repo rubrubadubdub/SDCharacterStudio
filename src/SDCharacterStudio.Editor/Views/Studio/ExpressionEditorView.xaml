@@ -44,8 +44,8 @@
                         </RadioButton>
                     </WrapPanel>
                     <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0" TextWrapping="Wrap"
-                               Text="Paint anywhere on her face. Alt+click takes a colour from it. To close her eyes, paint over them with her skin, or remove her own pixels first." />
-                    <ui:Button Content="Remove her pixels" Icon="{ui:SymbolIcon Eraser24}" Command="{Binding RemoveHerPixelsCommand}" HorizontalAlignment="Stretch" Margin="0,8,0,0"
+                               Text="Paint anywhere on the face. Alt+click takes a colour from it. To close the eyes, paint over them with the skin, or remove the face's own pixels first." />
+                    <ui:Button Content="Remove pixels" Icon="{ui:SymbolIcon Eraser24}" Command="{Binding RemoveHerPixelsCommand}" HorizontalAlignment="Stretch" Margin="0,8,0,0"
                                ToolTip="Paint with Erase: it removes the face's own pixels where you paint (the Eraser tool only takes back your own paint)." />
                     <ContentControl Content="{Binding Palette}" ContentTemplate="{StaticResource PalettePanel}" Margin="0,12,0,0" Focusable="False" />
                 </StackPanel>

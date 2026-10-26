@@ -50,9 +50,11 @@ public partial class PoseEditorView : UserControl
             finally { changingDocument = false; }
             if (e.NewValue is PoseDocumentViewModel now) now.PropertyChanged += Pose_PropertyChanged;
             Dispatcher.BeginInvoke(SyncFrames, DispatcherPriority.Loaded);
+            // A frame bigger than the room (a laptop screen, a portrait) opens fitted, not half off the canvas.
+            Dispatcher.BeginInvoke(() => navigation?.FitIfTooBig(), DispatcherPriority.ContextIdle);
         };
         previewTimer.Tick += (_, _) => { double ms = previewClock.Elapsed.TotalMilliseconds; previewClock.Restart(); Pose?.TickPreview(Math.Min(ms, 250)); };
-        Loaded += (_, _) => { previewClock.Restart(); previewTimer.Start(); SyncFrames(); };
+        Loaded += (_, _) => { previewClock.Restart(); previewTimer.Start(); SyncFrames(); Dispatcher.BeginInvoke(() => navigation?.FitIfTooBig(), DispatcherPriority.ContextIdle); };
         Unloaded += (_, _) => { timer.Stop(); previewTimer.Stop(); ResetNavigation(); AttachWindow(null); };
         Loaded += (_, _) => AttachWindow(Window.GetWindow(this));
         LostKeyboardFocus += (_, _) => { if (!Canvas.IsKeyboardFocused) ResetNavigation(); };

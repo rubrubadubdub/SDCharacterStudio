@@ -65,7 +65,7 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
         if (!IsOwnCommit) CancelStroke();
         if (Library?.Expressions().Expressions.FirstOrDefault(e => string.Equals(e.Id, ItemId, StringComparison.OrdinalIgnoreCase)) is not { } fresh) return false;
         if (!IsOwnCommit) Model = fresh;
-        Title = Model.Id ?? ItemId;
+        Title = LibraryNames.Friendly(Model.Id ?? ItemId, Model.For, Library.Whose(Model.For));
         Rig = Library.Rig(Model.For);
         if (Frames.Count != Model.Frames.Count) { Frames.Clear(); for (int i = 0; i < Model.Frames.Count; i++) Frames.Add(new ExpressionFrameItem(this, i)); }
         FrameIndex = Math.Clamp(FrameIndex, 0, Math.Max(0, Model.Frames.Count - 1));
@@ -77,13 +77,30 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
     }
 
     /// <summary>The live face (standing frame for the facing, or neutral portrait) with this frame applied, like the runtime.</summary>
-    private RgbaImage? Face()
+    private RgbaImage? Face() => FaceOf(Context, Rig, Model);
+
+    private static RgbaImage? FaceOf(StudioContext context, CharacterRig? rig, Expression model)
     {
-        if (Rig?.Npc is not { } npc) return null;
-        if (IsPortrait) return Context.NpcTexture(npc, true) is { } sheet ? StudioImages.Frame(sheet, Width, Height, 0) : null;
-        int stand = Rig.Frames.TryGetValue(Model.Facing ?? "down", out var f) ? f.Stand : 0;
-        try { return new EditorLayerSourceResolver(Context, new Pose { FrameSize = Rig.FrameSize }, Model.Facing ?? "down", new List<string>()).SampleFrame(Rig, stand); }
+        if (rig?.Npc is not { } npc) return null;
+        if (model.Target == "Portrait")
+            return context.NpcTexture(npc, true) is { } sheet ? StudioImages.Frame(sheet, rig.Portrait?.FrameSize[0] ?? 64, rig.Portrait?.FrameSize[1] ?? 64, 0) : null;
+        int stand = rig.Frames.TryGetValue(model.Facing ?? "down", out var f) ? f.Stand : 0;
+        try { return new EditorLayerSourceResolver(context, new Pose { FrameSize = rig.FrameSize }, model.Facing ?? "down", new List<string>()).SampleFrame(rig, stand); }
         catch (ArgumentException) { return null; }
+    }
+
+    /// <summary>Her face with one frame of an expression on it, like the runtime: the library's thumbnails.</summary>
+    public static RgbaImage? Picture(StudioContext context, CharacterRig? rig, Expression model, int index = 0)
+    {
+        var face = FaceOf(context, rig, model);
+        if (face == null || model.Frames.ElementAtOrDefault(index) is not { } frame) return face;
+        int[] box = (model.Target == "Portrait" ? rig?.Portrait?.FaceBox : rig?.FaceBox.GetValueOrDefault(model.Facing ?? "down")) ?? new[] { 4, 8, 8, 6 };
+        var head = StudioImages.Clone(face);
+        var problems = new List<string>();
+        var resolver = new EditorLayerSourceResolver(context, new Pose { FrameSize = new[] { face.Width, face.Height } }, model.Facing ?? "down", problems);
+        try { ExpressionOverlay.Apply(head, context.PackImage(frame.Image) ?? StudioImages.Blank(box[2], box[3]), box, frame, model.ColorSlots, context.Colors(resolver, problems)); }
+        catch (ArgumentException) { }
+        return head;
     }
 
     private RgbaImage FrameImage(ExpressionFrame frame) => Context.PackImage(frame.Image) ?? StudioImages.Blank(Box[2], Box[3]);
@@ -127,7 +144,7 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
         uint color = Tool == StudioTool.Eraser ? 0u : button == PointerButton.Primary ? Palette.Primary : Palette.Secondary;
         if (Tool != StudioTool.Eraser && color >> 24 == 0)
         {
-            Ui.Toast("Pick a colour first", "You're painting with Transparent, which changes nothing here. Click a swatch, or Alt+click her face to take a colour from it. To remove her own pixels, use Remove her pixels.", ToastKind.Info);
+            Ui.Toast("Pick a colour first", "You're painting with Transparent, which changes nothing here. Click a swatch, or Alt+click the face to take a colour from it. To remove the face's own pixels, use Remove pixels.", ToastKind.Info);
             return;
         }
         color = PaintColor(color);
@@ -284,19 +301,28 @@ public sealed partial class ExpressionDocumentViewModel : StudioDocumentViewMode
     {
         Fields.Clear();
         var commit = FieldCommit(lib => lib.SaveExpression(Model));
-        Fields.Add(new SectionField("Expression", "Painted over the face, anywhere. \"Remove her pixels\" clears the face's own pixels where you paint."));
-        Fields.Add(new TextField("ID", "Id", () => Model.Id, v => Rename(v), (l, a, r) => a()) { AllowNull = false, Help = "Say beats and Expression keys use it. Renaming updates them." });
-        var rigs = (Library?.Items(LibraryKind.Rig) ?? Enumerable.Empty<LibraryItem>()).Select(r => new ChoiceItem(r.Id, r.Id, r.Detail));
-        Fields.Add(new ChoiceField("For (rig)", "For", rigs, () => Model.For, v => Model.For = v, commit) { Rebuild = true });
+        bool advanced = Studio.Settings.AdvancedPoseTools;
+        Fields.Add(new SectionField("Expression", "Painted over the face, anywhere. \"Remove pixels\" clears the face's own pixels where you paint."));
+        Fields.Add(new TextField(advanced ? "ID" : "Name", "Id", () => Model.Id, v => Rename(v), (l, a, r) => a()) { AllowNull = false, Help = "Say beats and Expression keys use it. Renaming updates them." });
+        if (advanced)
+        {
+            var rigs = (Library?.Items(LibraryKind.Rig) ?? Enumerable.Empty<LibraryItem>()).Select(r => new ChoiceItem(r.Id, r.Id, r.Detail));
+            Fields.Add(new ChoiceField("For (rig)", "For", rigs, () => Model.For, v => Model.For = v, commit) { Rebuild = true });
+        }
         Fields.Add(new ChoiceField("On", "Target", new[] { new ChoiceItem("Sprite", "The sprite's face"), new ChoiceItem("Portrait", "The portrait's face") }, () => Model.Target, v => Model.Target = v ?? "Sprite", commit) { Rebuild = true });
         if (!IsPortrait) Fields.Add(new ChoiceField("Facing", "Facing", StudioOptions.Facings(), () => Model.Facing, v => Model.Facing = v, commit) { Rebuild = true });
         if (Frame is { } frame)
         {
             Fields.Add(new SectionField($"Frame {FrameIndex + 1}"));
             Fields.Add(new NumberField("Shows for", "Duration", () => frame.Duration, v => frame.Duration = Math.Max(0, v ?? 0), commit) { Minimum = 0, Suffix = "ms", Help = "0 holds it. Several frames with times animate (a blink)." });
-            Fields.Add(new NumberField("Nudge x", "Offset", () => frame.Offset[0], v => frame.Offset = new[] { v ?? 0, frame.Offset[1] }, commit) { Suffix = "px" });
-            Fields.Add(new NumberField("Nudge y", "Offset", () => frame.Offset[1], v => frame.Offset = new[] { frame.Offset[0], v ?? 0 }, commit) { Suffix = "px" });
+            if (advanced)
+            {
+                Fields.Add(new NumberField("Nudge x", "Offset", () => frame.Offset[0], v => frame.Offset = new[] { v ?? 0, frame.Offset[1] }, commit) { Suffix = "px" });
+                Fields.Add(new NumberField("Nudge y", "Offset", () => frame.Offset[1], v => frame.Offset = new[] { frame.Offset[0], v ?? 0 }, commit) { Suffix = "px" });
+            }
         }
+        // Colour slots and the rig's face box are Advanced: in the simple studio her colours just paint as they look.
+        if (!advanced) { Fields.Add(new NoteField("Colour slots and the face box are Advanced settings: turn on Advanced in a pose's toolbar to see them here.")); return; }
         var slots = new ListField("Colour slots", "ColorSlots", "Add slot", () => commit("Add colour slot", () =>
         {
             Model.ColorSlots ??= new(StringComparer.OrdinalIgnoreCase);

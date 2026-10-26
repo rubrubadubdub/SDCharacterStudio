@@ -87,7 +87,7 @@ public sealed partial class CharacterStudioViewModel
         if (shell.Document == null) { shell.Ui.Toast("No project", "Open or create a project first.", ToastKind.Info); return null; }
         if (Character is not { IsFarmer: false } who || Library is not { } library)
         { shell.Ui.Toast("Outfits are for villagers", "The player changes clothes with a Costume beat in a scene.", ToastKind.Info); return null; }
-        name ??= shell.Ui.Prompt("New outfit", $"What is {who.Label} wearing? (e.g. \"raincoat\") It starts from {(Outfit?.Asset == null ? "her own look" : Outfit.Label)}; you paint the clothes on.", "raincoat");
+        name ??= shell.Ui.Prompt("New outfit", $"What is {who.Label} wearing? (e.g. \"raincoat\") It starts from {(Outfit?.Asset == null ? "their own look" : Outfit.Label)}; you paint the clothes on.", "raincoat");
         if (string.IsNullOrWhiteSpace(name)) return null;
         string id = library.UniqueId(LibraryKind.Pose, name.StartsWith(who.Key, StringComparison.OrdinalIgnoreCase) ? name : who.Key + " " + name);
         string? basedOn = Outfit?.Asset;

@@ -20,11 +20,14 @@ public partial class ExpressionEditorView : UserControl
             changingDocument = true;
             try { if (e.OldValue is ExpressionDocumentViewModel old) old.CancelStroke(); ResetNavigation(); }
             finally { changingDocument = false; }
+            // A face bigger than the room (a portrait, a laptop screen) opens fitted.
+            Dispatcher.BeginInvoke(() => navigation?.FitIfTooBig(), System.Windows.Threading.DispatcherPriority.ContextIdle);
         };
         Loaded += (_, _) =>
         {
             navigation = new(CanvasScroller, Canvas, () => Expression?.Zoom ?? 8, z => { if (Expression != null) Expression.Zoom = z; }, () => Expression?.Width ?? 0, () => Expression?.Height ?? 0, () => Expression?.CancelStroke());
             AttachWindow(Window.GetWindow(this));
+            Dispatcher.BeginInvoke(() => navigation?.FitIfTooBig(), System.Windows.Threading.DispatcherPriority.ContextIdle);
         };
         Unloaded += (_, _) => { ResetNavigation(); AttachWindow(null); };
         LostKeyboardFocus += (_, _) => { if (!Canvas.IsKeyboardFocused) ResetNavigation(); };

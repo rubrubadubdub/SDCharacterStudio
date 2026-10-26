@@ -71,7 +71,7 @@ public sealed class OutfitAndFramesTests
         Assert.Equal(4, ((LiveLayer)pose.Frame!.Layers[0]).SourceFrame!.Index);
         Assert.Equal(StudioImages.Frame(sheet, 16, 32, 4)!.Pixels, Composite(studio, pose, 0).Pixels);
         Assert.True(pose.IsFlat);
-        Assert.Equal("Start from her frame 4", editor.Shell.Document!.History.UndoLabel);
+        Assert.Equal("Start from game frame 4", editor.Shell.Document!.History.UndoLabel);
 
         pose.AddSheetFrameCommand.Execute(8);
         Assert.Equal(2, pose.Model.Frames.Count);
@@ -110,7 +110,7 @@ public sealed class BorrowedPixelTests
         Assert.False(pose.IsPeeking);
         Assert.True(pose.IsTransforming);
         Assert.True(pose.HandleKey("Return", false, false));   // apply
-        Assert.Equal("Copy from her frame 8", editor.Shell.Document!.History.UndoLabel);
+        Assert.Equal("Copy from game frame 8", editor.Shell.Document!.History.UndoLabel);
 
         var after = Composite(studio, pose, 0);
         for (int y = 20; y < 32; y++)

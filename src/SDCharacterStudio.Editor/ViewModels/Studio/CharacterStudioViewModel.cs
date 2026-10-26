@@ -30,6 +30,7 @@ public sealed partial class LibraryItemViewModel : ObservableObject
     public bool IsPose => Item.Kind == LibraryKind.Pose;
     public bool CanSaveToMyLibrary => Item.Kind is LibraryKind.Pose or LibraryKind.Clip;
     public bool IsAnimation => Item.Kind == LibraryKind.Clip;
+    public bool CanUseInScene => CharacterStudioViewModel.CanUseInScene(Item.Kind);
     [ObservableProperty] private ImageSource? thumbnail;
     public IRelayCommand OpenCommand { get; }
 }
@@ -113,7 +114,11 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
     }
     partial void OnSearchChanged(string value) { RefreshLibrary(); if (ShowMyLibrary) RefreshMyLibrary(); }
     partial void OnOnlyThisCharacterChanged(bool value) => RefreshLibrary();
-    partial void OnActiveDocumentChanged(StudioDocumentViewModel? value) { value?.Activated(); Palette.Refresh(); }
+    partial void OnActiveDocumentChanged(StudioDocumentViewModel? value)
+    {
+        value?.Activated(); Palette.Refresh();
+        OnPropertyChanged(nameof(CanUseActiveInScene)); OnPropertyChanged(nameof(UseActiveInSceneHint));
+    }
 
     // ---------------- refresh ----------------
 
@@ -188,8 +193,12 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
         return StudioImages.Frame(sheet, character.FrameWidth, character.FrameHeight, index);
     }
 
+    /// <summary>The simple studio (D-48): no masks, rigs or layers in sight.</summary>
+    public bool IsSimple => !Settings.AdvancedPoseTools;
+
     public void RefreshLibrary()
     {
+        OnPropertyChanged(nameof(IsSimple));
         var library = Library;
         foreach (var section in Sections)
         {
@@ -239,6 +248,17 @@ public sealed partial class CharacterStudioViewModel : ObservableObject
                     return StudioImages.ToBitmap(mask);
                 case LibraryKind.Rig when library.Rig(item.Id) is { Npc: { } npc }:
                     return StandingFrame(new CharacterChoice(npc, npc, null, false, null), "down") is { } frame ? StudioImages.ToBitmap(frame) : null;
+                case LibraryKind.Expression when library.Expressions().Expressions.FirstOrDefault(e => string.Equals(e.Id, item.Id, StringComparison.OrdinalIgnoreCase)) is { } expression:
+                    return ExpressionDocumentViewModel.Picture(Context, library.Rig(expression.For), expression) is { } face ? StudioImages.ToBitmap(face) : null;
+                case LibraryKind.Portrait when library.Portrait(item.Id) is { Emotions.Count: > 0 } portrait:
+                    // Its neutral face (or the first one it has), drawn like the editor draws it.
+                    var first = portrait.Emotions.OrderBy(e => PortraitDocumentViewModel.EmotionIndex(e.Key)).First().Value;
+                    var faces = new Pose
+                    {
+                        Format = "1.0", Id = portrait.Id, For = portrait.For, Kind = "portrait", FrameSize = (int[])portrait.FrameSize.Clone(), Facing = "down", MirrorForOppositeFacing = false,
+                        Frames = { new PoseFrame { Duration = 100, Layers = first.Layers, Anchors = first.Anchors } }
+                    };
+                    return StudioImages.ToBitmap(Context.RenderFrame(faces, 0).Image);
                 default: return null;
             }
         }

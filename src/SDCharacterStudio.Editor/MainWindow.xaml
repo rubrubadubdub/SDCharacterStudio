@@ -52,10 +52,11 @@
 
         <!-- ===== Menu and command bar ===== -->
         <Grid Grid.Row="1" Margin="6,0,8,4">
+            <!-- The workspace switch has a column of its own and never gets squeezed; the cutscene picker gives way instead. -->
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
@@ -141,15 +142,16 @@
             </Menu>
 
             <!-- Undo/redo + cutscene picker -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center"
-                        Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}">
-                <Rectangle Width="1" Height="20" Fill="{StaticResource SubtleLineBrush}" Margin="0,0,8,0" />
-                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ArrowUndo24}" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip="{Binding UndoText}" />
-                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ArrowRedo24}" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip="{Binding RedoText}" />
-                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon Save24}" Command="{Binding SaveCommand}" ToolTip="Save (Ctrl+S)" />
-                <Rectangle Width="1" Height="20" Fill="{StaticResource SubtleLineBrush}" Margin="8,0" />
-                <TextBlock Text="Cutscene" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <ComboBox x:Name="CutscenePicker" MinWidth="240" MaxWidth="360" ItemsSource="{Binding Cutscenes}" SelectedItem="{Binding CurrentCutsceneItem}"
+            <DockPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" LastChildFill="True"
+                       Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}">
+                <Rectangle DockPanel.Dock="Left" Width="1" Height="20" Fill="{StaticResource SubtleLineBrush}" Margin="0,0,8,0" />
+                <ui:Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ArrowUndo24}" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip="{Binding UndoText}" />
+                <ui:Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon ArrowRedo24}" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip="{Binding RedoText}" />
+                <ui:Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon Save24}" Command="{Binding SaveCommand}" ToolTip="Save (Ctrl+S)" />
+                <Rectangle DockPanel.Dock="Left" Width="1" Height="20" Fill="{StaticResource SubtleLineBrush}" Margin="8,0" />
+                <TextBlock DockPanel.Dock="Left" Text="Cutscene" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ui:Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddCutsceneCommand}" ToolTip="New cutscene" Margin="4,0,8,0" />
+                <ComboBox x:Name="CutscenePicker" MinWidth="110" MaxWidth="360" HorizontalAlignment="Left" ItemsSource="{Binding Cutscenes}" SelectedItem="{Binding CurrentCutsceneItem}"
                           ToolTip="The cutscene you're editing">
                     <ComboBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:CutsceneItem}">
@@ -160,11 +162,10 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-                <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddCutsceneCommand}" ToolTip="New cutscene" Margin="4,0,0,0" />
-            </StackPanel>
+            </DockPanel>
 
             <!-- Workspace switch (doc 07 §15): scenes, or the Character Studio for sprites, poses and animations -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0,12,0">
                 <RadioButton x:Name="ScenesSwitch" Style="{StaticResource WorkspaceSwitch}" Content="Scenes" GroupName="Workspace"
                              IsChecked="{Binding IsCharacterStudio, Converter={StaticResource Not}}" ToolTip="Stage, storyboard and properties for cutscenes" />
                 <RadioButton x:Name="StudioSwitch" Style="{StaticResource WorkspaceSwitch}" Content="Character Studio" GroupName="Workspace"
@@ -181,7 +182,9 @@
                     </StackPanel>
                 </Border>
                 <!-- Try it as… (D-51): pick how Checks, Chances and random items land in previews. -->
-                <Grid Margin="0,0,6,0" Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}">
+                <!-- Scenes only: the Character Studio has no Checks or Chances to try. -->
+                <Grid Margin="0,0,6,0" Visibility="{Binding IsCharacterStudio, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                <Grid Visibility="{Binding IsProjectOpen, Converter={StaticResource VisibleWhen}}">
                     <ToggleButton x:Name="TryItAsToggle" Style="{StaticResource ToolbarToggle}" Content="{Binding TryItAs.ButtonText}" Checked="TryItAs_Opened"
                                   ToolTip="Pick how this scene's Checks, Chances and random items land in previews. Your pack and the save don't change." />
                     <Popup IsOpen="{Binding IsChecked, ElementName=TryItAsToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=TryItAsToggle}" Placement="Bottom"
@@ -208,6 +211,7 @@
                             </StackPanel>
                         </Border>
                     </Popup>
+                </Grid>
                 </Grid>
                 <ui:Button Content="Preview in game" Icon="{ui:SymbolIcon Play24}" Appearance="Primary" Command="{Binding PreviewInGameCommand}"
                            IsEnabled="{Binding IsProjectOpen}" ToolTip="Play the current cutscene in the running game (F5). Shift+F5 starts at the selected beat." Margin="0,0,6,0" />

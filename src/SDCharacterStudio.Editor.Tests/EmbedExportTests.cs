@@ -214,7 +214,7 @@ public class EmbedExportTests
         pose.Selection = new PixelRect(0, 24, 16, 8);
         pose.CopyFromPeekCommand.Execute(null);
         pose.ApplyTransformCommand.Execute(null);
-        Assert.Equal("Copy from her frame 13", editor.Shell.Document!.History.UndoLabel);
+        Assert.Equal("Copy from game frame 13", editor.Shell.Document!.History.UndoLabel);
 
         studio.NewAnimation("greet");
         var flipbook = (AnimationDocumentViewModel)studio.ActiveDocument!;

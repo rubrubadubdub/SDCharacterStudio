@@ -88,7 +88,7 @@ public partial class PoseDocumentViewModel
         var sources = RecolorSources();
         var rules = CurrentRecolors();
         if (sources.FirstOrDefault(s => !rules.Any(r => string.Equals(r.From, s.Value, StringComparison.OrdinalIgnoreCase))) is not { } source)
-        { Ui.Toast("Nothing left to recolour", sources.Count == 0 ? "Her rig has no colour samples yet." : "Each of her colours already has a recolour.", ToastKind.Info); return; }
+        { Ui.Toast("Nothing left to recolour", sources.Count == 0 ? "Their rig has no colour samples yet." : "Each of their colours already has a recolour.", ToastKind.Info); return; }
         uint to = Palette.Resolved(Palette.Primary);
         if (to >> 24 == 0) to = 0xFFC03030;
         rules.Add(new RecolorRule { From = source.Value, To = $"#{to & 0xFFFFFF:X6}" });

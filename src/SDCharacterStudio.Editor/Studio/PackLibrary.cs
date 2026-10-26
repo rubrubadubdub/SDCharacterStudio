@@ -24,15 +24,24 @@ public sealed class PackLibrary
 
     public IEnumerable<LibraryItem> Items(LibraryKind kind) => kind switch
     {
-        LibraryKind.Pose => Pack.Poses.Where(p => p.Value.Id != null).Select(p => new LibraryItem(kind, p.Value.Id!, p.File, p.Value.Id!, $"{(p.Value.Kind == "sheet" ? "outfit" : p.Value.Kind)} · {p.Value.Frames.Count} frame{(p.Value.Frames.Count == 1 ? "" : "s")}" + (p.Value.For != null ? " · " + p.Value.For : ""))),
+        // Friendly titles ("Wave"), the character's name in the detail; IDs stay the pack's names.
+        LibraryKind.Pose => Pack.Poses.Where(p => p.Value.Id != null).Select(p => new LibraryItem(kind, p.Value.Id!, p.File, LibraryNames.Friendly(p.Value.Id!, p.Value.For, Whose(p.Value.For)),
+            (p.Value.Kind switch { "sheet" => "outfit · ", "character" => "", var other => other + " · " }) + $"{p.Value.Frames.Count} frame{(p.Value.Frames.Count == 1 ? "" : "s")}" + Owner(p.Value.For))),
         LibraryKind.Clip => Pack.Clips.Where(c => c.Value.Id != null).Select(c => new LibraryItem(kind, c.Value.Id!, c.File, string.IsNullOrWhiteSpace(c.Value.Title) ? c.Value.Id! : c.Value.Title!, $"{c.Value.Duration} ms · " + string.Join(", ", c.Value.Roles.Select(r => r.Id)))),
         LibraryKind.Mask => (Pack.Masks?.Value.Masks ?? new()).Where(m => m?.Id != null).Select(m => new LibraryItem(kind, m.Id!, Pack.Masks!.File, string.IsNullOrWhiteSpace(m.DisplayName) ? m.Id! : m.DisplayName!, string.Join(", ", m.Tags))),
         LibraryKind.Rig => Pack.Characters.Where(r => r.Value.Id != null).Select(r => new LibraryItem(kind, r.Value.Id!, r.File, r.Value.Id!, r.Value.Kind == "Farmer" ? "player" : r.Value.Npc)),
-        LibraryKind.Expression => (Pack.Expressions?.Value.Expressions ?? new()).Where(e => e?.Id != null).Select(e => new LibraryItem(kind, e.Id!, Pack.Expressions!.File, e.Id!, $"{e.Target}{(e.Facing != null ? " " + e.Facing : "")} · {e.For}")),
-        LibraryKind.Portrait => Pack.Portraits.Where(p => p.Value.Id != null).Select(p => new LibraryItem(kind, p.Value.Id!, p.File, p.Value.Id!, string.Join(", ", p.Value.Emotions.Keys))),
+        LibraryKind.Expression => (Pack.Expressions?.Value.Expressions ?? new()).Where(e => e?.Id != null).Select(e => new LibraryItem(kind, e.Id!, Pack.Expressions!.File, LibraryNames.Friendly(e.Id!, e.For, Whose(e.For)),
+            (string.Equals(e.Target, "Portrait", StringComparison.OrdinalIgnoreCase) ? "on the portrait" : "on the sprite") + (e.Facing != null ? ", facing " + e.Facing : "") + Owner(e.For))),
+        LibraryKind.Portrait => Pack.Portraits.Where(p => p.Value.Id != null).Select(p => new LibraryItem(kind, p.Value.Id!, p.File, LibraryNames.Friendly(p.Value.Id!, p.Value.For, Whose(p.Value.For)),
+            $"{p.Value.Emotions.Count} face{(p.Value.Emotions.Count == 1 ? "" : "s")}" + Owner(p.Value.For))),
         LibraryKind.Costume => (Pack.Costumes?.Value.Costumes ?? new()).Where(c => c?.Id != null).Select(c => new LibraryItem(kind, c.Id!, Pack.Costumes!.File, c.Id!, string.Join(", ", c.Set.Keys))),
         _ => Enumerable.Empty<LibraryItem>()
     };
+
+    /// <summary>The character a rig is for, as people call them ("Abigail", "The player"), or null.</summary>
+    public string? Whose(string? rigId) => Pack.Characters.FirstOrDefault(r => Same(r.Value.Id, rigId))?.Value is { } rig
+        ? string.Equals(rig.Kind, "Farmer", StringComparison.OrdinalIgnoreCase) ? "The player" : rig.Npc : null;
+    private string Owner(string? rigId) => Whose(rigId) is { } who ? " · " + who : rigId != null ? " · " + rigId : "";
 
     public Pose? Pose(string? id) => Copy(Pack.Poses.FirstOrDefault(p => Same(p.Value.Id, id))?.Value);
     public LibraryClip? Clip(string? id) => Copy(Pack.Clips.FirstOrDefault(c => Same(c.Value.Id, id))?.Value);

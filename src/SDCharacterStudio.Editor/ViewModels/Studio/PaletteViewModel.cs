@@ -109,7 +109,7 @@ public sealed partial class PaletteViewModel : ObservableObject
     private string FriendlyName(uint color)
     {
         string name = NameOf(color);
-        if (name == "Erase") return "Erase (removes her own pixels)";
+        if (name == "Erase") return "Erase (removes their own pixels)";
         return SlotColors.Any(s => s.Name == name) && name != "Outline" ? $"{studio.Character?.Label ?? "Character"} {name.Replace(" mid", "").ToLowerInvariant()}" : name;
     }
     public string? SampledFrom { get; private set; }

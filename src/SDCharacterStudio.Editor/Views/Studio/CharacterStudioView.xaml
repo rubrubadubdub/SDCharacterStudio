@@ -76,7 +76,7 @@
             </DataTemplate>
 
             <DataTemplate x:Key="LibraryItem" DataType="{x:Type vm:LibraryItemViewModel}">
-                <DockPanel Background="Transparent" ToolTip="{Binding Id}">
+                <DockPanel Background="Transparent" ToolTip="{Binding Id, StringFormat='ID: {0}'}">
                     <DockPanel.InputBindings>
                         <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenCommand}" />
                     </DockPanel.InputBindings>
@@ -87,7 +87,7 @@
                             <MenuItem Header="{Binding Studio.CopyForLabel}" Command="{Binding Studio.CopyForCharacterCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon PeopleSwap24}"
                                       Visibility="{Binding IsPose, Converter={StaticResource VisibleWhen}}" />
                             <MenuItem Header="Use in the current scene" Command="{Binding Studio.UseInSceneCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon VideoClipMultiple24}"
-                                      Visibility="{Binding IsAnimation, Converter={StaticResource VisibleWhen}}" />
+                                      Visibility="{Binding CanUseInScene, Converter={StaticResource VisibleWhen}}" />
                             <MenuItem Header="Save to My library" Command="{Binding Studio.SaveToMyLibraryCommand}" CommandParameter="{Binding}" Icon="{ui:SymbolIcon BookAdd24}"
                                       Visibility="{Binding CanSaveToMyLibrary, Converter={StaticResource VisibleWhen}}" />
                             <Separator />
@@ -142,9 +142,9 @@
                             <TextBlock DockPanel.Dock="Left" Text="Outfit" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <ui:Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Add24}" Margin="4,0,0,0" Command="{Binding MakeOutfitCommand}"
                                        Visibility="{Binding CanMakeOutfit, Converter={StaticResource VisibleWhen}}"
-                                       ToolTip="New outfit: her whole sprite sheet, starting from the outfit shown, to paint clothes on" />
+                                       ToolTip="New outfit: their whole sprite sheet, starting from the outfit shown, to paint clothes on" />
                             <ComboBox ItemsSource="{Binding Outfits}" SelectedItem="{Binding Outfit}" MaxDropDownHeight="420"
-                                      ToolTip="See her in another outfit: seasons, festivals (the Flower Dance...) and outfits from mods. Poses stay live: in the game she wears whatever the day gives her, unless a pose always wears one.">
+                                      ToolTip="See them in another outfit: seasons, festivals (the Flower Dance...) and outfits from mods. Poses stay live: in the game they wear whatever the day gives them, unless a pose always wears one.">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:OutfitChoice}">
                                         <StackPanel Orientation="Horizontal">
@@ -170,7 +170,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <DockPanel Margin="0,6,0,0">
+                        <DockPanel Margin="0,6,0,0" Visibility="{Binding IsSimple, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
                             <ui:Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Rig…" Command="{Binding MakeRigCommand}"
                                        ToolTip="The rig says where this character's head, neck and face are, and which colours to sample. Made automatically when needed." />
                             <TextBlock Text="{Binding RigStatus}" Style="{StaticResource Faint}" FontSize="11" />
@@ -254,7 +254,7 @@
                         Visibility="{Binding HasDocuments, Converter={StaticResource VisibleWhen}}">
                 <TabControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type vm:StudioDocumentViewModel}">
-                        <StackPanel Orientation="Horizontal" ToolTip="{Binding ItemId}">
+                        <StackPanel Orientation="Horizontal" ToolTip="{Binding ItemId, StringFormat='ID: {0}'}">
                             <ui:SymbolIcon Symbol="{Binding Icon}" Margin="0,0,6,0" />
                             <TextBlock Text="{Binding Title}" MaxWidth="200" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             <ui:Button Style="{StaticResource IconButton}" Icon="{ui:SymbolIcon Dismiss16}" FontSize="10" Padding="3" Margin="6,0,0,0" Command="{Binding CloseCommand}" ToolTip="Close" />
@@ -262,26 +262,94 @@
                     </DataTemplate>
                 </TabControl.ItemTemplate>
             </TabControl>
+            <!-- The way back to the scene with what you made, on the tab row's right. -->
+            <ui:Button Content="Use in the scene" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary" Command="{Binding UseActiveInSceneCommand}"
+                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,4,0" Padding="10,4" ToolTip="{Binding UseActiveInSceneHint}">
+                <ui:Button.Visibility>
+                    <MultiBinding Converter="{x:Static studio:StudioConverters.AllVisible}">
+                        <Binding Path="HasDocuments" />
+                        <Binding Path="CanUseActiveInScene" />
+                    </MultiBinding>
+                </ui:Button.Visibility>
+            </ui:Button>
 
             <!-- Nothing open yet -->
             <Border Style="{StaticResource Panel}" Visibility="{Binding HasDocuments, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="800">
                     <ui:SymbolIcon Symbol="Accessibility24" FontSize="48" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
                     <TextBlock Text="Character Studio" Style="{StaticResource Heading}" FontSize="22" HorizontalAlignment="Center" Margin="0,8,0,4" />
-                    <TextBlock Style="{StaticResource Caption}" TextAlignment="Center" Margin="0,0,0,16"
-                               Text="Make poses, sprites and animations for a character, then use them in any scene. Pick a character on the left, then start something, or double-click an item to open it." />
+                    <TextBlock Style="{StaticResource Caption}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,16" MaxWidth="520"
+                               Text="Make poses, outfits and animations for a character, then use them in any scene. Pick a character on the left, then start something, or double-click an item to open it." />
                     <TextBlock Text="Open or create a project first (File › New project)." Style="{StaticResource Caption}" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Center"
                                Visibility="{Binding HasProject, Converter={StaticResource VisibleWhen}, ConverterParameter=not}" Margin="0,0,0,12" />
+                    <!-- What each thing is, in a line: a first-time modder picks by what they want to make. -->
                     <WrapPanel HorizontalAlignment="Center" IsEnabled="{Binding HasProject}">
-                        <ui:Button Content="New pose" Icon="{ui:SymbolIcon Accessibility24}" Appearance="Primary" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Pose}" />
-                        <ui:Button Content="New animation" Icon="{ui:SymbolIcon VideoClipMultiple24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Clip}" />
-                        <ui:Button Content="New outfit" Icon="{ui:SymbolIcon Grid24}" Margin="4" Command="{Binding MakeOutfitCommand}"
-                                   ToolTip="Her whole sprite sheet, to paint clothes on. She can wear it in scenes, and poses can start from it." />
-                        <ui:Button Content="New effect" Icon="{ui:SymbolIcon Sparkle24}" Margin="4" Command="{Binding NewEffectCommand}" />
-                        <ui:Button Content="New mask" Icon="{ui:SymbolIcon CircleHalfFill24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Mask}" />
-                        <ui:Button Content="New expression" Icon="{ui:SymbolIcon EmojiSmileSlight24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Expression}" />
-                        <ui:Button Content="New portrait" Icon="{ui:SymbolIcon PersonCircle24}" Margin="4" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Portrait}" />
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Pose}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Accessibility24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New pose" FontWeight="SemiBold" />
+                                    <TextBlock Text="Standing, sitting, waving: drawn over their own sprite, so it still follows sprite mods." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Clip}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="VideoClipMultiple24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New animation" FontWeight="SemiBold" />
+                                    <TextBlock Text="Poses one after another (a greeting, a little dance) for a scene to play." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding MakeOutfitCommand}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Grid24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New outfit" FontWeight="SemiBold" />
+                                    <TextBlock Text="Their whole sprite sheet with your clothes painted on. Scenes can dress them in it." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Expression}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="EmojiSmileSlight24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New expression" FontWeight="SemiBold" />
+                                    <TextBlock Text="A blush, closed eyes or a new mouth, painted over their face in a line of dialogue." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Portrait}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="PersonCircle24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New portrait" FontWeight="SemiBold" />
+                                    <TextBlock Text="Their dialogue portrait, one face per emotion, painted over the real one." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding NewEffectCommand}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Sparkle24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New effect" FontWeight="SemiBold" />
+                                    <TextBlock Text="A small moving picture (a sweat drop, steam, sparkles) that poses and animations can show." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
+                        <ui:Button Width="250" Margin="5" Padding="12,10" HorizontalContentAlignment="Left" Command="{Binding NewCommand}" CommandParameter="{x:Static lib:LibraryKind.Mask}" Visibility="{Binding IsSimple, Converter={StaticResource VisibleWhen}, ConverterParameter=not}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="CircleHalfFill24" FontSize="22" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                <StackPanel>
+                                    <TextBlock Text="New mask" FontWeight="SemiBold" />
+                                    <TextBlock Text="Advanced: which pixels of a live layer to keep or hide." Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Button>
                     </WrapPanel>
+                    <TextBlock Style="{StaticResource Faint}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0"
+                               Text="Everything you make is for the character picked on the left. When it's ready, Use in the scene (top right) puts it in the cutscene you have open." />
                 </StackPanel>
             </Border>
         </Grid>

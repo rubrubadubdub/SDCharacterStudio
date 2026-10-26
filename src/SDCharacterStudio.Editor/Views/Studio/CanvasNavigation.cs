@@ -41,6 +41,14 @@ internal sealed class CanvasNavigation
         scroller.ScrollToHorizontalOffset(scroller.HorizontalOffset + after.X - at.X);
         scroller.ScrollToVerticalOffset(scroller.VerticalOffset + after.Y - at.Y);
     }
+    /// <summary>Fit the frame when it doesn't fit at the current zoom (a document opening on a small window).</summary>
+    public void FitIfTooBig()
+    {
+        if (width() <= 0 || height() <= 0 || scroller.ViewportWidth <= 0 || scroller.ViewportHeight <= 0) return;
+        double room = Math.Min((scroller.ViewportWidth - 56) / width(), (scroller.ViewportHeight - 56) / height());
+        if (getZoom() > Math.Max(1, Math.Floor(room))) Fit();
+    }
+
     public void Fit()
     {
         if (width() <= 0 || height() <= 0) return;

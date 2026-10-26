@@ -149,7 +149,7 @@
                         </StackPanel>
                         <StackPanel Visibility="{Binding InPicture.Count, Converter={StaticResource VisibleWhen}}">
                             <TextBlock Text="In this picture" Style="{StaticResource Caption}" Margin="0,8,0,4"
-                                       ToolTip="Every colour in the frame. Her own colours paint as her colours, so they follow outfits." />
+                                       ToolTip="Every colour in the frame. The character's own colours paint as their colours, so they follow outfits." />
                             <ItemsControl ItemsSource="{Binding InPicture}" ItemTemplate="{StaticResource Swatch}" ItemsPanel="{StaticResource SwatchPanel}" Focusable="False" />
                         </StackPanel>
                         <StackPanel Visibility="{Binding Recent.Count, Converter={StaticResource VisibleWhen}}">

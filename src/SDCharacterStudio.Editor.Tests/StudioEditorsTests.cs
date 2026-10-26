@@ -148,7 +148,7 @@ public class StudioEditorsTests
 
         var doc = editor.Shell.Document!;
         doc.Edit("Say it", () => doc.Cutscenes[0].Scene.Beats.Add(new SayBeat { Actor = "Robin", Text = "Hm.", Expression = expression.ItemId }));
-        expression.Fields.OfType<TextField>().Single(f => f.Label == "ID").Value = "robin-blink";
+        expression.Fields.OfType<TextField>().Single(f => f.Label is "ID" or "Name").Value = "robin-blink";
         Assert.Equal("robin-blink", doc.Cutscenes[0].Scene.Beats.OfType<SayBeat>().Single().Expression);
     }
 

@@ -21,7 +21,7 @@ public partial class PoseDocumentViewModel
     /// <summary>One of her sheet frames shown on the canvas to copy part of it (null: editing the pose).</summary>
     [ObservableProperty] private int? peekFrame;
     public bool IsPeeking => PeekFrame != null;
-    public string PeekText => PeekFrame is { } index ? $"Copying from her frame {index}: select what you want, then copy it into this frame. It stays her live sprite." : "";
+    public string PeekText => PeekFrame is { } index ? $"Copying from game frame {index}: select what you want, then copy it into this frame. It stays their live sprite." : "";
     partial void OnPeekFrameChanged(int? value) { OnPropertyChanged(nameof(IsPeeking)); OnPropertyChanged(nameof(PeekText)); OnPropertyChanged(nameof(ToolHint)); Render(); }
 
     /// <summary>The sheet frame a flat frame's own map cells refer to.</summary>
@@ -104,7 +104,7 @@ public partial class PoseDocumentViewModel
     [RelayCommand]
     public void PeekSheetFrame(int index)
     {
-        if (Flat == null) { Ui.Toast("One picture only", "Copying from her frames works on a pose that is one picture.", ToastKind.Info); return; }
+        if (Flat == null) { Ui.Toast("One picture only", "Copying from game frames works on a pose that is one picture.", ToastKind.Info); return; }
         if (IsTransforming) ApplyTransform();
         if (!IsSelectionTool(Tool)) Tool = StudioTool.Select;
         PeekFrame = index;
@@ -130,10 +130,10 @@ public partial class PoseDocumentViewModel
         var shape = SelectionShape ?? SelectionMask.FromRect(Width, Height, new PixelRect(0, 0, Width, Height));
         var cells = shape.Cells().Where(c => PixelTools.Get(image, c.X, c.Y) >> 24 != 0)
             .Select(c => (c.X, c.Y, Compositor.MapCell(c.X, c.Y, frame: index), 0u, PixelTools.Get(image, c.X, c.Y))).ToList();
-        if (cells.Count == 0) { Ui.Toast("Nothing selected", "Select part of her frame first (box, lasso or wand).", ToastKind.Info); return; }
+        if (cells.Count == 0) { Ui.Toast("Nothing selected", "Select part of the game frame first (box, lasso or wand).", ToastKind.Info); return; }
         PeekFrame = null;
         // Copying from one of your outfits: the pose wears it, so the copied part looks the same in the game.
         if (!IsSheet && PinnedOutfit == null && WearableShownOutfit is { } shown && StudioContext.OutfitId(shown) != null) { WearOutfit(shown); SaidWearsOutfit(); }
-        BeginFloating(cells, $"Copy from her frame {index}");
+        BeginFloating(cells, $"Copy from game frame {index}");
     }
 }

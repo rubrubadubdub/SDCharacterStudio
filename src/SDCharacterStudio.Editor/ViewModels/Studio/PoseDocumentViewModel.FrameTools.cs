@@ -49,7 +49,7 @@ public partial class PoseDocumentViewModel
             {
                 var flat = FlatOf(pose.Frames[index])!;
                 replaced.Add(flat.Live.Map!); replaced.Add(flat.Paint.Image!);
-                flat.Live.Source = PackWriter.Clone(from.Live.Source);
+                flat.Live.Source = from.Live.Source == null ? null : PackWriter.Clone(from.Live.Source);
                 flat.Live.SourceFrame = from.Live.SourceFrame == null ? null : PackWriter.Clone(from.Live.SourceFrame);
                 flat.Live.Map = from.Live.Map;
                 flat.Paint.Image = from.Paint.Image;

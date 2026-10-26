@@ -158,7 +158,7 @@ public sealed partial class AnimationDocumentViewModel
             Flipbook.Write(clip, steps, f => Flipbook.EnsureWalkPose(lib, character.Key, f));
             lib.SaveClip(clip);
         });
-        if (made == null) Ui.Toast("Couldn't make it", $"The ready-made pose couldn't be made for {character.Label} facing {facing} (her sprite isn't the size her rig expects).", ToastKind.Info);
+        if (made == null) Ui.Toast("Couldn't make it", $"The ready-made pose couldn't be made for {character.Label} facing {facing} (their sprite isn't the size their rig expects).", ToastKind.Info);
         RebuildOwners(); RebuildRows(); RebuildSteps(); RenderStage();
         OnPropertyChanged(nameof(Duration)); OnPropertyChanged(nameof(TimeText));
     }
@@ -203,6 +203,6 @@ public sealed partial class AnimationDocumentViewModel
         Fields.Add(new SectionField("Flipbook", "A row of steps, left to right. Each shows a pose, walks, or the character's own look, for a time."));
         Fields.Add(new TextField("Name", "Title", () => clip.Title, v => clip.Title = v, commit));
         Fields.Add(new BoolField("Repeat", "Loop", () => clip.Loop, v => clip.Loop = v, commit) { Description = "Plays again from the first step until the scene moves on." });
-        Fields.Add(new SectionField("Use it", "In Scenes, choose My animations in the asset browser, then Use, or drop it on a character."));
+        Fields.Add(new SectionField("Use it", "Use in the scene (top right) plays it after the selected beat of the scene you have open. In Scenes, My animations in the asset browser has it too."));
     }
 }

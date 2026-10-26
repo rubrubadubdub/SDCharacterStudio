@@ -48,6 +48,30 @@ public partial class PoseDocumentViewModel
     public bool PlaysOnceThenLoops { get => LoopFrom > 0 && LoopFrom < Model.Frames.Count - 1; set { if (value) SetPlayOrder(Math.Max(1, Math.Min(LoopFromNumber - 1, Model.Frames.Count - 1))); } }
     public bool HoldsLast { get => Model.Frames.Count > 1 && LoopFrom == Model.Frames.Count - 1; set { if (value) SetPlayOrder(Model.Frames.Count - 1); } }
     public bool HasCustomOrder => LoopFrom == null && !IsBackAndForth(Model);
+
+    /// <summary>The play order as one choice (one dropdown instead of a row of radio buttons).</summary>
+    public static IReadOnlyList<ChoiceItem> PlayOrders { get; } = new[]
+    {
+        new ChoiceItem("loop", "Loop all"), new ChoiceItem("once-loop", "Once, then loop from frame…"),
+        new ChoiceItem("hold", "Once, then hold the last"), new ChoiceItem("backforth", "Back and forth"),
+    };
+    public string? PlayOrderChoice
+    {
+        get => PlaysBackAndForth ? "backforth" : LoopsAll ? "loop" : HoldsLast ? "hold" : PlaysOnceThenLoops ? "once-loop" : null;
+        set
+        {
+            switch (value)
+            {
+                case "loop": LoopsAll = true; break;
+                case "once-loop": PlaysOnceThenLoops = true; break;
+                case "hold": HoldsLast = true; break;
+                case "backforth": PlaysBackAndForth = true; break;
+            }
+            NotifyPlayOrder();
+        }
+    }
+    /// <summary>A pose of one frame just holds it: no play order to choose.</summary>
+    public bool ShowsPlayOrderRow => ShowsPlayOrder && Model.Frames.Count > 1;
     /// <summary>The intro/loop/outro chips: under Advanced, or whenever the order is a custom one.</summary>
     public bool ShowsSequenceChips => !IsPortrait && (Advanced || HasCustomOrder);
     /// <summary>The first looping frame as people count (1-based), for the options row.</summary>
@@ -74,7 +98,7 @@ public partial class PoseDocumentViewModel
 
     private void NotifyPlayOrder()
     {
-        foreach (var name in new[] { nameof(LoopFrom), nameof(LoopsAll), nameof(PlaysOnceThenLoops), nameof(HoldsLast), nameof(HasCustomOrder), nameof(LoopFromNumber), nameof(PlayOrderText), nameof(ShowsSequenceChips), nameof(PlaysBackAndForth) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(LoopFrom), nameof(LoopsAll), nameof(PlaysOnceThenLoops), nameof(HoldsLast), nameof(HasCustomOrder), nameof(LoopFromNumber), nameof(PlayOrderText), nameof(ShowsSequenceChips), nameof(PlaysBackAndForth), nameof(PlayOrderChoice), nameof(ShowsPlayOrderRow) }) OnPropertyChanged(name);
         foreach (var frame in Frames) frame.Role = RoleOf(frame.Index);
         RestartPreview();
     }
