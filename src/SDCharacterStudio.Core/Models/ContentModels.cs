@@ -31,7 +31,16 @@ public class StudioIndex : VersionedObject
     public Dictionary<string, MusicTrack> Music { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 public class MusicTrack { public string? Name { get; set; } public string? File { get; set; } public bool Loop { get; set; } = true; }
-public class PackInfo { public string? DisplayName { get; set; } public string DefaultLanguage { get; set; } = "en"; }
+public class PackInfo
+{
+    public string? DisplayName { get; set; }
+    public string DefaultLanguage { get; set; } = "en";
+    /// <summary>
+    /// The UniqueID the pack was made under in the editor (D-53). Its conditions name its own scenes and story numbers with
+    /// it; when the pack runs under another ID (a C# mod's scenes folder runs as that mod), the runtime reads them as its own.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)] public string? MadeAs { get; set; }
+}
 public class ModRequirement { public string? Mod { get; set; } public string? Reason { get; set; } }
 public class PackDefaults { public int StepFps { get; set; } public string TextSpeed { get; set; } = "normal"; }
 public class LibraryIndex

@@ -44,9 +44,12 @@ public static class PackExporter
                 break;
             case ExportTarget.CodeModScenes:
                 mod = options.OutputFolder ?? ModExporter.DefaultFolder(document, options.Target);
-                ModExporter.WriteScenes(document, mod);
+                ModExporter.WriteScenes(document, mod, dependencies: validation.Dependencies);
                 outputs.Add(mod);
-                return new ExportResult(true, validation, $"Exported {document.DisplayName} for a C# mod: copy Sdcs.cs and the scenes folder into your mod's project, then call Sdcs.Register(this) in Entry (README.txt has the details).", outputs);
+                // What the modder must add to their own manifest, and maps staged as other mods change them (G7).
+                var notes = ModExporter.DependencyNotes(validation.Dependencies, document.Project);
+                return new ExportResult(true, validation, $"Exported {document.DisplayName} for a C# mod: copy Sdcs.cs and the scenes folder into your mod's project, then call Sdcs.Register(this) in Entry (README.txt has the details)."
+                    + (notes.Count == 0 ? "" : "\n\n" + string.Join("\n", notes)), outputs);
         }
         outputs.Add(mod);
         if (!string.IsNullOrWhiteSpace(options.ZipPath))

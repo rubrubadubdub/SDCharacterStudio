@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
+using SDCharacterStudio.Core;
 using SDCharacterStudio.Core.Compiler;
 using SDCharacterStudio.Core.Loading;
 using SDCharacterStudio.Core.Migration;
@@ -77,6 +78,8 @@ public static class PackCompilation
             if (reason != null) { skipped.Add(new(source.Value.Id ?? source.File, reason)); continue; }
             // Library clips become ordinary scene clips here, so the clip player sees one model (doc 03 §17.1).
             var expanded = LibraryClips.Expand(source.Value, pack);
+            // Conditions made under another ID read as this pack's own (D-53): a C# mod's scenes run under that mod's ID.
+            StoryIds.Rehome(expanded, pack.Index?.Pack?.MadeAs, packId, pack.Cutscenes.Select(x => x.Value.Id));
             var result = compiler.Compile(packId, expanded, translate);
             issues.AddRange(result.Issues.Select(x => x with { File = source.File }));
             if (result.Success)

@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 using Mono.Cecil;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SDCharacterStudio.Core.Models;
+using SDCharacterStudio.Core.Serialization;
+using SDCharacterStudio.Core.Validation;
 
 namespace SDCharacterStudio.Editor.Export;
 
@@ -50,7 +53,7 @@ public static class ModExporter
         stubPath ??= StubPath;
         if (!File.Exists(stubPath)) throw new FileNotFoundException($"The editor's embedding DLL is missing ({stubPath}). Rebuild the editor.", stubPath);
         PrepareFolder(folder, document.PackId);
-        CopyPackFiles(document.PackFolder, folder);
+        CopyPackFiles(document.PackFolder, folder, document.PackId);
         string assemblyName = AssemblyName(document.PackId);
         var manifest = JObject.Parse(PackWriter.Serialize(document.Manifest));
         manifest.Remove("ContentPackFor");
@@ -68,12 +71,14 @@ public static class ModExporter
     /// Everything a C# mod needs: <c>Sdcs.cs</c> (the engine in one file) and the <c>scenes</c> folder (the pack's files
     /// without its manifest; the mod has its own), with a short read-me.
     /// </summary>
-    public static void WriteScenes(PackDocument document, string folder, string? dropInPath = null)
+    /// <param name="dependencies">What the scenes need from other mods (G7): written into README.txt for the modder.</param>
+    public static void WriteScenes(PackDocument document, string folder, string? dropInPath = null, DependencyReport? dependencies = null)
     {
         dropInPath ??= DropInPath;
         if (!File.Exists(dropInPath)) throw new FileNotFoundException($"The editor's Sdcs.cs is missing ({dropInPath}). Rebuild the editor.", dropInPath);
         PrepareFolder(folder, null);
-        CopyPackFiles(document.PackFolder, Path.Combine(folder, ScenesFolder));
+        CopyPackFiles(document.PackFolder, Path.Combine(folder, ScenesFolder), document.PackId);
+        var notes = DependencyNotes(dependencies, document.Project);
         File.Copy(dropInPath, Path.Combine(folder, "Sdcs.cs"), true);
         File.WriteAllText(Path.Combine(folder, "README.txt"),
             $"Scenes from \"{document.DisplayName}\", made with SDCharacterStudio, for your C# SMAPI mod.\n\n" +
@@ -82,14 +87,50 @@ public static class ModExporter
             "     <None Update=\"scenes\\**\\*\" CopyToOutputDirectory=\"PreserveNewest\" />\n" +
             "3. In your ModEntry.Entry:  Sdcs.Register(this);\n\n" +
             "Scenes play by themselves when their conditions are met. To play one from your code: Sdcs.Play(\"scene-id\").\n" +
-            "Players install only your mod.\n");
+            "A scene's event ID is your mod's UniqueID, a dot and the scene ID (<your mod's UniqueID>." + (document.Cutscenes.FirstOrDefault()?.Scene.Id ?? "scene-id") +
+            "): check Game1.player.eventsSeen for it.\n" +
+            "Players install only your mod" + (notes.Count == 0 ? ".\n" : ", and the mods below.\n\n" + string.Join("\n", notes) + "\n"));
     }
 
-    private static void CopyPackFiles(string source, string target)
+    private static void CopyPackFiles(string source, string target, string packId)
     {
         PackExporter.CopyDirectory(source, target);
         string copiedManifest = Path.Combine(target, "manifest.json");
         if (File.Exists(copiedManifest)) File.Delete(copiedManifest);
+        // The ID the scenes were made under (D-53): conditions name the pack's scenes and story numbers with it, and a C# mod
+        // runs them under its own ID; the engine reads them as its own.
+        string studio = Path.Combine(target, "studio.json");
+        if (File.Exists(studio) && PackJson.Deserialize<StudioIndex>(File.ReadAllText(studio)) is { } index)
+        {
+            index.Pack.MadeAs = packId;
+            File.WriteAllText(studio, PackWriter.Serialize(index));
+        }
+    }
+
+    /// <summary>
+    /// What a C# mod must know about other mods (G7), in plain lines: mods that add what the scenes use (put them in the
+    /// mod's manifest Dependencies), and maps another mod changes that the scenes were staged on. Empty when there are none.
+    /// </summary>
+    public static IReadOnlyList<string> DependencyNotes(DependencyReport? report, ProjectFile project)
+    {
+        var lines = new List<string>();
+        if (report == null) return lines;
+        if (report.Providers.Count > 0)
+        {
+            lines.Add("These mods add things the scenes use. Add them to \"Dependencies\" in your mod's manifest.json:");
+            foreach (var provider in report.Providers)
+                lines.Add($"  - {provider.ModName} ({provider.ModId}), {(project.ModeFor(provider.ModId) == DependencyMode.Required ? "required" : "optional: only some scenes need it")}: {provider.Reason}");
+        }
+        var maps = report.Editors.SelectMany(e => e.Uses.Where(u => u.Reference.Kind == OutsideReferenceKind.Location).Select(u => (Editor: e, u.Reference.Value)))
+            .GroupBy(m => (m.Editor.ModId, m.Value), (key, group) => group.First()).ToList();
+        if (maps.Count > 0)
+        {
+            if (lines.Count > 0) lines.Add("");
+            lines.Add("Positions were placed on maps as other mods change them. Without the mod, they may land elsewhere:");
+            foreach (var (editor, location) in maps)
+                lines.Add($"  - {location}, as {editor.ModName} ({editor.ModId}) changes it");
+        }
+        return lines;
     }
 
     /// <summary>An empty folder, or one that already holds this export: never overwrite somebody else's mod.</summary>

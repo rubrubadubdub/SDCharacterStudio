@@ -16,6 +16,12 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The runtime's pack loading: a test loads an export the way an embedded engine does (D-53). -->
+    <Compile Include="..\SDCharacterStudio.Runtime\Loading\PackCompilation.cs" Link="Runtime\PackCompilation.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\RegisteredCutscene.cs" Link="Runtime\RegisteredCutscene.cs" />
+    <Compile Include="..\SDCharacterStudio.Runtime\CutsceneRegistry.cs" Link="Runtime\CutsceneRegistry.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="..\..\reference\examples\**\*" Link="TestData\Examples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
