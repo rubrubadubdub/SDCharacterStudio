@@ -74,7 +74,8 @@ public static class BeatCatalog
     {
         string ItemName(string? id) => id == null ? "?" : catalog?.Item(id)?.Label ?? id;
         string Text(TextValue? t) => t?.I18n != null ? "{" + t.I18n + "}" : Shorten(t?.Literal ?? "", 70);
-        string Tile(Position? p) => p?.Tile is { Length: 2 } t ? $"({t[0]}, {t[1]})" : "(no tile)";
+        // A position from a place (D-52) says so: "(1, 0) from the spouse's room".
+        string Tile(Position? p) => p?.Tile is { Length: 2 } t ? $"({t[0]}, {t[1]})" + (Places.IsAnchored(p) ? " from " + Places.Words(p.From) : "") : "(no tile)";
         return beat switch
         {
             SayBeat say => $"{say.Actor ?? "?"}: “{Text(say.Text)}”{Lines(say.Or)}",

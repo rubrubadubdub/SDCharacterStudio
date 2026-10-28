@@ -60,10 +60,15 @@ public static class StageTimeline
 
     private static bool Same(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Where the actor is once the played beats have: their start, then each Move, Face and Clip that names them.</summary>
-    public static StagePlace Place(Cutscene scene, Actor actor, IReadOnlyList<PlayedBeat> played, LoadedPack? library = null)
+    /// <summary>
+    /// Where the actor is once the played beats have: their start, then each Move, Face and Clip that names them. Tiles are
+    /// on <paramref name="map"/>: a position that counts from a place (D-52) stands where the place is on it.
+    /// </summary>
+    public static StagePlace Place(Cutscene scene, Actor actor, IReadOnlyList<PlayedBeat> played, LoadedPack? library = null, StagedMap? map = null)
     {
-        var place = new StagePlace(actor.Start?.Tile?.ElementAtOrDefault(0) ?? 0, actor.Start?.Tile?.ElementAtOrDefault(1) ?? 0,
+        map ??= NoMap;
+        var start = map.Tile(actor.Start);
+        var place = new StagePlace(start.X, start.Y,
             actor.Start?.Px?.ElementAtOrDefault(0) ?? 0, actor.Start?.Px?.ElementAtOrDefault(1) ?? 0, actor.Facing ?? "down");
         bool Mine(string? id) => Same(id, actor.Id);
         for (int n = 0; n < played.Count; n++)
@@ -72,8 +77,10 @@ public static class StageTimeline
             bool last = n == played.Count - 1;
             switch (step.Beat)
             {
-                case MoveBeat { To.Tile: { Length: 2 } to } move when Mine(move.Actor):
+                case MoveBeat { To.Tile: { Length: 2 } } move when Mine(move.Actor):
                 {
+                    var (toX, toY) = map.Tile(move.To);
+                    int[] to = { toX, toY };
                     // MovePlanner: one leg per axis (x first unless "y-first"); vanilla 'move' leaves them facing along the last leg.
                     int dx = to[0] - place.TileX, dy = to[1] - place.TileY;
                     string? alongX = dx == 0 ? null : dx > 0 ? "right" : "left", alongY = dy == 0 ? null : dy > 0 ? "down" : "up";
@@ -121,24 +128,33 @@ public static class StageTimeline
         return LibraryClips.Find(library, beat.Clip) is { } shared ? LibraryClips.ToSceneClip(shared, beat.Cast ?? new(), beat.Mirror, beat.PoseMap) : null;
     }
 
-    /// <summary>The items on the map once the played beats have (Prop beats, D-50): each placed one, less those taken away since.</summary>
-    public static IReadOnlyList<(PlayedBeat By, PropBeat Prop)> Props(IReadOnlyList<PlayedBeat> played)
+    /// <summary>
+    /// The items on the map once the played beats have (Prop beats, D-50): each placed one, less those taken away since, with
+    /// the tile it stands on (on <paramref name="map"/>, D-52).
+    /// </summary>
+    public static IReadOnlyList<(PlayedBeat By, PropBeat Prop, int X, int Y)> Props(IReadOnlyList<PlayedBeat> played, StagedMap? map = null)
     {
-        var props = new List<(PlayedBeat By, PropBeat Prop)>();
+        map ??= NoMap;
+        var props = new List<(PlayedBeat By, PropBeat Prop, int X, int Y)>();
         foreach (var step in played)
         {
-            if (step.Beat is not PropBeat { At.Tile: { Length: 2 } at } prop) continue;
-            if (!prop.Remove) { if (prop.Item != null) props.Add((step, prop)); continue; }
-            props.RemoveAll(p => p.Prop.At!.Tile![0] == at[0] && p.Prop.At.Tile[1] == at[1] && (prop.Item == null || Same(p.Prop.Item, prop.Item)));
+            if (step.Beat is not PropBeat { At.Tile: { Length: 2 } } prop) continue;
+            var (x, y) = map.Tile(prop.At);
+            if (!prop.Remove) { if (prop.Item != null) props.Add((step, prop, x, y)); continue; }
+            props.RemoveAll(p => p.X == x && p.Y == y && (prop.Item == null || Same(p.Prop.Item, prop.Item)));
         }
         return props;
     }
 
-    /// <summary>Where the camera is centred once the played beats have: the last Camera beat's tile (null: the scene's own camera).</summary>
-    public static (int[] Tile, PlayedBeat By)? Camera(IReadOnlyList<PlayedBeat> played)
+    /// <summary>Where the camera is centred once the played beats have: the last Camera beat's tile on <paramref name="map"/> (null: the scene's own camera).</summary>
+    public static (int[] Tile, PlayedBeat By)? Camera(IReadOnlyList<PlayedBeat> played, StagedMap? map = null)
     {
+        map ??= NoMap;
         for (int n = played.Count - 1; n >= 0; n--)
-            if (played[n].Beat is CameraBeat { Center.Tile: { Length: 2 } tile }) return (tile, played[n]);
+            if (played[n].Beat is CameraBeat { Center.Tile: { Length: 2 } } camera) { var (x, y) = map.Tile(camera.Center); return (new[] { x, y }, played[n]); }
         return null;
     }
+
+    /// <summary>No export: places stand at their usual spots.</summary>
+    private static readonly StagedMap NoMap = new(null, null, false);
 }

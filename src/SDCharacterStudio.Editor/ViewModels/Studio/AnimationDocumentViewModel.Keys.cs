@@ -432,7 +432,8 @@ public sealed partial class AnimationDocumentViewModel
         if (string.IsNullOrWhiteSpace(name)) return;
         string id = library.UniqueId(LibraryKind.Clip, name);
         var kinds = scene.Actors.Where(a => a.Id != null).ToDictionary(a => a.Id!, a => a.Kind ?? "Npc", StringComparer.OrdinalIgnoreCase);
-        var starts = scene.Actors.Where(a => a.Id != null && a.Start?.Tile != null).ToDictionary(a => a.Id!, a => a.Start!.Tile!, StringComparer.OrdinalIgnoreCase);
+        var staged = StagedMap.For(scene, Studio.Shell.Catalog, Studio.Shell.Document?.Project);
+        var starts = scene.Actors.Where(a => a.Id != null && a.Start?.Tile != null).ToDictionary(a => a.Id!, a => { var (x, y) = staged.Tile(a.Start); return new[] { x, y }; }, StringComparer.OrdinalIgnoreCase);
         var made = LibraryClips.FromSceneClip(id, SceneClip!, kinds, starts);
         made.Title = name.Trim();
         Commit("Save clip to library", lib => lib.SaveClip(made));

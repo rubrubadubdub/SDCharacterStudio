@@ -22,6 +22,11 @@
             <TextBlock Text="Location" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,0,8,0" />
             <views:SearchablePicker Width="260" ItemsSource="{Binding LocationOptions}" SelectedItem="{Binding SelectedLocation}" Noun="locations"
                                     ToolTip="Where the cutscene happens" />
+            <TextBlock Text="House" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,8,0"
+                       Visibility="{Binding ShowHousePicker, Converter={StaticResource VisibleWhen}}" />
+            <ComboBox Width="190" ItemsSource="{Binding HouseOptions}" SelectedItem="{Binding SelectedHouse}" DisplayMemberPath="Label"
+                      Visibility="{Binding ShowHousePicker, Converter={StaticResource VisibleWhen}}"
+                      ToolTip="Which farmhouse the stage shows: yours as the game export has it, or an upgraded one as mods make it. Players' houses differ: positions from the spouse's room follow the room." />
             <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon PersonAdd24}" Content="Add player" Command="{Binding AddPlayerCommand}" Margin="8,0,0,0"
                        ToolTip="Put the player (farmer) on the stage" />
             <ui:Button Style="{StaticResource ToolbarButton}" Icon="{ui:SymbolIcon PaintBrush24}" Content="Draw outfits in the game" Command="{Binding RenderOutfitsCommand}" Margin="4,0,0,0"
@@ -80,6 +85,14 @@
         </Border>
 
         <StackPanel Grid.Row="2">
+            <!-- Places the stage can't show where they are (D-52) -->
+            <Border Margin="8,0,8,6" Padding="10,6" CornerRadius="6" Background="#225B9BF0" BorderBrush="#885B9BF0" BorderThickness="1"
+                    Visibility="{Binding HasPlaceNotice, Converter={StaticResource VisibleWhen}}">
+                <DockPanel>
+                    <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Info24" Foreground="#FF8DBBF5" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding PlaceNotice}" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="12" />
+                </DockPanel>
+            </Border>
             <!-- Picking a tile -->
             <Border Margin="8,0,8,6" Padding="10,6" CornerRadius="6" Background="{DynamicResource AccentFillColorDefaultBrush}"
                     Visibility="{Binding IsPicking, Converter={StaticResource VisibleWhen}}">

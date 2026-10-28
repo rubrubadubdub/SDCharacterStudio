@@ -60,6 +60,16 @@ public sealed class LocationEntry
     public string? Passable { get; set; }
     public List<WarpEntry> Warps { get; set; } = new();
     public OriginInfo Origin { get; set; } = new();
+    /// <summary>A farmhouse's upgrade level (the save's own house, or a layout).</summary>
+    public int? Level { get; set; }
+    /// <summary>Where places are on this map (D-52), e.g. SpouseRoom → its spot; only those the game could find.</summary>
+    public Dictionary<string, int[]> Places { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>For a house layout: the location it's a layout of (FarmHouse).</summary>
+    public string? Of { get; set; }
+    /// <summary>For a house layout: whose spouse's room is drawn in it (empty: the game's default room).</summary>
+    public string? SpouseRoom { get; set; }
+    /// <summary>A place's spot on this map, if the export knows it.</summary>
+    public (int X, int Y)? Spot(string place) => Places.TryGetValue(place, out var spot) && spot is { Length: 2 } ? (spot[0], spot[1]) : null;
     public int Width => Size is { Length: 2 } ? Size[0] : 0;
     public int Height => Size is { Length: 2 } ? Size[1] : 0;
 }
@@ -119,6 +129,10 @@ public sealed class ExportCatalog : ICatalog
     public DateTime ExportedAt { get; private set; }
     public IReadOnlyList<CharacterEntry> Characters { get; private set; } = Array.Empty<CharacterEntry>();
     public IReadOnlyList<LocationEntry> Locations { get; private set; } = Array.Empty<LocationEntry>();
+    /// <summary>The upgraded farmhouse layouts (D-52), as mods make them; empty in an export made before they were exported.</summary>
+    public IReadOnlyList<LocationEntry> HouseLayouts { get; private set; } = Array.Empty<LocationEntry>();
+    /// <summary>The export has the house layouts (even if none could be drawn).</summary>
+    public bool HasHouseLayouts { get; private set; }
     public IReadOnlyDictionary<string, IReadOnlyList<ItemEntry>> ItemsByType { get; private set; } = new Dictionary<string, IReadOnlyList<ItemEntry>>();
     public IReadOnlyList<HairstyleEntry> Hairstyles { get; private set; } = Array.Empty<HairstyleEntry>();
     public IReadOnlyList<ModEntry> Mods { get; private set; } = Array.Empty<ModEntry>();
@@ -156,6 +170,8 @@ public sealed class ExportCatalog : ICatalog
         foreach (var character in catalog.Characters) catalog.characters[character.Name] = character;
         catalog.Locations = (Read<List<LocationEntry>>(json["Locations"]) ?? new()).Where(l => !string.IsNullOrEmpty(l.Name)).OrderBy(l => l.Name, StringComparer.OrdinalIgnoreCase).ToArray();
         foreach (var location in catalog.Locations) catalog.locations[location.Name] = location;
+        catalog.HasHouseLayouts = json["HouseLayouts"] is JArray;
+        catalog.HouseLayouts = (Read<List<LocationEntry>>(json["HouseLayouts"]) ?? new()).Where(l => !string.IsNullOrEmpty(l.Name)).OrderBy(l => l.Level ?? 0).ToArray();
         var byType = new Dictionary<string, IReadOnlyList<ItemEntry>>(StringComparer.OrdinalIgnoreCase);
         if (json["Items"] is JObject itemGroups)
             foreach (var group in itemGroups.Properties())
@@ -196,6 +212,8 @@ public sealed class ExportCatalog : ICatalog
     public int[]? TextureSize(string asset) => textures.TryGetValue(Normalize(asset), out var entry) ? entry.Size : null;
     public CharacterEntry? Character(string name) => characters.TryGetValue(name, out var c) ? c : characters.Values.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
     public LocationEntry? Location(string? name) => name != null && locations.TryGetValue(name, out var l) ? l : null;
+    /// <summary>A house layout by name (FarmHouse1, FarmHouse2).</summary>
+    public LocationEntry? HouseLayout(string? name) => name == null ? null : HouseLayouts.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
     public ItemEntry? Item(string? id)
     {
         if (string.IsNullOrWhiteSpace(id)) return null;

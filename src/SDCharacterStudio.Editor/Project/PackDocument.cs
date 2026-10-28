@@ -361,7 +361,7 @@ public sealed class PackDocument
     private JObject EditableProjectState()
     {
         var project = JToken.Parse(Project.ToJson()) as JObject ?? new JObject();
-        foreach (var key in new[] { "OpenCutscene", "StageZoom", "ShowGrid", "ShowPassability", "DockLayoutXml", "StoryboardGraph" }) project.Remove(key);
+        foreach (var key in new[] { "OpenCutscene", "StageZoom", "ShowGrid", "ShowPassability", "StageLayouts", "DockLayoutXml", "StoryboardGraph" }) project.Remove(key);
         return project;
     }
 
@@ -397,6 +397,7 @@ public sealed class PackDocument
         project.StageZoom = Project.StageZoom;
         project.ShowGrid = Project.ShowGrid;
         project.ShowPassability = Project.ShowPassability;
+        project.StageLayouts = Project.StageLayouts;
         project.DockLayoutXml = Project.DockLayoutXml;
         project.StoryboardGraph = Project.StoryboardGraph;
         Project = project;

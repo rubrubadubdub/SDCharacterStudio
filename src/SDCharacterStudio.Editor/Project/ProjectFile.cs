@@ -64,6 +64,17 @@ public sealed class ProjectFile
     public double StageZoom { get; set; } = 3;
     public bool ShowGrid { get; set; } = true;
     public bool ShowPassability { get; set; }
+    /// <summary>
+    /// Which upgraded farmhouse the stage shows a scene on (D-52): scene ID → a house layout from the game export (FarmHouse1,
+    /// FarmHouse2). A view choice, like the zoom; the map checks (D-54) use it too.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)] public Dictionary<string, string>? StageLayouts { get; set; }
+    public string? StageLayout(string? scene) => scene != null && StageLayouts?.TryGetValue(scene, out var name) == true ? name : null;
+    public void SetStageLayout(string scene, string? layout)
+    {
+        if (layout == null) { StageLayouts?.Remove(scene); if (StageLayouts?.Count == 0) StageLayouts = null; return; }
+        (StageLayouts ??= new(StringComparer.OrdinalIgnoreCase))[scene] = layout;
+    }
     /// <summary>Items used from the personal library (M8, doc 03 §17.3).</summary>
     public List<LibraryLink> LibraryLinks { get; set; } = new();
     public string? DockLayoutXml { get; set; }

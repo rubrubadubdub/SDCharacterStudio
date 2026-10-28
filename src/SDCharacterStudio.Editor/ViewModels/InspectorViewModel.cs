@@ -79,8 +79,13 @@ public sealed partial class InspectorViewModel : ObservableObject
         MusicFields("Music", () => scene.Music, v => scene.Music = v ?? "none");
         Fields.Add(new BoolField("Camera follows the player", "Camera", () => scene.Camera?.Type == JTokenType.String, v => scene.Camera = v ? "follow" : new JObject { ["Tile"] = new JArray(10, 10) }, Commit) { Rebuild = true });
         if (scene.Camera?.Type != JTokenType.String)
-            Fields.Add(Tile("Camera centre", "Camera.Tile", () => (scene.Camera as JObject)?["Tile"]?.ToObject<int[]>() ?? scene.Actors.FirstOrDefault()?.Start?.Tile,
-                t => scene.Camera = new JObject { ["Tile"] = new JArray(t[0], t[1]) }));
+        {
+            // The scene's own camera, else where the first actor starts (as the game's event header does).
+            Position? Camera() => Places.SceneCamera(scene) is { } own && (own.Tile != null || Places.IsAnchored(own)) ? own : scene.Actors.FirstOrDefault()?.Start;
+            void SetCamera(Position p) => scene.Camera = StageViewModel.CameraJson(p);
+            CountsFrom("Camera", Camera, SetCamera);
+            Fields.Add(Tile("Camera centre", "Camera.Tile", () => Camera()?.Tile, t => SetCamera(new Position { Tile = t, From = Camera()?.From }), from: () => Camera()?.From));
+        }
         Fields.Add(new BoolField("Skippable", "Skippable", () => scene.Skippable, v => scene.Skippable = v, Commit)
         { Description = "The player can skip it. Add story flags or rewards to the \"If skipped\" lane so skipping still counts.", Rebuild = true });
 
@@ -149,8 +154,9 @@ public sealed partial class InspectorViewModel : ObservableObject
 
         if (actor.Kind == "Temporary")
             Fields.Add(new TextField("Name in this scene", "Id", () => actor.Id, v => StageViewModel.RenameActor(scene, actor, v), Commit) { AllowNull = false, Rebuild = true });
+        CountsFrom("Start", () => actor.Start, p => actor.Start = p);
         Fields.Add(Tile("Starts at", "Start.Tile", () => actor.Start?.Tile, t => { actor.Start ??= new Position(); actor.Start.Tile = t; },
-            () => actor.Start?.Px, p => { actor.Start ??= new Position { Tile = new[] { 0, 0 } }; actor.Start.Px = p; }));
+            () => actor.Start?.Px, p => { actor.Start ??= new Position { Tile = new[] { 0, 0 } }; actor.Start.Px = p; }, from: () => actor.Start?.From));
         Fields.Add(new ChoiceField("Facing", "Facing", FacingOptions(), () => actor.Facing, v => actor.Facing = v ?? "down", Commit));
         Fields.Add(new BoolField("Visible at the start", "Visible", () => actor.Visible, v => actor.Visible = v, Commit) { Description = "Hidden actors are there but invisible until a clip shows them." });
         if (actor.Kind == "Npc")
@@ -282,7 +288,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                 break;
             case MoveBeat move:
                 Fields.Add(Actor("Who", "Actor", () => move.Actor, v => move.Actor = v));
-                Fields.Add(Tile("Walk to", "To.Tile", () => move.To?.Tile, t => move.To = new Position { Tile = t }));
+                CountsFrom("To", () => move.To, p => move.To = p);
+                Fields.Add(Tile("Walk to", "To.Tile", () => move.To?.Tile, t => move.To = new Position { Tile = t, From = move.To?.From }, from: () => move.To?.From));
                 Fields.Add(new ChoiceField("Speed", "Speed", new[] { new ChoiceItem("slow", "Slow"), new ChoiceItem("normal", "Normal"), new ChoiceItem("fast", "Fast") },
                     () => move.Speed.Type == JTokenType.Integer ? move.Speed.ToString() : (string?)move.Speed, v => move.Speed = int.TryParse(v, out int n) ? n : v ?? "normal", Commit) { IsEditable = true });
                 Fields.Add(new ChoiceField("Route", "Path", new[] { new ChoiceItem("x-first", "Across first, then up/down"), new ChoiceItem("y-first", "Up/down first, then across") }, () => move.Path, v => move.Path = v ?? "x-first", Commit));
@@ -328,7 +335,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                 Fields.Add(Milliseconds("Wait", "Duration", () => wait.Duration, v => wait.Duration = v));
                 break;
             case CameraBeat camera:
-                Fields.Add(Tile("Centre on", "Center.Tile", () => camera.Center?.Tile, t => camera.Center = new Position { Tile = t }));
+                CountsFrom("Center", () => camera.Center, p => camera.Center = p);
+                Fields.Add(Tile("Centre on", "Center.Tile", () => camera.Center?.Tile, t => camera.Center = new Position { Tile = t, From = camera.Center?.From }, from: () => camera.Center?.From));
                 Fields.Add(Milliseconds("Pan time", "Duration", () => camera.Duration, v => camera.Duration = v, "0 = cut instantly"));
                 Fields.Add(new ChoiceField("Easing", "Ease", EaseOptions(), () => camera.Ease, v => camera.Ease = v ?? "linear", Commit));
                 Fields.Add(new BoolField("Wait for the pan", "Wait", () => camera.Wait, v => camera.Wait = v, Commit));
@@ -350,7 +358,11 @@ public sealed partial class InspectorViewModel : ObservableObject
             case EffectBeat effect:
                 Fields.Add(new ChoiceField("Effect", "Effect", EffectOptions(), () => effect.Effect, v => effect.Effect = v, Commit) { IsEditable = true });
                 Fields.Add(new ChoiceField("On", "Actor", ActorOptions(scene, false).Prepend(new ChoiceItem(null, "A tile (choose below)")), () => effect.Actor, v => { effect.Actor = v; if (v != null) effect.At = null; else effect.At ??= new Position { Tile = new[] { 10, 10 } }; }, Commit) { Rebuild = true });
-                if (effect.Actor == null) Fields.Add(Tile("At", "At.Tile", () => effect.At?.Tile, t => effect.At = new Position { Tile = t }));
+                if (effect.Actor == null)
+                {
+                    CountsFrom("At", () => effect.At, p => effect.At = p);
+                    Fields.Add(Tile("At", "At.Tile", () => effect.At?.Tile, t => effect.At = new Position { Tile = t, From = effect.At?.From }, from: () => effect.At?.From));
+                }
                 Fields.Add(new NumberField("Count", "Count", () => effect.Count, v => effect.Count = v ?? 1, Commit) { Minimum = 1, Maximum = 20 });
                 Fields.Add(new TextField("Colour", "Color", () => effect.Color, v => effect.Color = v, Commit) { Placeholder = "#RRGGBB (optional)" });
                 Fields.Add(new NumberField("Duration", "Duration", () => effect.Duration, v => effect.Duration = v, Commit) { Nullable = true, Minimum = 0, Suffix = "ms" });
@@ -370,7 +382,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                 break;
             case PropBeat prop:
                 Fields.Add(Item("Item", "Item", () => prop.Item, v => prop.Item = v));
-                Fields.Add(Tile("Stands on", "At.Tile", () => prop.At?.Tile, t => prop.At = new Position { Tile = t }));
+                CountsFrom("At", () => prop.At, p => prop.At = p);
+                Fields.Add(Tile("Stands on", "At.Tile", () => prop.At?.Tile, t => prop.At = new Position { Tile = t, Px = prop.At?.Px ?? new[] { 0, 0 }, From = prop.At?.From }, from: () => prop.At?.From));
                 Fields.Add(new BoolField("Take it away instead", "Remove", () => prop.Remove, v => prop.Remove = v, Commit));
                 Fields.Add(new NoteField("It stays until the scene ends, or until a beat takes it away. Its picture's bottom-left corner stands on the tile; drag it on the stage to move it. Only the scene shows it: nothing is added to the map."));
                 break;
@@ -478,8 +491,35 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     // ================= field factories =================
 
-    private TileField Tile(string label, string key, Func<int[]?> get, Action<int[]> set, Func<int[]?>? getPx = null, Action<int[]>? setPx = null) =>
-        new(label, key, get, set, Commit, field => shell.Stage.BeginPick(label, (x, y) => field.SetTile(x, y)), getPx, setPx);
+    /// <param name="from">The place the tile counts from (D-52): a tile picked on the stage becomes tiles from its spot.</param>
+    private TileField Tile(string label, string key, Func<int[]?> get, Action<int[]> set, Func<int[]?>? getPx = null, Action<int[]>? setPx = null, Func<string?>? from = null) =>
+        new(label, key, get, set, Commit, field => shell.Stage.BeginPick(label, (x, y) =>
+        {
+            var at = shell.Stage.Staged.At(x, y, from?.Invoke());
+            field.SetTile(at.Tile![0], at.Tile[1]);
+        }), getPx, setPx)
+        { Help = from?.Invoke() is { } place ? $"Tiles from {Places.Words(place)}: right and down (negative: left and up). The game finds {Places.Words(place)} when the scene starts." : null };
+
+    /// <summary>
+    /// Where a position counts from (D-52): the map, or the spouse's room, found in the game when the scene starts because it
+    /// moves with the house and the spouse. Offered in farmhouse scenes, and wherever a position already counts from a place.
+    /// Changing it keeps the spot where the stage shows it.
+    /// </summary>
+    private void CountsFrom(string key, Func<Position?> get, Action<Position> set)
+    {
+        var scene = Scene!;
+        if (!Places.IsAnchored(get()) && !string.Equals(scene.Location, StagedMap.ExportedHouse, StringComparison.OrdinalIgnoreCase)) return;
+        var options = new[] { new ChoiceItem(null, "The map", "this tile on the map") }
+            .Concat(Places.All.Select(p => new ChoiceItem(p, char.ToUpperInvariant(Places.Words(p)[0]) + Places.Words(p)[1..], "wherever it is in the player's house")));
+        Fields.Add(new ChoiceField("Relative to", key + ".From", options, () => get()?.From, from =>
+        {
+            var position = get() ?? new Position { Tile = new[] { 0, 0 } };
+            var staged = shell.Stage.Staged;
+            var (x, y) = staged.Tile(position);
+            // To a place the stage can't show: right on its spot. Otherwise the spot stays where the stage shows it.
+            set(from != null && !staged.Knows(from) ? new Position { Tile = new[] { 0, 0 }, Px = position.Px, From = from } : staged.At(x, y, from, position.Px));
+        }, Commit) { Rebuild = true, Help = "The spouse's room is in a different place in every house: its spot moves with the upgrade, map mods and the spouse. Positions from it follow it." });
+    }
 
     private NumberField Milliseconds(string label, string key, Func<int> get, Action<int> set, string? help = null) =>
         new(label, key, () => get(), v => set(v ?? 0), Commit) { Minimum = 0, Maximum = 600000, Suffix = "ms", Step = 100, Help = help, Describe = v => v >= 1000 ? $"{v / 1000.0:0.##} s" : null };

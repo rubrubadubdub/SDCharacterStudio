@@ -17,17 +17,20 @@ public sealed partial class CharacterStudioViewModel
         why = null;
         if (document == null) { why = "Open a pose or animation first."; return null; }
         if (shell.Scene is not { Location: { } location } scene) { why = "Open a scene first: the preview plays at its location."; return null; }
-        var tile = scene.Actors.FirstOrDefault(a => a.Kind == "Farmer")?.Start?.Tile ?? scene.Actors.FirstOrDefault()?.Start?.Tile ?? new[] { 10, 10 };
+        var anchor = scene.Actors.FirstOrDefault(a => a.Kind == "Farmer")?.Start ?? scene.Actors.FirstOrDefault()?.Start;
+        var tile = anchor?.Tile ?? new[] { 10, 10 };
+        // A scene placed from a place (D-52) previews there too: the same offsets from the same place.
+        string? from = anchor?.From;
         var preview = PackDocument.NewCutscene(PreviewSceneId, location);
         preview.Title = "Character Studio preview";
         var farmer = preview.Actors[0];
-        farmer.Start = new Position { Tile = new[] { tile[0], tile[1] + 2 } };
+        farmer.Start = new Position { Tile = new[] { tile[0], tile[1] + 2 }, From = from };
         farmer.Facing = "up";
 
         string AddNpc(string npc, int dx, string facing)
         {
             if (preview.Actors.FirstOrDefault(a => string.Equals(a.Npc ?? a.Id, npc, StringComparison.OrdinalIgnoreCase)) is { } existing) return existing.Id!;
-            preview.Actors.Add(new Actor { Id = npc, Kind = "Npc", Npc = npc, Start = new Position { Tile = new[] { tile[0] + dx, tile[1] } }, Facing = facing });
+            preview.Actors.Add(new Actor { Id = npc, Kind = "Npc", Npc = npc, Start = new Position { Tile = new[] { tile[0] + dx, tile[1] }, From = from }, Facing = facing });
             return npc;
         }
 
@@ -51,8 +54,8 @@ public sealed partial class CharacterStudioViewModel
                 if (pose.IsSheet)
                 {
                     preview.Beats.Add(new CostumeBeat { Actor = actor, Sprite = new SpriteReference { Pose = pose.ItemId } });
-                    preview.Beats.Add(new MoveBeat { Actor = actor, To = new Position { Tile = new[] { tile[0] - 3, tile[1] } } });
-                    preview.Beats.Add(new MoveBeat { Actor = actor, To = new Position { Tile = new[] { tile[0], tile[1] } } });
+                    preview.Beats.Add(new MoveBeat { Actor = actor, To = new Position { Tile = new[] { tile[0] - 3, tile[1] }, From = from } });
+                    preview.Beats.Add(new MoveBeat { Actor = actor, To = new Position { Tile = new[] { tile[0], tile[1] }, From = from } });
                     preview.Beats.Add(new FaceBeat { Actor = actor, Facing = "down" });
                     preview.Beats.Add(new WaitBeat { Duration = 1500 });
                     break;

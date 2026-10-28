@@ -1,5 +1,6 @@
 using System.IO;
 using Newtonsoft.Json.Linq;
+using SDCharacterStudio.Core;
 using SDCharacterStudio.Core.Models;
 using SDCharacterStudio.Core.Serialization;
 using SDCharacterStudio.Editor.Project;
@@ -159,8 +160,9 @@ public sealed class PreviewService : IDisposable
             if (actor == null) continue;
             if (beat is MoveBeat { To.Tile: { Length: 2 } to } move)
             {
-                actor.Facing = MoveFacing(move, actor.Start?.Tile, to) ?? actor.Facing;
-                actor.Start = new Position { Tile = (int[])to.Clone(), Px = move.To.Px.ToArray() };
+                // Compared where both would start in the compiled event: a walk to a place (D-52) and a start on the map line up.
+                actor.Facing = MoveFacing(move, Places.FallbackTile(actor.Start), Places.FallbackTile(move.To)!) ?? actor.Facing;
+                actor.Start = new Position { Tile = (int[])to.Clone(), Px = move.To.Px.ToArray(), From = move.To.From };
             }
             if (beat is FaceBeat { Facing: { } facing }) actor.Facing = facing;
         }

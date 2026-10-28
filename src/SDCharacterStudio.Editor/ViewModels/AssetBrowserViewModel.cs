@@ -175,8 +175,8 @@ public sealed partial class AssetBrowserViewModel : ObservableObject
         switch (item.Kind)
         {
             case AssetKind.Character:
-                var tile = scene.Actors.LastOrDefault()?.Start?.Tile ?? new[] { 10, 10 };
-                shell.Stage.DropCharacter(item.Key, tile[0] + 1, tile[1]);
+                var (lastX, lastY) = scene.Actors.LastOrDefault()?.Start is { } last ? shell.Stage.Staged.Tile(last) : (10, 10);
+                shell.Stage.DropCharacter(item.Key, lastX + 1, lastY);
                 break;
             case AssetKind.Location: shell.Stage.SetLocation(item.Key); break;
             case AssetKind.Item when SelectedBeat() is ItemBeat itemBeat: shell.Edit("Change item", () => itemBeat.Item = item.Key); break;

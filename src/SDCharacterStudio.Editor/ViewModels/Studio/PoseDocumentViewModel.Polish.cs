@@ -51,12 +51,14 @@ public partial class PoseDocumentViewModel
             default: return;
         }
         var shell = Studio.Shell;
-        if (shell.Scene is not { } scene || shell.Catalog?.Location(scene.Location) is not { Back: { } back }) { BackdropNote = "Open a scene whose location is in the game export to see its floor here."; return; }
+        // The map the stage shows (an upgraded farmhouse when the scene is staged on one, D-52).
+        var staged = shell.Scene == null ? null : StagedMap.For(shell.Scene, shell.Catalog, shell.Document?.Project);
+        if (shell.Scene is not { } scene || shell.Catalog == null || staged?.Map is not { Back: { } back }) { BackdropNote = "Open a scene whose location is in the game export to see its floor here."; return; }
         if (StudioImages.LoadFile(shell.Catalog.FullPath(back)) is not { } map) { BackdropNote = "The game export has no picture of " + scene.Location + "."; return; }
         string? who = PoseCharacter() is { IsFarmer: false } character ? character.Key : null;
         var actor = scene.Actors.FirstOrDefault(a => who != null && string.Equals(a.Npc ?? a.Id, who, StringComparison.OrdinalIgnoreCase))
             ?? scene.Actors.FirstOrDefault(a => a.Kind == "Farmer") ?? scene.Actors.FirstOrDefault();
-        int[] tile = actor?.Start?.Tile ?? new[] { 10, 10 };
+        int[] tile = actor?.Start is { } start ? new[] { staged.Tile(start).X, staged.Tile(start).Y } : new[] { 10, 10 };
         var pivot = Pivot;
         // NPC.draw: the frame's feet (the pose's pivot) on the bottom middle of the actor's tile.
         int left = tile[0] * 16 + 8 - pivot[0], top = tile[1] * 16 + 15 - pivot[1];

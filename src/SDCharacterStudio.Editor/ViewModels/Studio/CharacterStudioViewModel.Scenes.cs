@@ -117,8 +117,8 @@ public sealed partial class CharacterStudioViewModel
         bool Plays(Actor a) => npc == "farmer" ? a.Kind == "Farmer" : string.Equals(a.Npc, npc, StringComparison.OrdinalIgnoreCase);
         if (shell.Selection is ActorSelection selected && selected.Index < scene.Actors.Count && Plays(scene.Actors[selected.Index])) return scene.Actors[selected.Index].Id!;
         if (scene.Actors.FirstOrDefault(Plays) is { Id: { } id }) return id;
-        var tile = scene.Actors.LastOrDefault()?.Start?.Tile ?? new[] { 10, 10 };
-        shell.Stage.DropCharacter(npc, tile[0] + 1, tile[1]);
+        var (lastX, lastY) = scene.Actors.LastOrDefault()?.Start is { } last ? shell.Stage.Staged.Tile(last) : (10, 10);
+        shell.Stage.DropCharacter(npc, lastX + 1, lastY);
         shell.Ui.Toast("Added to the scene", $"{npc} wasn't in the scene, so they stand next to the last actor. Drag them where you want.", ToastKind.Info);
         return npc;
     }

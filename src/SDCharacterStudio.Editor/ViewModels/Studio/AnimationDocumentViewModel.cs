@@ -251,7 +251,9 @@ public sealed partial class AnimationDocumentViewModel : StudioDocumentViewModel
     {
         if (IsLibrary) return ClipPreview.World(previewTiles.GetValueOrDefault(owner) ?? new[] { 4, 3 });
         var actor = Scene?.Actors.FirstOrDefault(a => string.Equals(a.Id, owner, StringComparison.OrdinalIgnoreCase));
-        return ClipPreview.World(actor?.Start?.Tile, actor?.Start?.Px);
+        // A start that counts from a place (D-52) stands where the scene's stage shows the place.
+        var start = actor?.Start is { } s ? StagedMap.For(Scene, Studio.Shell.Catalog, Studio.Shell.Document?.Project).Tile(s) : (X: 0, Y: 0);
+        return ClipPreview.World(actor?.Start == null ? null : new[] { start.X, start.Y }, actor?.Start?.Px);
     }
 
     private string StartFacing(string owner)

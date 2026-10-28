@@ -54,6 +54,26 @@ public sealed partial class StageViewModel : ObservableObject
     [ObservableProperty] private string? momentText;
     public bool HasMoment => MomentText != null;
     public ObservableCollection<ChoiceItem> LocationOptions { get; } = new();
+    /// <summary>For a farmhouse scene: the house to stage it on (D-52), the export's own or an upgraded one.</summary>
+    public ObservableCollection<ChoiceItem> HouseOptions { get; } = new();
+    public bool ShowHousePicker => HouseOptions.Count > 1;
+    /// <summary>The map the scene is staged on, with where its places are (D-52).</summary>
+    public StagedMap Staged { get; private set; } = new(null, null, false);
+    /// <summary>A note about the places the scene counts from: an export without the upgraded house, a house without the place.</summary>
+    [ObservableProperty] private string? placeNotice;
+    public bool HasPlaceNotice => PlaceNotice != null;
+    partial void OnPlaceNoticeChanged(string? value) => OnPropertyChanged(nameof(HasPlaceNotice));
+    public ChoiceItem? SelectedHouse
+    {
+        get => HouseOptions.FirstOrDefault(o => string.Equals(o.Value, Staged.Layout?.Name ?? StagedMap.ExportedHouse, StringComparison.OrdinalIgnoreCase));
+        set
+        {
+            if (value?.Value is not { } house || shell.Scene?.Id is not { } id || shell.Document is not { } doc || value == SelectedHouse) return;
+            doc.Project.SetStageLayout(id, house);
+            Rebuild();
+            shell.ScheduleValidation();
+        }
+    }
 
     [ObservableProperty] private LocationEntry? location;
     [ObservableProperty] private ImageSource? back;
@@ -101,8 +121,11 @@ public sealed partial class StageViewModel : ObservableObject
         Actors.Clear(); Ghosts.Clear(); Paths.Clear(); Props.Clear(); Markers.Clear();
         CaptureMoment(scene);
         RebuildLocationOptions();
-        if (scene == null) { EmptyText = "Open or create a project to start staging."; Back = Front = Passable = null; MapWarning = null; OnPropertyChanged(nameof(LocationName)); return; }
-        Location = catalog?.Location(scene.Location);
+        if (scene == null) { EmptyText = "Open or create a project to start staging."; Back = Front = Passable = null; MapWarning = null; PlaceNotice = null; HouseOptions.Clear(); OnPropertyChanged(nameof(ShowHousePicker)); OnPropertyChanged(nameof(LocationName)); return; }
+        Staged = StagedMap.For(scene, catalog, shell.Document?.Project);
+        Location = Staged.Map;
+        RebuildHouseOptions(scene, catalog);
+        PlaceNotice = PlaceNoticeFor(scene, catalog);
         if (Location != null)
         {
             Back = Images.Load(catalog!.FullPath(Location.Back));
@@ -117,8 +140,8 @@ public sealed partial class StageViewModel : ObservableObject
         else
         {
             Back = Front = Passable = null; MapWarning = null; MapWarningMod = null; MapActionText = null; mapPartner = null;
-            int maxX = scene.Actors.Select(a => a.Start?.Tile?[0] ?? 0).DefaultIfEmpty(20).Max() + 10;
-            int maxY = scene.Actors.Select(a => a.Start?.Tile?[1] ?? 0).DefaultIfEmpty(15).Max() + 8;
+            int maxX = scene.Actors.Select(a => Staged.Tile(a.Start).X).DefaultIfEmpty(20).Max() + 10;
+            int maxY = scene.Actors.Select(a => Staged.Tile(a.Start).Y).DefaultIfEmpty(15).Max() + 8;
             Width = Math.Max(30, maxX) * Tile; Height = Math.Max(20, maxY) * Tile;
             EmptyText = catalog == null ? "No game export yet: the stage shows a plain grid. Start the game with the SDCS Bridge and load a save to see real maps."
                 : !catalog.HasWorld ? "The export has no maps yet (load a save in the game so the Bridge exports locations)."
@@ -138,12 +161,12 @@ public sealed partial class StageViewModel : ObservableObject
     private void AddActors(Cutscene scene)
     {
         Actors.Clear(); Ghosts.Clear(); Paths.Clear(); Props.Clear();
-        foreach (var (by, prop) in StageTimeline.Props(played))
-            Props.Add(new StagePropViewModel(this, by, prop, shell.Catalog, selected: played.Count > 0 && ReferenceEquals(played[^1].Beat, prop)));
+        foreach (var (by, prop, x, y) in StageTimeline.Props(played, Staged))
+            Props.Add(new StagePropViewModel(this, by, prop, shell.Catalog, selected: played.Count > 0 && ReferenceEquals(played[^1].Beat, prop), x, y));
         for (int i = 0; i < scene.Actors.Count; i++)
         {
             var look = StageLooks.For(scene, scene.Actors[i], shell.Document, played);
-            var place = StageTimeline.Place(scene, scene.Actors[i], played, shell.Document?.Library);
+            var place = StageTimeline.Place(scene, scene.Actors[i], played, shell.Document?.Library, Staged);
             var actor = new StageActorViewModel(this, i, scene.Actors[i], shell.Catalog, look, renders, place);
             Actors.Add(actor);
             if (place.From is { } from)
@@ -210,6 +233,52 @@ public sealed partial class StageViewModel : ObservableObject
         Rebuild();
     }
 
+    /// <summary>The staged map in words: the location, or "FarmHouse (upgraded once)".</summary>
+    public string MapName => Staged.Layout is { } layout ? $"{shell.Scene?.Location} ({StagedMap.Words(layout)})" : Location?.Name ?? shell.Scene?.Location ?? "";
+
+    /// <summary>The farmhouse choices (D-52): the house the export has, then each upgraded house it has.</summary>
+    private void RebuildHouseOptions(Cutscene scene, ExportCatalog? catalog)
+    {
+        var options = new List<ChoiceItem>();
+        if (catalog != null && string.Equals(scene.Location, StagedMap.ExportedHouse, StringComparison.OrdinalIgnoreCase) && catalog.HouseLayouts.Count > 0)
+        {
+            var own = catalog.Location(scene.Location);
+            options.Add(new ChoiceItem(StagedMap.ExportedHouse, "Your house, as exported", own?.Level is { } level ? (level == 0 ? "not upgraded" : $"upgrade {level}") : null));
+            foreach (var layout in catalog.HouseLayouts)
+                options.Add(new ChoiceItem(layout.Name, char.ToUpperInvariant(StagedMap.Words(layout)[0]) + StagedMap.Words(layout)[1..],
+                    string.IsNullOrEmpty(layout.SpouseRoom) ? "with the game's default spouse's room" : $"with {catalog.Character(layout.SpouseRoom)?.DisplayName ?? layout.SpouseRoom}'s room"));
+        }
+        if (!HouseOptions.Select(o => o.Value).SequenceEqual(options.Select(o => o.Value)))
+        {
+            HouseOptions.Clear();
+            foreach (var option in options) HouseOptions.Add(option);
+        }
+        OnPropertyChanged(nameof(ShowHousePicker)); OnPropertyChanged(nameof(SelectedHouse)); OnPropertyChanged(nameof(MapName));
+    }
+
+    /// <summary>
+    /// What the stage can't show about the scene's places (D-52), in plain words: an export made before the upgraded houses
+    /// were exported, or a house without the place. Null when the stage shows them where they are.
+    /// </summary>
+    private string? PlaceNoticeFor(Cutscene scene, ExportCatalog? catalog)
+    {
+        var missing = Places.Used(scene).Where(p => !Staged.Knows(p)).ToList();
+        if (missing.Count == 0 || catalog == null) return null;
+        string place = missing[0], words = Places.Words(place);
+        var (x, y) = Staged.Spot(place);
+        if (!catalog.HasHouseLayouts)
+            return $"This scene counts from {words}, but your game export has no upgraded farmhouse to show it in (the export was made before SDCharacterStudio exported them). With a save loaded, use Preview › Ask the game to export again. Until then the stage puts {words} at {x},{y}.";
+        if (catalog.HouseLayouts.Count == 0)
+            return $"This scene counts from {words}, but the game couldn't export an upgraded farmhouse. The stage puts {words} at {x},{y}.";
+        return $"The house shown has no spouse's room, so the stage puts {words} at {x},{y}. Pick an upgraded house above to see it.";
+    }
+
+    /// <summary>
+    /// The place a new position on this scene's stage counts from: the place the scene's actors start from, if they do (D-52).
+    /// A walk, an item or a camera added on a spouse's-room scene stays in the room whatever house the player has.
+    /// </summary>
+    public static string? DefaultPlace(Cutscene scene) => scene.Actors.Select(a => a.Start?.From).FirstOrDefault(f => !string.IsNullOrEmpty(f));
+
     private void RebuildLocationOptions()
     {
         var names = shell.Catalog?.Locations.Select(l => new ChoiceItem(l.Name, l.Name, l.Origin.IsModProvided ? shell.Catalog.ModLabel(l.Origin.ProvidedBy[0]) : null)).ToList() ?? new();
@@ -222,10 +291,11 @@ public sealed partial class StageViewModel : ObservableObject
     private void UpdateCamera(Cutscene scene)
     {
         // A Camera beat that has played moves it; until then it's the scene's own camera.
-        var moved = StageTimeline.Camera(played);
+        var moved = StageTimeline.Camera(played, Staged);
         cameraBy = moved?.By;
         CameraFollows = moved == null && scene.Camera?.Type == JTokenType.String;
-        int[]? tile = moved?.Tile ?? (scene.Camera as JObject)?["Tile"]?.ToObject<int[]>() ?? scene.Actors.FirstOrDefault()?.Start?.Tile;
+        var own = Places.SceneCamera(scene) is { } camera && (camera.Tile != null || Places.IsAnchored(camera)) ? camera : scene.Actors.FirstOrDefault()?.Start;
+        int[]? tile = moved?.Tile ?? (own == null ? null : new[] { Staged.Tile(own).X, Staged.Tile(own).Y });
         tile ??= new[] { 10, 10 };
         double cx = tile[0] * Tile + Tile / 2.0, cy = tile[1] * Tile + Tile / 2.0;
         // Vanilla centres on the tile and clamps to the map; a map smaller than the screen is centred (doc 08 §2.8).
@@ -239,15 +309,25 @@ public sealed partial class StageViewModel : ObservableObject
         if (shell.Selection is not BeatSelection selected || LaneNames.Get(scene, selected.Lane) is not { } list || selected.Index >= list.Count) return;
         switch (list[selected.Index])
         {
-            case MoveBeat { To.Tile: { Length: 2 } to } move:
-                Markers.Add(new StageMarkerViewModel(to[0] * Tile, to[1] * Tile, $"{move.Actor} walks here", StageMarkerKind.Destination));
+            case MoveBeat { To.Tile: { Length: 2 } } move:
+            {
+                var (x, y) = Staged.Tile(move.To);
+                Markers.Add(new StageMarkerViewModel(x * Tile, y * Tile, $"{move.Actor} walks here", StageMarkerKind.Destination));
                 break;
-            case CameraBeat { Center.Tile: { Length: 2 } center }:
-                Markers.Add(new StageMarkerViewModel(center[0] * Tile, center[1] * Tile, "camera centre", StageMarkerKind.Camera));
+            }
                 break;
-            case EffectBeat { At.Tile: { Length: 2 } at } effect:
-                Markers.Add(new StageMarkerViewModel(at[0] * Tile, at[1] * Tile, effect.Effect ?? "effect", StageMarkerKind.Effect));
+            case CameraBeat { Center.Tile: { Length: 2 } } camera:
+            {
+                var (x, y) = Staged.Tile(camera.Center);
+                Markers.Add(new StageMarkerViewModel(x * Tile, y * Tile, "camera centre", StageMarkerKind.Camera));
                 break;
+            }
+            case EffectBeat { At.Tile: { Length: 2 } } effect:
+            {
+                var (x, y) = Staged.Tile(effect.At);
+                Markers.Add(new StageMarkerViewModel(x * Tile, y * Tile, effect.Effect ?? "effect", StageMarkerKind.Effect));
+                break;
+            }
         }
     }
 
@@ -289,7 +369,7 @@ public sealed partial class StageViewModel : ObservableObject
         bool isFarmer = npc == "farmer";
         shell.Edit("Add " + npc, () => scene.Actors.Add(new Actor
         {
-            Id = npc, Kind = isFarmer ? "Farmer" : "Npc", Npc = isFarmer ? null : npc, Start = new Position { Tile = new[] { tileX, tileY } }, Facing = "down"
+            Id = npc, Kind = isFarmer ? "Farmer" : "Npc", Npc = isFarmer ? null : npc, Start = Staged.At(tileX, tileY, DefaultPlace(scene)), Facing = "down"
         }));
         shell.Select(new ActorSelection(scene.Id!, scene.Actors.Count - 1));
         var origin = shell.Catalog?.Character(npc)?.Origin;
@@ -305,18 +385,19 @@ public sealed partial class StageViewModel : ObservableObject
         var scene = shell.Scene;
         if (scene == null || index >= scene.Actors.Count) return;
         var actor = scene.Actors[index];
-        switch (StageTimeline.Place(scene, actor, played, shell.Document?.Library).PlacedBy)
+        switch (StageTimeline.Place(scene, actor, played, shell.Document?.Library, Staged).PlacedBy)
         {
             case { Beat: MoveBeat move } by:
-                if (move.To?.Tile is { Length: 2 } to && to[0] == tileX && to[1] == tileY) return;
-                shell.Edit($"{actor.Id} walks to {tileX}, {tileY} ({by.Title})", () => move.To = new Position { Tile = new[] { tileX, tileY } });
+                if (move.To?.Tile is { Length: 2 } && Staged.Tile(move.To) == (tileX, tileY)) return;
+                // A walk to a place (D-52) keeps counting from it.
+                shell.Edit($"{actor.Id} walks to {tileX}, {tileY} ({by.Title})", () => move.To = Staged.At(tileX, tileY, move.To?.From));
                 return;
             case { Beat: ClipBeat clip } by:
                 shell.Ui.Toast("A clip puts them here", $"{actor.Id} is where the clip '{clip.Clip}' ({by.Title}) leaves them. Change it in the Animation tab, or right-click a tile for “{actor.Id} walks here”.", ToastKind.Info);
                 return;
         }
-        if (actor.Start?.Tile is { Length: 2 } t && t[0] == tileX && t[1] == tileY && actor.Start.Px[0] == pxX && actor.Start.Px[1] == pxY) return;
-        shell.Edit($"Move {actor.Id}", () => actor.Start = new Position { Tile = new[] { tileX, tileY }, Px = new[] { pxX, pxY } });
+        if (actor.Start?.Tile is { Length: 2 } && Staged.Tile(actor.Start) == (tileX, tileY) && actor.Start.Px[0] == pxX && actor.Start.Px[1] == pxY) return;
+        shell.Edit($"Move {actor.Id}", () => actor.Start = Staged.At(tileX, tileY, actor.Start?.From, new[] { pxX, pxY }));
     }
 
     public static int BeatsUsing(Cutscene scene, string? actorId) => StoryboardViewModel.AllBeats(scene)
@@ -356,7 +437,7 @@ public sealed partial class StageViewModel : ObservableObject
         var scene = shell.Scene;
         if (scene == null || index >= scene.Actors.Count) return;
         var actor = scene.Actors[index];
-        var place = StageTimeline.Place(scene, actor, played, shell.Document?.Library);
+        var place = StageTimeline.Place(scene, actor, played, shell.Document?.Library, Staged);
         string next = place.Facing switch { "down" => "left", "left" => "up", "up" => "right", _ => "down" };
         switch (place.TurnedBy)
         {
@@ -371,7 +452,8 @@ public sealed partial class StageViewModel : ObservableObject
     {
         if (shell.Scene is not { } scene || index >= scene.Actors.Count) return;
         string? id = scene.Actors[index].Id;
-        InsertAfterMoment("Move", beat => { var move = (MoveBeat)beat; move.Actor = id; move.To = new Position { Tile = new[] { tileX, tileY } }; });
+        string? from = scene.Actors[index].Start?.From ?? DefaultPlace(scene);
+        InsertAfterMoment("Move", beat => { var move = (MoveBeat)beat; move.Actor = id; move.To = Staged.At(tileX, tileY, from); });
     }
 
     /// <summary>Insert a beat right after the one the stage shows (before it when that one ends the lane: an End or a Go-to), and select it.</summary>
@@ -389,19 +471,22 @@ public sealed partial class StageViewModel : ObservableObject
     /// Drop an item from the browser on a tile: a Place beat after the moment's beat, its picture's bottom-left corner on
     /// that tile (D-50). The owner dropped a Moon Table and got "give the player a Moon Table", with nothing on the map.
     /// </summary>
-    public void PlaceItem(string item, int tileX, int tileY) =>
-        InsertAfterMoment("Prop", beat => { var prop = (PropBeat)beat; prop.Item = item; prop.At = new Position { Tile = new[] { tileX, tileY } }; });
+    public void PlaceItem(string item, int tileX, int tileY)
+    {
+        string? from = shell.Scene is { } scene ? DefaultPlace(scene) : null;
+        InsertAfterMoment("Prop", beat => { var prop = (PropBeat)beat; prop.Item = item; prop.At = Staged.At(tileX, tileY, from); });
+    }
 
     /// <summary>Drag a placed item: its Place beat's tile changes.</summary>
     public void MoveProp(StagePropViewModel prop, int tileX, int tileY)
     {
-        if (prop.Prop.At?.Tile is { Length: 2 } at && at[0] == tileX && at[1] == tileY) return;
-        shell.Edit($"Move {prop.Label} to {tileX}, {tileY} ({prop.By.Title})", () => prop.Prop.At = new Position { Tile = new[] { tileX, tileY } });
+        if (prop.TileX == tileX && prop.TileY == tileY) return;
+        shell.Edit($"Move {prop.Label} to {tileX}, {tileY} ({prop.By.Title})", () => prop.Prop.At = Staged.At(tileX, tileY, prop.Prop.At?.From, prop.Prop.At?.Px));
     }
 
     /// <summary>Right-click › take it away: a Place beat with Remove after the moment's beat.</summary>
     public void TakeAway(StagePropViewModel prop) =>
-        InsertAfterMoment("Prop", beat => { var remove = (PropBeat)beat; remove.Item = prop.Prop.Item; remove.Remove = true; remove.At = new Position { Tile = new[] { prop.TileX, prop.TileY } }; });
+        InsertAfterMoment("Prop", beat => { var remove = (PropBeat)beat; remove.Item = prop.Prop.Item; remove.Remove = true; remove.At = Staged.At(prop.TileX, prop.TileY, prop.Prop.At?.From); });
 
     public void SelectProp(StagePropViewModel prop) { if (shell.Scene is { } scene) shell.Select(new BeatSelection(scene.Id!, prop.By.Lane, prop.By.Index)); }
 
@@ -424,8 +509,18 @@ public sealed partial class StageViewModel : ObservableObject
     {
         var scene = shell.Scene;
         if (scene == null) return;
-        if (cameraBy is { Beat: CameraBeat camera } by) { shell.Edit($"Move the camera ({by.Title})", () => camera.Center = new Position { Tile = new[] { tileX, tileY } }); return; }
-        shell.Edit("Move camera", () => scene.Camera = new JObject { ["Tile"] = new JArray(tileX, tileY) });
+        if (cameraBy is { Beat: CameraBeat camera } by) { shell.Edit($"Move the camera ({by.Title})", () => camera.Center = Staged.At(tileX, tileY, camera.Center == null ? DefaultPlace(scene) : camera.Center.From)); return; }
+        var own = Places.SceneCamera(scene);
+        string? from = own != null && (own.Tile != null || own.From != null) ? own.From : DefaultPlace(scene);
+        shell.Edit("Move camera", () => scene.Camera = CameraJson(Staged.At(tileX, tileY, from)));
+    }
+
+    /// <summary>The scene's own camera as stored: {"Tile": [x, y]}, with "From" when it counts from a place (D-52).</summary>
+    public static JObject CameraJson(Position centre)
+    {
+        var json = new JObject { ["Tile"] = new JArray(centre.Tile?.ElementAtOrDefault(0) ?? 0, centre.Tile?.ElementAtOrDefault(1) ?? 0) };
+        if (centre.From != null) json["From"] = centre.From;
+        return json;
     }
 
     /// <summary>Ask the designer to click a tile (for a Move destination, camera target…).</summary>
@@ -459,7 +554,7 @@ public sealed partial class StageViewModel : ObservableObject
             IsMapInfo = true;
             if (split.Without)
             {
-                MapWarning = $"This variant plays when {mod} isn't installed. The stage still shows {Location!.Name} as your game has it (with {mod}): place the actors for the vanilla map.";
+                MapWarning = $"This variant plays when {mod} isn't installed. The stage still shows {MapName} as your game has it (with {mod}): place the actors for the vanilla map.";
                 MapActionText = partner != null ? "Open the original" : null;
             }
             else
@@ -470,7 +565,7 @@ public sealed partial class StageViewModel : ObservableObject
             }
             return;
         }
-        MapWarning = $"{Location!.Name} is staged on a map edited by {mod}. Without that mod the tiles may differ.";
+        MapWarning = $"{MapName} is staged on a map edited by {mod}. Without that mod the tiles may differ.";
         MapActionText = "Make a variant for installs without it";
     }
 
@@ -498,10 +593,11 @@ public sealed record StageMarkerViewModel(double X, double Y, string Label, Stag
 public sealed partial class StagePropViewModel : ObservableObject
 {
     private readonly StageViewModel stage;
-    public StagePropViewModel(StageViewModel stage, PlayedBeat by, PropBeat prop, ExportCatalog? catalog, bool selected)
+    /// <param name="tileX">The tile it stands on, on the staged map (where its place is, D-52).</param>
+    public StagePropViewModel(StageViewModel stage, PlayedBeat by, PropBeat prop, ExportCatalog? catalog, bool selected, int tileX, int tileY)
     {
         this.stage = stage; By = by; Prop = prop; IsSelected = selected;
-        TileX = prop.At?.Tile?.ElementAtOrDefault(0) ?? 0; TileY = prop.At?.Tile?.ElementAtOrDefault(1) ?? 0;
+        TileX = tileX; TileY = tileY;
         var item = prop.Item == null ? null : catalog?.Item(prop.Item);
         Label = item?.Label ?? prop.Item ?? "item";
         if (item?.Icon != null && catalog != null) Image = Images.Load(catalog.FullPath(item.Icon));

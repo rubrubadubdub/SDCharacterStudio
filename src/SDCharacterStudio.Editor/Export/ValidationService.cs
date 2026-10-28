@@ -80,6 +80,11 @@ public static class ValidationService
                 issues.AddRange(compiled.Issues.Select(i => i with { File = scene.File }));
                 if (catalog != null) issues.AddRange(WorldReferenceValidator.Validate(read.Pack, scene.Value, scene.File, catalog));
             }
+            // Positions on the map the scene is staged on (D-54): off the map, or a start or walk on a tile nobody can walk on.
+            if (input.Catalog is { } export)
+                foreach (var scene in scenes)
+                    if (ViewModels.StagedMap.For(scene.Value, export, input.Project).Grid(scene.Value, passable => Walkable(export, passable)) is { } grid)
+                        issues.AddRange(MapPositionValidator.Validate(scene.Value, scene.File, grid));
             foreach (var issue in issues.GroupBy(i => (i.File, i.JsonPath, i.Message)).Select(g => g.First()))
                 problems.Add(ToProblem(issue, scenes));
             foreach (var unknown in dependencies.UnresolvedUnknown(input.Project).GroupBy(u => DependencyReport.Key(u.Reference)).Select(g => g.First()))
@@ -123,6 +128,29 @@ public static class ValidationService
         public bool AssetExists(string asset) => inner.AssetExists(asset);
         public bool ItemExists(string qualifiedItemId) => inner.ItemExists(qualifiedItemId);
         public bool HairstyleExists(int index) => inner.HairstyleExists(index);
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(string Path, DateTime Written), bool?[,]?> walkable = new();
+
+    /// <summary>The export's walkable map (white = people can walk there), read once per file.</summary>
+    private static bool?[,]? Walkable(ExportCatalog catalog, string relative)
+    {
+        if (relative.Length == 0) return null;
+        string path = catalog.FullPath(relative);
+        if (!File.Exists(path)) return null;
+        if (walkable.Count > 64) walkable.Clear();
+        return walkable.GetOrAdd((path, File.GetLastWriteTimeUtc(path)), key =>
+        {
+            try
+            {
+                var image = Core.Bridge.PngDecoder.Decode(File.ReadAllBytes(key.Path));
+                var grid = new bool?[image.Width, image.Height];
+                for (int y = 0; y < image.Height; y++)
+                    for (int x = 0; x < image.Width; x++) grid[x, y] = (image.Pixels[y * image.Width + x] & 0xFF) > 127;
+                return grid;
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or ArgumentException or UnauthorizedAccessException) { return null; }
+        });
     }
 
     private static PackReadResult Read(ValidationInput input, Dictionary<string, string> files, ICatalog? catalog) =>
