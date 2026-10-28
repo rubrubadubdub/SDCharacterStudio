@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    sdcs.exe: check and export an SDCharacterStudio project without the editor window (G3). The work is the editor's own
+    (SDCharacterStudio.Editor.Export.CommandLine); this is only its console. The editor's embedding files (Sdcs.cs,
+    the entry DLL) come along in Embed\ for the exports.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>sdcs</AssemblyName>
+    <RootNamespace>SDCharacterStudio.Cli</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SDCharacterStudio.Editor\SDCharacterStudio.Editor.csproj" />
+  </ItemGroup>
+</Project>

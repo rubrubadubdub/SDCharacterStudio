@@ -315,7 +315,6 @@ public sealed partial class StageViewModel : ObservableObject
                 Markers.Add(new StageMarkerViewModel(x * Tile, y * Tile, $"{move.Actor} walks here", StageMarkerKind.Destination));
                 break;
             }
-                break;
             case CameraBeat { Center.Tile: { Length: 2 } } camera:
             {
                 var (x, y) = Staged.Tile(camera.Center);

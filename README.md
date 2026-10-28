@@ -25,7 +25,7 @@ The build deploys Runtime to the game's `Mods\SDCharacterStudio` folder and Brid
 dotnet build src\SDCharacterStudio.sln -p:EnableModDeploy=false
 ```
 
-Run Core's and the Editor's tests with `dotnet test src\SDCharacterStudio.sln -p:EnableModDeploy=false`. The developer tools have separate usage instructions: [decompile](tools/decompile/README.md) and [xnbdump](tools/xnbdump/README.md).
+Run Core's and the Editor's tests with `dotnet test src\SDCharacterStudio.sln -p:EnableModDeploy=false`. To check or export a project without the editor window: `dotnet run --project src\SDCharacterStudio.Cli -- check <project.sdcs>` (see the [editor guide](docs/editor-guide.md#9-dependencies-and-export)). The developer tools have separate usage instructions: [decompile](tools/decompile/README.md) and [xnbdump](tools/xnbdump/README.md).
 
 ## Architecture
 

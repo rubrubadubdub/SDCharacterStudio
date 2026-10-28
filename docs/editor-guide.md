@@ -125,6 +125,15 @@ The line under the folder box names the folder it writes. For a complete mod, th
 
 *Browse* chooses another folder: an empty one, or an earlier export of this pack (the editor never overwrites anything else). Optionally it also makes a zip, or copies the mod into the game's `Mods` folder (restart the game afterwards); it refuses when another folder there has the same mod ID.
 
+**Without the window.** `sdcs.exe` (built from `src/SDCharacterStudio.Cli`) runs the same checks and exports from a terminal or a script:
+
+```text
+sdcs check  <project.sdcs> [--game-export <folder>]
+sdcs export <project.sdcs> --as mod|csharp|pack --to <folder> [--game-export <folder>]
+```
+
+`check` prints each problem on a line (`error V8 cutscenes/x.json › Beats[2].Then: Unknown branch 'b'.`) and a count. `export` checks first and, like **Export**, saves the pack folder with its dependencies before writing `--to` (`pack` copies the content pack into that folder). Both use the editor's game export unless `--game-export` names a profile folder. Exit codes: 0 no errors, 1 errors (nothing exported), 2 the command couldn't run. From the repository: `dotnet run --project src/SDCharacterStudio.Cli -- check MyScenes.sdcs`.
+
 ## 10. Settings and files
 
 **File › Settings**: the Bridge export folder and profile, the game's Mods folder, where new projects go, and your author name. Settings live in `%APPDATA%\SDCharacterStudio\editor.json`; crash details in `crash.log` next to it. Set `SDCS_EDITOR_HOME` to keep settings, previews and logs in another folder.
