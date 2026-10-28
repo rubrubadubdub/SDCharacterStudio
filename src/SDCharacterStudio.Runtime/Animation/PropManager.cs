@@ -16,9 +16,11 @@ public sealed class PropManager
 
     public int Count=>placed.Count;
 
-    public void Apply(PropBeat beat,GameLocation? location)
+    /// <param name="at">The beat's tile as a map tile (a place's spot found, D-52).</param>
+    public void Apply(PropBeat beat,GameLocation? location,Position? at=null)
     {
-        if(beat.At?.Tile is not {Length:2} tile)throw new ArgumentException("A prop needs an At tile.");
+        at??=beat.At;
+        if(at?.Tile is not {Length:2} tile)throw new ArgumentException("A prop needs an At tile.");
         if(location==null)throw new InvalidOperationException("A prop needs a current location.");
         string? item=beat.Item==null?null:ItemRegistry.QualifyItemId(beat.Item)??beat.Item;
         if(beat.Remove)
@@ -28,7 +30,7 @@ public sealed class PropManager
         }
         var data=ItemRegistry.GetDataOrErrorItem(item??throw new ArgumentException("A prop needs an item."));
         var source=data.GetSourceRect();
-        int[] px=beat.At.Px is {Length:2} offset?offset:new[]{0,0};
+        int[] px=at.Px is {Length:2} offset?offset:new[]{0,0};
         // The picture's bottom-left corner on the bottom-left of the tile (as the stage draws it), in world pixels (4 per sprite pixel).
         var position=new Vector2(tile[0]*64+px[0]*4,(tile[1]+1)*64-source.Height*4+px[1]*4);
         // NPCs and the player sort by their standing pixel (tile row * 64 + 32): just in front of anyone on its row, behind the row below.

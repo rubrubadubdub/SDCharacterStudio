@@ -12,13 +12,14 @@ public sealed class CameraMotion
     private double elapsed;
     public bool Finished { get; private set; }
 
-    public CameraMotion(CameraBeat beat)
+    /// <param name="centre">The beat's centre as a map tile (a place's spot found, D-52).</param>
+    public CameraMotion(CameraBeat beat,Position? centre=null)
     {
         if(beat.Center==null || beat.Duration<0) throw new ArgumentException("Camera requires a centre and nonnegative duration.");
         AnimationMath.Ease(beat.Ease,0);
         start=new(Game1.viewport.X,Game1.viewport.Y);
-        var centre=AnimationMath.Position(beat.Center);
-        end=Clamp(new(centre.X+32,centre.Y+32));
+        var point=AnimationMath.Position(centre??beat.Center);
+        end=Clamp(new(point.X+32,point.Y+32));
         duration=beat.Duration;ease=beat.Ease;
         Game1.viewportFreeze=true;
         if(duration==0) {Apply(end);Finished=true;}

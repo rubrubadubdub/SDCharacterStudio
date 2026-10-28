@@ -165,7 +165,23 @@ public static class PackValidator
             if((ArgumentFields.Contains(name)||path.StartsWith("Trigger.Preconditions[",StringComparison.Ordinal)) && token.Value<string>()!.Contains('/'))Error(path,"Event arguments may not contain '/'.","V5");
             if(ContentReferenceFields.Contains(name))CheckId(token.Value<string>(),file,path,issues);
         }
+        CheckPlaces(scene,file,issues);
         return issues;
+    }
+
+    /// <summary>Positions that count from a place (D-52): a place the engine knows, used in the location it's in.</summary>
+    private static void CheckPlaces(Cutscene scene,string file,List<ValidationIssue> issues)
+    {
+        var warned=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach(var (position,path,_,_) in Places.Positions(scene))
+        {
+            if(!Places.IsAnchored(position))continue;
+            string place=position.From!;
+            if(!Places.IsKnown(place)){issues.Add(new(ValidationSeverity.Error,file,path+".From",$"Unknown place '{place}'. Positions can count from: {string.Join(", ",Places.All)}.","V20"));continue;}
+            if(Places.LocationOf(place) is {} home&&!string.IsNullOrWhiteSpace(scene.Location)&&!string.Equals(home,scene.Location,StringComparison.OrdinalIgnoreCase)&&warned.Add(place))
+                issues.Add(new(ValidationSeverity.Warning,file,path+".From",$"{Capital(Places.Words(place))} is in the {home}, but this scene plays in {scene.Location}: positions there won't line up.","V20"));
+        }
+        static string Capital(string text)=>text.Length==0?text:char.ToUpperInvariant(text[0])+text[1..];
     }
 
     /// <summary>Vanilla event commands find actors by exact internal name, so a case mismatch is an error too.</summary>

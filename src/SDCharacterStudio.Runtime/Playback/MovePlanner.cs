@@ -6,9 +6,10 @@ namespace SDCharacterStudio.Runtime.Playback;
 
 public static class MovePlanner
 {
-    public static IReadOnlyList<string> Plan(MoveBeat beat, int tileX, int tileY)
+    /// <summary>The vanilla moves for a walk. <paramref name="to"/>: its destination as a map tile, when it counts from a place (D-52).</summary>
+    public static IReadOnlyList<string> Plan(MoveBeat beat, int tileX, int tileY, int[]? to = null)
     {
-        if (beat.To?.Tile is not { Length: 2 } target || string.IsNullOrWhiteSpace(beat.Actor))
+        if ((to ?? beat.To?.Tile) is not { Length: 2 } target || string.IsNullOrWhiteSpace(beat.Actor))
             throw new ArgumentException("Movement requires an actor and destination tile.");
         int speed = beat.Speed.Type == JTokenType.Integer ? (int)beat.Speed : ((string?)beat.Speed)?.ToLowerInvariant() switch
         { "slow" => 1, "normal" => 2, "fast" => 4, _ => throw new ArgumentException("Unknown movement speed.") };

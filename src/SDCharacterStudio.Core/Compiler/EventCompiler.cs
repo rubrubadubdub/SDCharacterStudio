@@ -29,7 +29,7 @@ public sealed class EventCompiler
         if (issues.Any(x => x.Severity == ValidationSeverity.Error)) return new(null, issues);
         try
         {
-            var session = new Session(packUniqueId, JObject.FromObject(cutscene, PackJson.CreateSerializer()), translate, issues, file);
+            var session = new Session(packUniqueId, JObject.FromObject(cutscene, PackJson.CreateSerializer()), translate, issues, file, Places.Used(cutscene));
             return new(session.Run(), issues);
         }
         catch (Problem problem)
@@ -70,6 +70,8 @@ public sealed class EventCompiler
         private readonly string key;
         private readonly string packId;
         private readonly string packHash;
+        /// <summary>The places the scene counts positions from (D-52): its trigger waits until the game has them.</summary>
+        private readonly IReadOnlyList<string> places;
         private readonly JObject scene;
         private readonly Func<string, string?>? translate;
         private readonly List<ValidationIssue> issues;
@@ -85,8 +87,8 @@ public sealed class EventCompiler
         private int nextContinuation;
         private string? endScript;
 
-        public Session(string pack, JObject scene, Func<string, string?>? translate, List<ValidationIssue> issues, string file)
-        { packId = pack; key = pack + "." + (string?)scene["Id"]; packHash = Ids.PackHash(pack); this.scene = scene; this.translate = translate; this.issues = issues; this.file = file; }
+        public Session(string pack, JObject scene, Func<string, string?>? translate, List<ValidationIssue> issues, string file, IReadOnlyList<string> places)
+        { this.places = places; packId = pack; key = pack + "." + (string?)scene["Id"]; packHash = Ids.PackHash(pack); this.scene = scene; this.translate = translate; this.issues = issues; this.file = file; }
 
         public CompiledCutscene Run()
         {
@@ -285,7 +287,8 @@ public sealed class EventCompiler
                     double speed = duration == 0 ? 1 : Math.Min(1, 1000d / (60 * (double)duration));
                     return (direction == "black" ? "globalFade " : "globalFadeToClear ") + speed.ToString("0.########", CultureInfo.InvariantCulture)
                         + (Bool(beat, "Wait", true) ? "" : " true");
-                case "Camera": return Int(beat, "Duration") > 0 ? Custom(EngineNames.Command("Camera")) : "viewport " + Tile(beat["Center"]?["Tile"], path + ".Center.Tile");
+                // A place is found when the scene starts (D-52), so a cut to a spot there goes through the runtime too.
+                case "Camera": return Int(beat, "Duration") > 0 || Anchored(beat["Center"]) ? Custom(EngineNames.Command("Camera")) : "viewport " + Tile(beat["Center"]?["Tile"], path + ".Center.Tile");
                 case "Mail": return Present(beat, "Add") ? "addMailReceived " + Arg("Add") : "addMailReceived " + Arg("Remove") + " false";
                 case "Friendship": return "friendship " + Arg("Npc") + " " + Number("Points");
                 case "Money": return Bool(beat, "HoldUp") ? Custom(EngineNames.Command("Give")) : "money " + Number("Amount");
@@ -313,12 +316,13 @@ public sealed class EventCompiler
             var actors = scene["Actors"] as JArray ?? new JArray();
             var headerActors = actors.OfType<JObject>().Where(x => !string.Equals((string?)x["Kind"], "Temporary", StringComparison.OrdinalIgnoreCase)).ToList();
             if (!headerActors.Any(x => string.Equals((string?)x["Id"], "farmer", StringComparison.OrdinalIgnoreCase)))
-                headerActors.Insert(0, new JObject { ["Id"] = "farmer", ["Start"] = new JObject { ["Tile"] = actors.FirstOrDefault()?["Start"]?["Tile"]?.DeepClone() ?? new JArray(0, 0) }, ["Facing"] = "down" });
+                headerActors.Insert(0, new JObject { ["Id"] = "farmer", ["Start"] = actors.FirstOrDefault()?["Start"]?.DeepClone() ?? new JObject { ["Tile"] = new JArray(0, 0) }, ["Facing"] = "down" });
             string camera = scene["Camera"]?.Type == JTokenType.String
                 ? ((string?)scene["Camera"] == "follow" ? "follow" : throw new Problem("Camera", "Expected follow or a camera position."))
-                : Tile((scene["Camera"] as JObject)?["Tile"] ?? actors.FirstOrDefault()?["Start"]?["Tile"] ?? new JArray(0, 0), "Camera.Tile");
+                : scene["Camera"] is JObject sceneCamera && (sceneCamera["Tile"] != null || Anchored(sceneCamera)) ? HeaderTile(sceneCamera, "Camera")
+                : actors.FirstOrDefault()?["Start"] is JObject firstStart && (firstStart["Tile"] != null || Anchored(firstStart)) ? HeaderTile(firstStart, "Camera") : "0 0";
             var entries = headerActors.Select((actor, i) => Argument((string?)actor["Id"], $"Actors[{i}].Id") + " "
-                + Tile(actor["Start"]?["Tile"], $"Actors[{i}].Start.Tile") + " " + Facing((string?)actor["Facing"] ?? "down", $"Actors[{i}].Facing"));
+                + HeaderTile(actor["Start"], $"Actors[{i}].Start") + " " + Facing((string?)actor["Facing"] ?? "down", $"Actors[{i}].Facing"));
             return new() { Argument(PackMusic.ResolveCue(packId, (string?)scene["Music"] ?? "none"), "Music"), camera, string.Join(" ", entries) };
         }
 
@@ -337,7 +341,7 @@ public sealed class EventCompiler
                 relative = relative.Replace('/', '\\');
                 string dimensions = Tile(actor["FrameSize"] ?? new JArray(16, 32), "Actors.FrameSize");
                 parts.Add("addTemporaryActor " + Argument(relative, "Actors.Sprite.Asset") + " " + dimensions + " "
-                    + Tile(actor["Start"]?["Tile"], "Actors.Start.Tile") + " " + Facing((string?)actor["Facing"] ?? "down", "Actors.Facing")
+                    + HeaderTile(actor["Start"], "Actors.Start") + " " + Facing((string?)actor["Facing"] ?? "down", "Actors.Facing")
                     + " true " + kind + " " + Argument((string?)actor["Id"], "Actors.Id"));
             }
         }
@@ -348,6 +352,8 @@ public sealed class EventCompiler
             var conditions = (trigger["Preconditions"] as JArray ?? new JArray()).Select((x, i) => SafeSegment((string?)x ?? "", $"Trigger.Preconditions[{i}]")).ToList();
             if ((string?)trigger["Conditions"] is { Length: > 0 } gsq) conditions.Add("G " + SafeSegment(gsq, "Trigger.Conditions"));
             if ((string?)trigger["OnDayAfterFlag"] is { Length: > 0 } flag) conditions.Add("n " + Argument(flag + "_Ready", "Trigger.OnDayAfterFlag"));
+            // A scene placed in the spouse's room (D-52) waits until the player has one: the same check the engine places it with.
+            foreach (string place in places) conditions.Add("G " + EngineNames.Command(Places.Query) + " " + place);
             // Named keys need a slash to be naturally triggerable even with no explicit restrictions.
             if (conditions.Count == 0) conditions.Add("G TRUE");
             return key + "/" + string.Join("/", conditions);
@@ -461,6 +467,21 @@ public sealed class EventCompiler
         {
             if (token is not JArray array || array.Count != 2 || array.Any(x => x.Type != JTokenType.Integer)) throw new Problem(path, "Expected two integer coordinates.");
             return array[0]!.Value<int>().ToString(CultureInfo.InvariantCulture) + " " + array[1]!.Value<int>().ToString(CultureInfo.InvariantCulture);
+        }
+        private static bool Anchored(JToken? position) => position is JObject p && p["From"]?.Type == JTokenType.String && ((string?)p["From"])!.Length > 0;
+        /// <summary>
+        /// A position's tile in the event header. One that counts from a place (D-52) starts at the place's fallback spot
+        /// plus its offset; the engine moves it to the real spot when the scene begins, before anything shows.
+        /// </summary>
+        private static string HeaderTile(JToken? position, string path)
+        {
+            if (!Anchored(position)) return Tile(position?["Tile"], path + ".Tile");
+            string place = (string)position!["From"]!;
+            if (!Places.IsKnown(place)) throw new Problem(path + ".From", $"Unknown place '{place}'.", "V20");
+            var spot = Places.Fallback(place);
+            var offset = position["Tile"] ?? new JArray(0, 0);
+            Tile(offset, path + ".Tile");
+            return (spot.X + offset[0]!.Value<int>()).ToString(CultureInfo.InvariantCulture) + " " + (spot.Y + offset[1]!.Value<int>()).ToString(CultureInfo.InvariantCulture);
         }
         private static List<JObject> Outcomes(JObject chance, string path)
         {

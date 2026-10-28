@@ -45,7 +45,18 @@ public class LibraryIndex
     /// <summary>Reusable choreography (doc 03 §17.1). Default: library/clips/*.json.</summary>
     public List<string>? Clips { get; set; }
 }
-public class Position { public int[]? Tile { get; set; } public int[] Px { get; set; } = new[] { 0, 0 }; }
+/// <summary>
+/// A spot: a tile and a pixel nudge. On the map by default; with <see cref="From"/> the tile counts from a place the game
+/// finds when the scene starts (D-52): <c>{"From": "SpouseRoom", "Tile": [1, 0]}</c> is one tile right of the spouse's
+/// spot in the farmhouse, wherever this player's house, map mods and spouse put it. See <see cref="Places"/>.
+/// </summary>
+public class Position
+{
+    public int[]? Tile { get; set; }
+    public int[] Px { get; set; } = new[] { 0, 0 };
+    /// <summary>The place <see cref="Tile"/> counts from (<see cref="Places"/>); null: the map's own tiles.</summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)] public string? From { get; set; }
+}
 public class Cutscene : NamedObject
 {
     public string? Title { get; set; }

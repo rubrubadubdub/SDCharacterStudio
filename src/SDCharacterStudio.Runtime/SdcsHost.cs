@@ -41,6 +41,7 @@ public sealed class SdcsHost
         var commands = new CommandServices(registry, Packs, session, diagnostics, animation);
         CommandRegistration.Register(commands);
         Conditions.ModQueries.Register(helper.ModRegistry);
+        PlaceFinder.RegisterQuery();   // this copy's own <prefix>_HAS_PLACE, which its scenes' triggers check (D-52)
         CueSounds.MuteDuringDialogue = config.MuteStandInSoundsDuringDialogue;
         helper.Events.GameLoop.GameLaunched += (_, _) => Safe("load packs", () => { if (config.Enabled) Packs.LoadAll(); });
         helper.Events.Content.AssetRequested += (s, e) => { if (config.Enabled) injector.OnAssetRequested(s, e); };

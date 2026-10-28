@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using SDCharacterStudio.Core.Models;
 using SDCharacterStudio.Runtime.Api;
 using StardewModdingAPI;
 using StardewValley;
@@ -39,11 +40,17 @@ public sealed class PlaybackSession
         Cleanup(true);
         ActiveEvent = ev;
         ActiveScene = scene;
+        // Places are found once, where the scene plays (D-52); everyone placed from one moves there before anything shows.
+        Places = ScenePlaces.Find(scene.Source, Game1.currentLocation, monitor, scene.Compiled.Key);
+        if (Places.Any && !scene.Source.Actors.Any(a => string.Equals(a.Id, "farmer", StringComparison.OrdinalIgnoreCase))
+            && scene.Source.Actors.FirstOrDefault()?.Start is { } first && Core.Places.IsAnchored(first))
+            PlaceOnTile(ResolveActor(ev, "farmer"), Places.Absolute(first));   // the compiler starts an unlisted player where the first actor starts
         foreach (var definition in scene.Source.Actors)
         {
             var actor = ResolveActor(ev, definition.Id!);
             var snapshot = ActorSnapshot.Capture(actor, !definition.Visible);
             actors.Add(snapshot);
+            if (Core.Places.IsAnchored(definition.Start)) PlaceOnTile(actor, Places.Absolute(definition.Start!));
             var px = definition.Start?.Px;
             if (px is { Length: 2 }) actor.Position += new Vector2(px[0] * 4, px[1] * 4);
             if (!definition.Visible)
@@ -62,6 +69,16 @@ public sealed class PlaybackSession
             }
         }
         Raise(Started, scene, false);
+    }
+
+    /// <summary>The playing scene's places (D-52); none between scenes.</summary>
+    public ScenePlaces Places { get; private set; } = ScenePlaces.None;
+
+    /// <summary>Stand an actor on a tile as the event's start does (the player 16 px lower, like vanilla's header).</summary>
+    private static void PlaceOnTile(Character actor, Position tile)
+    {
+        if (tile.Tile is not { Length: 2 } t) return;
+        actor.Position = new Vector2(t[0] * 64, t[1] * 64 + (actor is Farmer ? 16 : 0));
     }
 
     public void End(GameEvent ev, string key)
@@ -103,6 +120,7 @@ public sealed class PlaybackSession
             bool restoreSprites = forceRestoreAppearance || scene?.Source.OnEnd.RestoreSprites == true;
             ActiveEvent = null;
             ActiveScene = null;
+            Places = ScenePlaces.None;
             // Release our menu/state before restoring actors. A failed listener must not stop the remaining cleanup.
             if (Cleaning != null)
                 foreach (Action listener in Cleaning.GetInvocationList())

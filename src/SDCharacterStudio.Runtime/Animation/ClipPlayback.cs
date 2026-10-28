@@ -176,11 +176,12 @@ public sealed class ClipPlayback
     private static T? Latest<T>(List<T>? keys,double time) where T:Keyframe
         =>keys?.LastOrDefault(x=>x.At<=time);
 
-    private static WorldPoint CameraAt(List<CameraKey> keys,double time,WorldPoint origin)
+    private WorldPoint CameraAt(List<CameraKey> keys,double time,WorldPoint origin)
     {
         if(time<keys[0].At)return origin;
         var i=0;while(i+1<keys.Count && keys[i+1].At<=time)i++;
-        WorldPoint Centre(CameraKey key) {var p=AnimationMath.Position(key.Center);return new(p.X+32,p.Y+32);}
+        // A key centred on a place (D-52) follows where the place is in this game.
+        WorldPoint Centre(CameraKey key) {var p=AnimationMath.Position(owner.Places.AbsoluteOrNull(key.Center));return new(p.X+32,p.Y+32);}
         var point=Centre(keys[i]);
         if(i==keys.Count-1)return point;
         var next=keys[i+1];

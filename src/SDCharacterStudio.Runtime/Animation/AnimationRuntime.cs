@@ -82,6 +82,7 @@ public sealed partial class AnimationRuntime
         if(releaseCameraAfter is {} release){releaseCameraAfter=null;Game1.viewportFreeze=release.Frozen;}
         clearPropsAfter=null;Props.Clear();
         ev=gameEvent;scene=entry;
+        OpenOnPlace(entry);
         cameraFrozen=Game1.viewportFreeze;cameraX=Game1.viewport.X;cameraY=Game1.viewport.Y;
         foreach(var actor in entry.Source.Actors.Where(x=>x.Costume!=null))
         {
@@ -251,11 +252,26 @@ public sealed partial class AnimationRuntime
     {if(scene==null||!scene.Source.Clips.TryGetValue(id,out var definition))throw new ArgumentException("Unknown clip '"+id+"'.");if(definition.Tracks.Any(x=>x.Camera?.Count>0))camera=null;clip=new(this,definition,hold);}
     public bool ClipFinished=>clip?.Finished!=false;
     public void SettleClipParts()=>clip?.Cancel();
-    public CameraMotion StartCamera(CameraBeat beat){camera=new(beat);return camera;}
+    public CameraMotion StartCamera(CameraBeat beat){camera=new(beat,Places.AbsoluteOrNull(beat.Center));return camera;}
+    /// <summary>The playing scene's places (D-52): where positions that count from one are in this game.</summary>
+    public ScenePlaces Places=>session.Places;
+    /// <summary>
+    /// A scene whose opening camera counts from a place (its own camera, or else its first actor's start) opens on the
+    /// place as the game has it (D-52): the event header could only use the fallback spot.
+    /// </summary>
+    private void OpenOnPlace(RegisteredCutscene entry)
+    {
+        if(!Places.Any||entry.Source.Camera?.Type==JTokenType.String)return;
+        var own=Core.Places.SceneCamera(entry.Source);
+        var opening=own!=null&&(own.Tile!=null||Core.Places.IsAnchored(own))?own:entry.Source.Actors.FirstOrDefault()?.Start;
+        if(opening==null||!Core.Places.IsAnchored(opening))return;
+        var centre=AnimationMath.Position(new Position{Tile=Places.Absolute(opening).Tile});
+        CameraMotion.Apply(CameraMotion.Clamp(new(centre.X+32,centre.Y+32)));
+    }
     public void Spawn(EffectBeat beat)
     {
         var actor=beat.Actor!=null?Actor(beat.Actor):null;
-        Vector2 point=beat.At!=null?ToVector(AnimationMath.Position(beat.At)):actor!=null?actor.Position+new Vector2(32,-72):Vector2.Zero;
+        Vector2 point=beat.At!=null?ToVector(AnimationMath.Position(Places.Absolute(beat.At))):actor!=null?actor.Position+new Vector2(32,-72):Vector2.Zero;
         if(beat.Actor!=null&&Find(beat.Actor) is{} stand)point=stand.HeadPosition;
         Effects.Spawn(beat.Effect!,Game1.currentLocation,point,actor,beat.Count,beat.Color,beat.Duration,actor?.FacingDirection==1);
     }
