@@ -43,7 +43,7 @@ public static class BeatCatalog
             _ => new PropBeat { Item = "(BC)0", At = new Position { Tile = new[] { 10, 10 } } }),
         new("Effect", "Effect", BeatCategory.Staging, SymbolRegular.Sparkle24, "Spawn an effect: dust, sweat drop, steam, sparkle, hearts, tears.", c => new EffectBeat { Effect = "sweat-drop", Actor = c.FirstNpc ?? c.AnyActor }),
         new("Video", "Video", BeatCategory.Staging, SymbolRegular.MoviesAndTv24, "Play a frame-by-frame video cutaway from the pack.", _ => new VideoBeat()),
-        new("Friendship", "Friendship", BeatCategory.Rewards, SymbolRegular.PersonHeart24, "Change friendship (250 points = 1 heart).", c => new FriendshipBeat { Npc = c.FirstNpc, Points = 250 }),
+        new("Friendship", "Friendship", BeatCategory.Rewards, SymbolRegular.PersonHeart24, "Change friendship (250 points = 1 heart; a spouse gets two thirds).", c => new FriendshipBeat { Npc = c.FirstNpc, Points = 250 }),
         new("Money", "Money", BeatCategory.Rewards, SymbolRegular.Money24, "Give or take gold.", _ => new MoneyBeat { Amount = 500 }),
         new("Item", "Give an item", BeatCategory.Rewards, SymbolRegular.Gift24, "Give the player an item (it goes into their inventory). To show one on the map, use Place an item.", _ => new ItemBeat { Item = "(O)709", Count = 1 }),
         new("Mail", "Story flag", BeatCategory.Rewards, SymbolRegular.Flag24, "Set or clear a mail flag: the story's memory (doc 03 §5.4).", _ => new MailBeat()),
@@ -154,6 +154,9 @@ public static class BeatCatalog
         }
         return $"{who}: {(parts.Count == 0 ? "(nothing set)" : string.Join(", ", parts))}";
     }
+
+    /// <summary>The game gives a spouse two thirds of a friendship change (Farmer.changeFriendship), up or down.</summary>
+    public const string SpouseFriendshipNote = "If they're married to the player, the game gives two thirds of this (+80 gives their spouse +52, -250 takes 165).";
 
     public static string Hearts(int points)
     {

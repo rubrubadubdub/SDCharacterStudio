@@ -13,9 +13,9 @@ namespace SDCharacterStudio.Core;
 public static class Places
 {
     /// <summary>
-    /// The spouse's spot in the farmhouse (the game's <c>FarmHouse.GetSpouseRoomSpot</c>): the map's SpouseRoomPosition
-    /// (or the room's usual corner) plus (3, 4), or the room's own marked tile. Only in a house upgraded at least once, with
-    /// a spouse or roommate who is a villager.
+    /// The spouse's spot in the farmhouse (the game's <c>FarmHouse.GetSpouseRoomSpot</c>): the room's own marked tile (Paths
+    /// index 7), else its corner (the map's SpouseRoomPosition, or the usual corner) plus (3, 4). Only in a house upgraded at
+    /// least once, with a spouse or roommate who is a villager.
     /// </summary>
     public const string SpouseRoom = "SpouseRoom";
 
@@ -33,7 +33,9 @@ public static class Places
 
     private static readonly Dictionary<string, (int X, int Y)> fallbacks = new(StringComparer.OrdinalIgnoreCase)
     {
-        // A once-upgraded house's spot: (29, 1) + (3, 4).
+        // The game's spot in a once-upgraded house when the room marks none: (29, 1) + (3, 4). Only the event header, a missing
+        // room and a stage without the upgraded houses use it; the engine always asks the game. Vanilla rooms mark their own
+        // spot (Paths tile 7), 3 right and 7 down of the corner: Abigail stands at 32,8 once upgraded, 53,27 twice.
         [SpouseRoom] = SpouseRoomSpot(SpouseRoomCorner(1)),
     };
 

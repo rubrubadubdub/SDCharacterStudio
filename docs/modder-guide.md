@@ -77,12 +77,12 @@ The scene's own camera takes the same shape: `"Camera": { "From": "SpouseRoom", 
 
 | Place | Its spot | Found when |
 |---|---|---|
-| `SpouseRoom` | The spouse's spot in the farmhouse the scene plays in (the game's `FarmHouse.GetSpouseRoomSpot()`): the map's `SpouseRoomPosition` (or the room's usual corner, 29,1 once upgraded and 50,20 after) plus 3,4, or the spouse's room's own marked tile. It follows the upgrade level, map mods and the spouse. | The scene plays in a farmhouse (or cabin) upgraded at least once, where a villager lives as the player's spouse or roommate. |
+| `SpouseRoom` | The spouse's spot in the farmhouse the scene plays in (the game's `FarmHouse.GetSpouseRoomSpot()`): the spouse's room's own marked tile (its `Paths` tile 7; vanilla rooms mark one 3 right and 7 down of the room's corner, so Abigail stands at 32,8 once upgraded and 53,27 twice), else the room's corner plus 3,4. The corner is the map's `SpouseRoomPosition`, or 29,1 once upgraded and 50,20 after. It follows the upgrade level, map mods and the spouse. | The scene plays in a farmhouse (or cabin) upgraded at least once, where a villager lives as the player's spouse or roommate. |
 
 What the engine does:
 
 - **Trigger:** a scene with a trigger that uses a place plays by itself only when the place is there. The compiled event key gets the game state query `<prefix>_HAS_PLACE SpouseRoom` (`SDCS_HAS_PLACE` in the framework; each embedded copy uses its own prefix).
-- **Start:** the compiled event header still needs map tiles, so it starts everyone at the place's fallback spot plus their offset (`SpouseRoom`: 32,5, the spot in a once-upgraded house). The engine's first command, before the scene fades in, moves anchored actors (and the opening camera) to the real spot.
+- **Start:** the compiled event header still needs map tiles, so it starts everyone at the place's fallback spot plus their offset (`SpouseRoom`: 32,5, the game's spot in a once-upgraded house whose room marks none). The engine's first command, before the scene fades in, moves anchored actors (and the opening camera) to the real spot.
 - **During the scene:** walks, Camera beats (cuts and pans), clip camera keys, items and effects with `From` go to the spot found at the start.
 - **Missing place:** when a scene plays anyway without its place (a preview, or `Play` without checking conditions on a save without a spouse), the SMAPI log says so once and positions from it count from the fallback spot.
 - **Validation:** an unknown place is an error (V20); `SpouseRoom` in a scene whose `Location` isn't `FarmHouse` is a warning.

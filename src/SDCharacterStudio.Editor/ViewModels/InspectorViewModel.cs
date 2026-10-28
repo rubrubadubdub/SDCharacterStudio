@@ -374,6 +374,8 @@ public sealed partial class InspectorViewModel : ObservableObject
             case FriendshipBeat friendship:
                 Fields.Add(new ChoiceField("With", "Npc", NpcOptions(), () => friendship.Npc, v => friendship.Npc = v, Commit) { IsEditable = true });
                 Fields.Add(new NumberField("Points", "Points", () => friendship.Points, v => friendship.Points = v ?? 0, Commit) { Minimum = -2500, Maximum = 2500, Step = 50, Describe = v => BeatCatalog.Hearts(v ?? 0) });
+                // Farmer.changeFriendship gives a spouse 66% of the amount (G8): say so, the beat itself is the game's.
+                Fields.Add(new NoteField(BeatCatalog.SpouseFriendshipNote));
                 break;
             case MoneyBeat money:
                 Fields.Add(new NumberField("Gold", "Amount", () => money.Amount, v => money.Amount = v ?? 0, Commit) { Suffix = "g", Help = "Negative takes gold away." });
