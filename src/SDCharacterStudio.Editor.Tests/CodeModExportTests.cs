@@ -83,7 +83,7 @@ public sealed class CodeModExportTests
 
         // The export has ScienceHouse as Stardew Valley Expanded changes it: the scene was staged on that map.
         string readme = Export();
-        Assert.Contains("Players install only your mod, and the mods below.", readme);
+        Assert.Contains("Players install only your mod.\n", readme);
         Assert.Contains("Positions were placed on maps as other mods change them. Without the mod, they may land elsewhere:", readme);
         Assert.Contains("  - ScienceHouse, as Stardew Valley Expanded (FlashShifter.StardewValleyExpandedCP) changes it", readme);
         Assert.DoesNotContain("Dependencies", readme);
@@ -94,6 +94,7 @@ public sealed class CodeModExportTests
         readme = Export();
         Assert.Contains("These mods add things the scenes use. Add them to \"Dependencies\" in your mod's manifest.json:", readme);
         Assert.Contains("  - Stardew Valley Expanded (FlashShifter.StardewValleyExpandedCP), required: NPC Sophia", readme);
+        Assert.Contains("Players install only your mod and the mods it needs, listed below.", readme);
         Assert.DoesNotContain("Positions were placed", readme);
         Assert.Contains("\"Dependencies\"", export.Result);
         // The scenes still say what they need: an embedded engine without that mod skips them and logs why.

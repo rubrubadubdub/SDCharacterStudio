@@ -89,7 +89,9 @@ public static class ModExporter
             "Scenes play by themselves when their conditions are met. To play one from your code: Sdcs.Play(\"scene-id\").\n" +
             "A scene's event ID is your mod's UniqueID, a dot and the scene ID (<your mod's UniqueID>." + (document.Cutscenes.FirstOrDefault()?.Scene.Id ?? "scene-id") +
             "): check Game1.player.eventsSeen for it.\n" +
-            "Players install only your mod" + (notes.Count == 0 ? ".\n" : ", and the mods below.\n\n" + string.Join("\n", notes) + "\n"));
+            // Only mods that add things the scenes use are something players install; maps another mod changes are just a note.
+            "Players install only your mod" + (dependencies is { Providers.Count: > 0 } ? " and the mods it needs, listed below.\n" : ".\n")
+            + (notes.Count == 0 ? "" : "\n" + string.Join("\n", notes) + "\n"));
     }
 
     private static void CopyPackFiles(string source, string target, string packId)
