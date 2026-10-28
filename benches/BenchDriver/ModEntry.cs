@@ -20,6 +20,11 @@ public interface IBenchApi
     string CommandPrefix { get; }
 }
 
+public interface IFrameworkCameraApi
+{
+    bool PlayCutscene(string packUniqueId, string cutsceneId, bool ignoreConditions = false);
+}
+
 /// <summary>
 /// Test driver for the SDCS benches. On launch it makes a disposable in-memory farmer in ScienceHouse at 17:00 (no save is
 /// loaded or written), then answers requests: write <c>assertions/&lt;id&gt;.json</c> ({"Check": …}) and read
@@ -29,13 +34,15 @@ public sealed class ModEntry : Mod
 {
     private int ticks;
     private bool initialized, ready, failed;
+    private bool captureCamera;
     private string At(string name) => Path.Combine(Helper.DirectoryPath, name);
 
     public override void Entry(IModHelper helper)
     {
+        captureCamera = File.Exists(At("capture-camera"));
         Directory.CreateDirectory(At("assertions"));
         Directory.CreateDirectory(At("assertion-results"));
-        foreach (string marker in new[] { "ready.json", "finished.json", "failed.json", "state.json" })
+        foreach (string marker in new[] { "ready.json", "finished.json", "failed.json", "state.json", "camera-samples.jsonl" })
             if (File.Exists(At(marker))) File.Delete(At(marker));
         helper.Events.GameLoop.UpdateTicked += (_, _) => Tick();
         helper.Events.GameLoop.Saving += (_, _) =>
@@ -77,10 +84,29 @@ public sealed class ModEntry : Mod
                 Monitor.Log("READY disposable world", LogLevel.Info);
             }
             if (!ready && ticks > 7200) throw new TimeoutException("World did not become ready in 7200 ticks.");
+            // Native camera tests need every game tick, including the exact fade-to-black edge.  Keep an
+            // append-only trace rather than relying on state.json's deliberately coarser polling cadence.
+            if (ready && captureCamera) AppendCameraSample();
             // During a scene, often enough to see the camera move frame by frame (a jump shows as one big step).
             if (ready && ticks % (Game1.eventUp || Game1.globalFade || Game1.fadeToBlack ? 2 : 10) == 0) { Write("state.json", State()); ProcessAssertions(); }
         }
         catch (Exception ex) { Failure(ex); }
+    }
+
+    private void AppendCameraSample()
+    {
+        var sample = new JObject
+        {
+            ["Tick"] = ticks, ["EventUp"] = Game1.eventUp, ["ViewportX"] = Game1.viewport.X,
+            ["ViewportY"] = Game1.viewport.Y, ["Fade"] = Game1.fadeToBlackAlpha,
+            ["DialogueUp"] = Game1.dialogueUp,
+            ["Frozen"] = Game1.viewportFreeze,
+            ["Location"] = Game1.currentLocation?.NameOrUniqueName,
+            ["PlayerTile"] = Game1.player == null ? null : new JArray(Game1.player.TilePoint.X, Game1.player.TilePoint.Y),
+            ["FurnitureSprites"] = Game1.currentLocation?.temporarySprites.Count(s => s.texture?.Name?.Contains("furniture", StringComparison.OrdinalIgnoreCase) == true) ?? 0,
+            ["Settled"] = Context.IsPlayerFree && !Game1.eventUp && !Game1.isWarping && !Game1.globalFade && !Game1.fadeToBlack && Game1.locationRequest == null
+        };
+        File.AppendAllText(At("camera-samples.jsonl"), sample.ToString(Formatting.None) + Environment.NewLine);
     }
 
     private JObject State() => new()
@@ -130,6 +156,13 @@ public sealed class ModEntry : Mod
         switch (check)
         {
             case "state": return State();
+            case "close-dialogue":
+                if (Game1.activeClickableMenu is not StardewValley.Menus.DialogueBox dialogue) throw new InvalidOperationException("No dialogue to close.");
+                dialogue.closeDialogue();
+                return new JObject();
+            case "play-framework":
+                var framework = Helper.ModRegistry.GetApi<IFrameworkCameraApi>("Player.SDCharacterStudio") ?? throw new InvalidOperationException("Framework API missing.");
+                return new JObject { ["Started"] = framework.PlayCutscene((string)request["Pack"]!, (string)request["Cutscene"]!, true) };
             case "bench":
                 var api = Bench(request);
                 return new JObject { ["EngineVersion"] = api.EngineVersion, ["CommandPrefix"] = api.CommandPrefix, ["Cutscenes"] = new JArray(api.GetCutscenes()), ["IsPlaying"] = api.IsPlaying };
@@ -157,7 +190,7 @@ public sealed class ModEntry : Mod
                 // Walk into a location the way a player does: vanilla checks that location's events on arrival.
                 Game1.warpFarmer((string?)request["Location"] ?? throw new ArgumentException("Missing Location"),
                     (int?)request["X"] ?? 0, (int?)request["Y"] ?? 0, (int?)request["Facing"] ?? 0);
-                return new JObject { ["Warping"] = true };
+                return new JObject { ["Warping"] = true, ["Tick"] = ticks };
             case "looks":
                 // What villagers wear (outfit checks): each event actor's sheet and one of its pixels, and the same pixel of
                 // every stand-in a pose draws (generated textures have no asset name).

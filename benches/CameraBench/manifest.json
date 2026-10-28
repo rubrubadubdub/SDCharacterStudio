@@ -1,0 +1,9 @@
+{
+  "Name": "Camera Bench",
+  "Author": "SDCharacterStudio",
+  "Version": "1.0.0",
+  "Description": "Isolated camera ending regression fixture.",
+  "UniqueID": "Bench.Camera",
+  "EntryDll": "CameraBench.dll",
+  "MinimumApiVersion": "4.0.0"
+}

@@ -49,8 +49,10 @@ Build (Join-Path $repo 'src\SDCharacterStudio.Runtime\SDCharacterStudio.Runtime.
 
 function Invoke-Run([string]$name, [bool]$framework) {
     Assert-NoGame
-    $folder = Join-Path $run $name
-    if (Test-Path $folder) { Remove-Item -LiteralPath $folder -Recurse -Force }
+    if ($name -notin @('players', 'with-framework')) { throw 'Unknown bench run name.' }
+    $folder = [IO.Path]::GetFullPath((Join-Path $run $name))
+    if ([IO.Path]::GetDirectoryName($folder) -ne [IO.Path]::GetFullPath($run)) { throw 'Run folder is outside the bench workspace.' }
+    if (Test-Path -LiteralPath $folder) { Remove-Item -LiteralPath $folder -Recurse -Force }
     $mods = Join-Path $folder 'Mods'
     New-Item -ItemType Directory -Path $mods -Force | Out-Null
     Copy-Item (Join-Path $benches 'BenchDriver\bin\Release\net6.0') (Join-Path $mods 'BenchDriver') -Recurse
@@ -66,6 +68,11 @@ function Invoke-Run([string]$name, [bool]$framework) {
         Copy-Item (Join-Path $runtime 'i18n') $target -Recurse
     }
     Write-Output ("Mods: " + ((Get-ChildItem $mods -Directory).Name -join ', '))
+    $log = Join-Path $env:APPDATA 'StardewValley\ErrorLogs\SMAPI-latest.txt'
+    $ownerLog = Join-Path $folder 'owner-SMAPI-latest.txt'
+    $hadOwnerLog = Test-Path -LiteralPath $log
+    if ($hadOwnerLog) { Copy-Item -LiteralPath $log -Destination $ownerLog -Force }
+    Assert-NoGame
     $process = Start-Process -FilePath (Join-Path $game 'StardewModdingAPI.exe') -ArgumentList @('--mods-path', ('"' + $mods + '"'), '--no-terminal') -WorkingDirectory $game -WindowStyle Hidden -PassThru
     $process.Id | Set-Content (Join-Path $folder 'owned-pid.txt')
     Write-Output "Launched own isolated game, PID $($process.Id)"
@@ -92,8 +99,16 @@ function Invoke-Run([string]$name, [bool]$framework) {
     }
     finally {
         if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force; $process.WaitForExit(15000) | Out-Null }
-        $log = Join-Path $env:APPDATA 'StardewValley\ErrorLogs\SMAPI-latest.txt'
-        if (Test-Path $log) { Copy-Item $log (Join-Path $folder 'SMAPI.txt') -Force }
+        try {
+            if (Test-Path -LiteralPath $log) { Copy-Item -LiteralPath $log -Destination (Join-Path $folder 'SMAPI.txt') -Force }
+        }
+        finally {
+            Assert-NoGame
+            if ($hadOwnerLog) {
+                if (-not (Test-Path -LiteralPath $ownerLog)) { throw 'Owner log backup is missing; restoration failed.' }
+                Copy-Item -LiteralPath $ownerLog -Destination $log -Force
+            }
+        }
         Write-Output "Stopped own game PID $($process.Id)"
     }
 }

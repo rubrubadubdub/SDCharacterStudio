@@ -1,172 +1,102 @@
 using System.IO;
 using Newtonsoft.Json.Linq;
-using SDCharacterStudio.Core.Models;
-using SDCharacterStudio.Editor.Preview;
-using SDCharacterStudio.Editor.ViewModels;
 
 namespace SDCharacterStudio.Editor.Tests;
 
-/// <summary>
-/// The camera in the real game (the owner: "the camera panned itself over to the farmer then did a jump back to where it
-/// started then faded to black"). A scene in Town with a fixed camera; the player walks out of view and the scene ends with
-/// "stay". While any of it is on screen the camera only ever glides: no step between two samples is a leap. A Moon Table
-/// the scene places (D-50) is drawn while it plays and stays until the screen is black.
-/// Off by default: tools/native-bridge/Test-Costumes.ps1 -Suite camera starts an isolated game (the bench driver's
-/// disposable farm, no save) and sets SDCS_NATIVE_PIPE, SDCS_NATIVE_DRIVER and SDCS_NATIVE_SUITE=camera.
-/// </summary>
-public class NativeCameraTests
+/// <summary>Real-game hold-through-black checks for both engine copies, end policies, branch End and camera forms.</summary>
+public sealed class NativeCameraTests
 {
-    /// <summary>A glide moves at most about 100 px between two samples; the old snap back was well over 1000.</summary>
-    private const int Leap = 400;
-    private readonly List<string> log = new();
-    private string evidence = "";
-    private void Note(string line) { log.Add($"{DateTime.Now:HH:mm:ss.fff} {line}"); File.WriteAllLines(Path.Combine(evidence, "editor-native-camera.log"), log); }
-
-    private sealed record Sample(int Tick, bool EventUp, int X, int Y, double Fade, string? Location, JArray? PlayerTile, int Furniture)
-    {
-        public bool Visible => Fade < 0.9;
-    }
-
     [Fact]
-    public async Task TheCameraNeverLeapsWhileTheSceneIsOnScreen()
+    public async Task TheAuthoredCameraStaysUntilFullyBlackInBothEngines()
     {
-        string? pipe = Environment.GetEnvironmentVariable("SDCS_NATIVE_PIPE");
         string? driver = Environment.GetEnvironmentVariable("SDCS_NATIVE_DRIVER");
-        if (string.IsNullOrEmpty(pipe) || string.IsNullOrEmpty(driver) || Environment.GetEnvironmentVariable("SDCS_NATIVE_SUITE") != "camera") return;
-        evidence = Environment.GetEnvironmentVariable("SDCS_NATIVE_EVIDENCE") ?? driver;
-        Directory.CreateDirectory(evidence);
-
-        using var editor = new EditorHarness(pipeName: pipe);
-        var shell = editor.Shell;
-        await WaitReady(shell);
-
-        // Walk into Town first: the scene plays where the player is, so "stay" leaves them where it put them.
-        await Ask(driver, "warp", new JObject { ["Location"] = "Town", ["X"] = 44, ["Y"] = 60, ["Facing"] = 1 });
-        await Until(driver, s => s["Location"]?.ToString() == "Town" && (bool?)s["Settled"] == true, "the player in Town");
-
-        var doc = editor.NewProject("Camera", "Player.Camera", "Town");
-        var scene = shell.Scene!;
-        doc.Edit("Stage", () =>
+        if (string.IsNullOrEmpty(driver) || Environment.GetEnvironmentVariable("SDCS_NATIVE_SUITE") != "camera") return;
+        string evidence = Environment.GetEnvironmentVariable("SDCS_NATIVE_EVIDENCE") ?? driver;
+        var failures = new List<string>();
+        foreach (string engine in new[] { "embedded", "framework" })
+        foreach (string end in new[] { "stay", "default" })
+        foreach (string path in new[] { "main", "branch" })
+        foreach (string form in new[] { "fixed", "beat" })
         {
-            scene.Actors[0].Start = new Position { Tile = new[] { 44, 60 } };
-            scene.Actors[0].Facing = "right";
-            scene.Camera = new JObject { ["Tile"] = new JArray(25, 60) };   // fixed, well away from where the player ends up
-            scene.Beats.Add(new PropBeat { Item = "(F)1130", At = new Position { Tile = new[] { 47, 59 } } });   // a Moon Table by the road
-            scene.Beats.Add(new MoveBeat { Actor = "farmer", To = new Position { Tile = new[] { 52, 60 } } });
-            scene.Beats.Add(new WaitBeat { Duration = 600 });
-            scene.OnEnd.End = "stay";
-        });
-        var problems = shell.ValidateNow();
-        Note("validation: " + (problems.Errors == 0 ? "no errors" : string.Join(" | ", problems.Problems.Select(p => p.Message))));
-
-        int toasts = ((FakeUi)shell.Ui).Toasts.Count;
-        await shell.PreviewInGameCommand.ExecuteAsync(null);
-        Note("preview: " + string.Join(" | ", ((FakeUi)shell.Ui).Toasts.Skip(toasts).Select(t => t.Title + ": " + t.Message)));
-        var samples = await Record(driver);
-        File.WriteAllLines(Path.Combine(evidence, "camera-samples.txt"),
-            samples.Select(s => $"{s.Tick}\t{(s.EventUp ? "event" : "-")}\t{s.X},{s.Y}\tfade {s.Fade:0.00}\t{s.Location}\t{s.PlayerTile?.ToString(Newtonsoft.Json.Formatting.None)}\tfurniture {s.Furniture}"));
-
-        // The scene panned: the last view of it is on the player, not where it started.
-        var lastInScene = samples.Last(s => s.EventUp && s.Visible);
-        var firstInScene = samples.First(s => s.EventUp && s.Visible);
-        Note($"scene opened at {firstInScene.X},{firstInScene.Y}; last seen at {lastInScene.X},{lastInScene.Y}");
-        Xunit.Assert.True(Math.Abs(lastInScene.X - firstInScene.X) > 640, "The camera never went to the player before the end.");
-
-        // No leap between two samples while anything is on screen: during the scene, at its end, or after the fade.
-        var leaps = samples.Zip(samples.Skip(1))
-            .Where(p => p.First.Visible && p.Second.Visible && p.First.Location == p.Second.Location)
-            .Select(p => (p.First, p.Second, Step: Math.Abs(p.Second.X - p.First.X) + Math.Abs(p.Second.Y - p.First.Y)))
-            .Where(p => p.Step > Leap).ToList();
-        foreach (var leap in leaps) Note($"LEAP {leap.Step}px at tick {leap.Second.Tick}: {leap.First.X},{leap.First.Y} -> {leap.Second.X},{leap.Second.Y} (event {leap.First.EventUp}->{leap.Second.EventUp})");
-        Xunit.Assert.Empty(leaps);
-
-        // After the fade the game shows the player where the scene left them: the same view as its last moment.
-        var afterwards = samples.Last(s => !s.EventUp && s.Visible);
-        Note($"after the scene: {afterwards.X},{afterwards.Y}; player at {afterwards.PlayerTile?.ToString(Newtonsoft.Json.Formatting.None)}");
-        Xunit.Assert.True(Math.Abs(afterwards.X - lastInScene.X) + Math.Abs(afterwards.Y - lastInScene.Y) <= 128,
-            $"The view after the scene ({afterwards.X},{afterwards.Y}) isn't its last view ({lastInScene.X},{lastInScene.Y}).");
-
-        // The Moon Table: on the map during the scene, never gone while the scene is still on screen, gone afterwards.
-        Xunit.Assert.Contains(samples, s => s.EventUp && s.Furniture > 0);
-        var vanished = samples.Zip(samples.Skip(1)).FirstOrDefault(p => p.First.Furniture > 0 && p.Second.Furniture == 0);
-        Note($"the Moon Table: on in {samples.Count(s => s.Furniture > 0)} samples; gone at tick {vanished.Second?.Tick} (fade {vanished.Second?.Fade:0.00}, event {vanished.Second?.EventUp})");
-        Xunit.Assert.NotNull(vanished.Second);
-        Xunit.Assert.False(vanished.First.Visible && vanished.Second.Visible, "The Moon Table vanished while the scene was on screen.");
-        Xunit.Assert.Equal(0, samples[^1].Furniture);
-        Note("PASS");
-    }
-
-    private static async Task WaitReady(MainViewModel shell)
-    {
-        var until = DateTime.UtcNow.AddMinutes(5);
-        do { await shell.RefreshBridgeStatus(); if (shell.Bridge.State == BridgeState.Ready) break; await Task.Delay(1000); } while (DateTime.UtcNow < until);
-        Xunit.Assert.Equal(BridgeState.Ready, shell.Bridge.State);
-    }
-
-    private static async Task<JObject?> State(string driver)
-    {
-        try
-        {
-            // Share everything so the driver can replace the file while we read it.
-            using var stream = new FileStream(Path.Combine(driver, "state.json"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return JObject.Parse(await new StreamReader(stream).ReadToEndAsync());
+            string scene = $"camera-{end}-{path}-{form}";
+            string name = engine + "-" + scene;
+            var warp = await Ask(driver, "warp", new JObject { ["Location"] = "Town", ["X"] = 44, ["Y"] = 60, ["Facing"] = 1 });
+            int warpTick = (int)warp["Data"]!["Tick"]!;
+            await Until(driver, s => (int)s["Tick"]! > warpTick + 30 && (string?)s["Location"] == "Town" && (bool?)s["Settled"] == true && (int?)s["PlayerTile"]?[0] == 44, "Town ready");
+            int start = (int)(await Ask(driver, "state", new JObject()))["Data"]!["Tick"]!;
+            var played = await Ask(driver, engine == "embedded" ? "play" : "play-framework", new JObject { ["Mod"] = "Bench.Camera", ["Pack"] = "Bench.CameraFramework", ["Cutscene"] = scene });
+            Assert.True((bool?)played["Data"]?["Started"] == true, name + " did not start");
+            await Until(driver, s => (bool?)s["DialogueUp"] == true, name + " ending dialogue");
+            await Ask(driver, "close-dialogue", new JObject());
+            await Until(driver, s => (bool?)s["Settled"] == true && (double?)s["Fade"] <= 0.01, name + " recovery");
+            var samples = ReadSamples(driver).Where(s => (int)s["Tick"]! > start).ToList();
+            File.WriteAllLines(Path.Combine(evidence, name + ".jsonl"), samples.Select(s => s.ToString(Newtonsoft.Json.Formatting.None)));
+            try
+            {
+                Assert.NotEmpty(samples);
+                int boundary = samples.FindLastIndex(s => (bool?)s["DialogueUp"] == true);
+                Assert.True(boundary >= 0, name + " missing final dialogue sample");
+                int black = samples.FindIndex(boundary, s => (double)s["Fade"]! >= 1.0);
+                Assert.True(black > boundary, name + " never reached full black");
+                var held = samples.Skip(boundary).Take(black - boundary + 1).ToList();
+                Assert.All(held.Zip(held.Skip(1)), pair => Assert.Equal((int)pair.First["Tick"]! + 1, (int)pair.Second["Tick"]!));
+                int x = (int)held[0]["ViewportX"]!, y = (int)held[0]["ViewportY"]!;
+                Assert.All(held, s => Assert.True((int)s["ViewportX"]! == x && (int)s["ViewportY"]! == y,
+                    $"{name}: viewport moved from {x},{y} to {s["ViewportX"]},{s["ViewportY"]} at tick {s["Tick"]}, fade {s["Fade"]}"));
+                Assert.All(held.Take(held.Count - 1), s => Assert.True((int)s["FurnitureSprites"]! > 0, name + " prop vanished before black"));
+                Assert.Equal(0, (int)samples[^1]["FurnitureSprites"]!);
+                Assert.False((bool)samples[^1]["Frozen"]!);
+                Assert.True((bool)samples[^1]["Settled"]!);
+                Assert.Equal(end == "stay" ? 52 : 44, (int)samples[^1]["PlayerTile"]![0]!);
+            }
+            catch (Exception ex) { failures.Add(name + ": " + ex.Message); }
         }
-        catch (Exception ex) when (ex is IOException or Newtonsoft.Json.JsonException) { return null; }
+        File.WriteAllLines(Path.Combine(evidence, "camera-verdict.txt"), failures.Count == 0 ? new[] { "PASS: 16 camera cases" } : failures);
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
+    }
+
+    private static List<JObject> ReadSamples(string driver)
+    {
+        using var stream = new FileStream(Path.Combine(driver, "camera-samples.jsonl"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        string text = new StreamReader(stream).ReadToEnd();
+        return text.Split('\n').SkipLast(1).Where(s => !string.IsNullOrWhiteSpace(s)).Select(JObject.Parse).ToList();
     }
 
     private static async Task Until(string driver, Func<JObject, bool> condition, string what)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
+        var deadline = DateTime.UtcNow.AddSeconds(45);
         while (DateTime.UtcNow < deadline)
         {
-            if (await State(driver) is { } state && condition(state)) return;
-            await Task.Delay(100);
+            try
+            {
+                using var stream = new FileStream(Path.Combine(driver, "state.json"), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                if (condition(JObject.Parse(await new StreamReader(stream).ReadToEndAsync()))) return;
+            }
+            catch (Exception ex) when (ex is IOException or Newtonsoft.Json.JsonException) { }
+            await Task.Delay(30);
         }
-        throw new TimeoutException("Never saw " + what + ".");
+        throw new TimeoutException("Never saw " + what);
     }
 
-    /// <summary>A driver request (assertions/&lt;id&gt;.json) and its answer.</summary>
     private static async Task<JObject> Ask(string driver, string check, JObject request)
     {
         string id = "camera-" + Guid.NewGuid().ToString("N");
         request["Check"] = check;
-        File.WriteAllText(Path.Combine(driver, "assertions", id + ".json.tmp"), request.ToString());
-        File.Move(Path.Combine(driver, "assertions", id + ".json.tmp"), Path.Combine(driver, "assertions", id + ".json"));
-        string result = Path.Combine(driver, "assertion-results", id + ".json");
+        string path = Path.Combine(driver, "assertions", id + ".json");
+        File.WriteAllText(path + ".tmp", request.ToString());
+        File.Move(path + ".tmp", path);
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (DateTime.UtcNow < deadline)
         {
+            string result = Path.Combine(driver, "assertion-results", id + ".json");
             if (File.Exists(result))
             {
                 var answer = JObject.Parse(File.ReadAllText(result));
-                if ((bool?)answer["Ok"] != true) throw new InvalidOperationException($"Driver {check}: {answer["Error"]}");
+                Assert.True((bool?)answer["Ok"] == true, answer.ToString());
                 return answer;
             }
-            await Task.Delay(100);
+            await Task.Delay(30);
         }
-        throw new TimeoutException($"Driver {check}: no answer.");
-    }
-
-    /// <summary>Every state the driver writes from before the scene until the game has settled after it.</summary>
-    private static async Task<List<Sample>> Record(string driver)
-    {
-        var samples = new List<Sample>();
-        bool started = false;
-        var deadline = DateTime.UtcNow.AddSeconds(45);
-        while (DateTime.UtcNow < deadline)
-        {
-            if (await State(driver) is { } state)
-            {
-                var sample = new Sample((int)state["Tick"]!, (bool?)state["EventUp"] == true, (int)state["ViewportX"]!, (int)state["ViewportY"]!,
-                    (double?)state["Fade"] ?? 0, (string?)state["Location"], state["PlayerTile"] as JArray, (int?)state["FurnitureSprites"] ?? 0);
-                if (samples.Count == 0 || samples[^1].Tick != sample.Tick) samples.Add(sample);
-                started |= sample.EventUp;
-                // Settled and faded in for a moment, so a late recentre would still show.
-                if (started && !sample.EventUp && (bool?)state["Settled"] == true && sample.Fade <= 0.01
-                    && samples.Count(s => !s.EventUp && s.Visible && s.Tick > samples.Last(e => e.EventUp).Tick) >= 6) return samples;
-            }
-            await Task.Delay(15);
-        }
-        throw new TimeoutException(started ? "The scene didn't end." : "The scene didn't start.");
+        throw new TimeoutException("Driver did not answer " + check);
     }
 }

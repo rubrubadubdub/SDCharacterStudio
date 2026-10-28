@@ -2,7 +2,7 @@
 # ScienceHouse, no save) with only the Runtime, the Bridge and the driver, a private export folder and a private pipe; then
 # the editor's native tests run against it:
 #   -Suite costume  NativeCostumeTests: the game draws an outfit; a scene with earmuffs keeps them on until it ends.
-#   -Suite camera   NativeCameraTests: a scene whose player walks out of view ends with no camera leap on screen.
+#   -Suite camera   NativeCameraTests: 16 embedded/framework endings hold the authored camera until fully black.
 #   -Suite logic    NativeLogicTests: Checks (and later Chance, random items, story numbers) take the branches they should.
 #   -Suite places   NativePlacesTests: positions from the spouse's room stand where the game's spot is (D-52), married or not.
 #                   Then the Bridge exports the save (maps on, for this suite only) and the upgraded houses' spots match the game's.
@@ -29,7 +29,10 @@ foreach ($project in 'src\SDCharacterStudio.Runtime\SDCharacterStudio.Runtime.cs
 & dotnet build (Join-Path $repo 'src\SDCharacterStudio.Editor.Tests\SDCharacterStudio.Editor.Tests.csproj') -v q -nologo | Out-Host
 if ($LASTEXITCODE -ne 0) { throw 'Build failed: editor tests' }
 
-if (Test-Path $run) { Remove-Item -LiteralPath $run -Recurse -Force }
+$run = [IO.Path]::GetFullPath($run)
+$allowedRunRoot = [IO.Path]::GetFullPath((Join-Path $repo 'benches\.run')) + [IO.Path]::DirectorySeparatorChar
+if (-not $run.StartsWith($allowedRunRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Run folder is outside the bench workspace.' }
+if (Test-Path -LiteralPath $run) { Remove-Item -LiteralPath $run -Recurse -Force }
 $mods = Join-Path $run 'Mods'
 $runtime = Join-Path $mods 'SDCharacterStudio'; $bridge = Join-Path $mods 'SDCharacterStudio.Bridge'; $driver = Join-Path $mods 'SdcsBench.Driver'
 New-Item -ItemType Directory -Path $runtime, $bridge, $driver -Force | Out-Null
@@ -39,6 +42,20 @@ Copy-Item "$src\SDCharacterStudio.Runtime\i18n" $runtime -Recurse
 Copy-Item "$src\SDCharacterStudio.Bridge\bin\Release\net6.0\SDCharacterStudio.Bridge.dll", "$src\SDCharacterStudio.Runtime\bin\Release\net6.0\SDCharacterStudio.Core.dll", "$src\SDCharacterStudio.Bridge\manifest.json" $bridge
 Copy-Item "$src\SDCharacterStudio.Bridge\assets" $bridge -Recurse
 Copy-Item (Join-Path $repo 'benches\BenchDriver\bin\Release\net6.0\*') $driver -Recurse
+if ($Suite -eq 'camera') {
+    New-Item -ItemType File -Path (Join-Path $driver 'capture-camera') | Out-Null
+    $env:SDCS_CAMERA_BENCH_EXPORT = '1'
+    $env:SDCS_CAMERA_BENCH_OUTPUT = Join-Path $run 'fixtures'
+    try {
+        & dotnet test (Join-Path $repo 'src\SDCharacterStudio.Editor.Tests\SDCharacterStudio.Editor.Tests.csproj') --no-build --filter 'FullyQualifiedName~ExportCameraBench' --nologo | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw 'Camera fixture export failed.' }
+    }
+    finally { Remove-Item Env:\SDCS_CAMERA_BENCH_EXPORT, Env:\SDCS_CAMERA_BENCH_OUTPUT -ErrorAction SilentlyContinue }
+    & dotnet build (Join-Path $repo 'benches\CameraBench\CameraBench.csproj') -c Release -v q -nologo -p:EnableModDeploy=false | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw 'Embedded camera fixture build failed.' }
+    Copy-Item -LiteralPath (Join-Path $repo 'benches\CameraBench\bin\Release\net6.0') -Destination (Join-Path $mods 'CameraBench') -Recurse
+    Copy-Item -LiteralPath (Join-Path $run 'fixtures\framework') -Destination (Join-Path $mods 'CameraFramework') -Recurse
+}
 $export = Join-Path $run 'Export'
 @{ ExportFolder = $export; Profile = 'costume'; AutoExportOnSaveLoaded = $false; ExportLocations = ($Suite -eq 'places'); PreviewPipeName = $pipe } |
     ConvertTo-Json | Set-Content (Join-Path $bridge 'config.json') -Encoding UTF8

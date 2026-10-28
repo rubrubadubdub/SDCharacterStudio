@@ -32,6 +32,13 @@ The script builds everything in Release, embeds an **older** engine (`0.0.9-benc
 
 A separate check, `tools/native-bridge/Test-ExportOnce.ps1`, proves the Bridge's automatic export happens once (D-47).
 
+`tools/native-bridge/Test-Costumes.ps1 -Suite camera` checks 16 endings in a disposable world:
+the C# embedded engine and framework, `stay` and default, an End beat in the main list or a branch,
+and a fixed scene camera or a Camera beat. It exports the fixtures through the editor's exporter.
+The driver retains every tick from the last message through full black; the viewport must stay exactly
+where the scene left it. Props must remain until black, then disappear, and the game must release the
+camera and return the player to the ending's expected tile. Traces and the verdict are in `.run/camera/`.
+
 Evidence goes to `benches/.run/<run>/` (`benches-native.log`, `SMAPI.txt`, `test-output.txt`). It never starts while another Stardew Valley or SMAPI process is running.
 
 ## Change their scenes
