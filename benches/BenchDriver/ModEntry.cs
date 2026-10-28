@@ -176,6 +176,30 @@ public sealed class ModEntry : Mod
                         .Where(s => s.texture != null && string.IsNullOrEmpty(s.texture.Name) && s.sourceRect.Width > 0)
                         .Select(s => Look(s.texture, s.sourceRect.X + x, s.sourceRect.Y + y))),
                 };
+            case "home":
+            {
+                // The farmhouse for place checks (D-52): optionally married to a villager, at an upgrade level; the player
+                // is then sent in through its door, so the house loads as the game shows it.
+                var player = Game1.player;
+                if ((string?)request["Spouse"] is { Length: > 0 } spouse)
+                {
+                    player.spouse = spouse;
+                    player.friendshipData[spouse] = new Friendship(2500) { Status = FriendshipStatus.Married, WeddingDate = new WorldDate(1, Season.Spring, 1) };
+                }
+                var house = Utility.getHomeOfFarmer(player);
+                if ((int?)request["Level"] is { } level) house.setMapForUpgradeLevel(level);
+                var spot = house.GetSpouseRoomSpot();
+                var entry = house.getEntryLocation();
+                Game1.warpFarmer(house.NameOrUniqueName, entry.X, entry.Y, 0);
+                return new JObject
+                {
+                    ["Level"] = house.upgradeLevel, ["HasSpouse"] = house.HasNpcSpouseOrRoommate(), ["SpouseRoom"] = new JArray(spot.X, spot.Y),
+                    ["Entry"] = new JArray(entry.X, entry.Y), ["Size"] = new JArray(house.Map.Layers[0].LayerWidth, house.Map.Layers[0].LayerHeight),
+                };
+            }
+            case "query":
+                // A game state query where the player is (a scene's trigger conditions, e.g. SDCS_HAS_PLACE SpouseRoom).
+                return new JObject { ["Result"] = GameStateQuery.CheckConditions((string?)request["Query"] ?? throw new ArgumentException("Missing Query"), Game1.currentLocation, Game1.player) };
             case "finish":
                 Write("finished.json", new { Ok = true, Tick = ticks });
                 return new JObject { ["Finished"] = true };

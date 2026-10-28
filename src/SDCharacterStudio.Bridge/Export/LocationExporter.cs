@@ -71,7 +71,7 @@ public static class LocationExporter
             Tile? TileAt(string layer, int x, int y) => room?.TileAt(layer, x, y, out var tile) == true ? tile : map.GetLayer(layer)?.Tiles[x, y];
             if (room?.Spot(TileAt) is { } spot) descriptor["Places"] = new JObject { [Places.SpouseRoom] = new JArray(spot.X, spot.Y) };
             if (room != null) descriptor["SpouseRoom"] = room.Who;
-            Render(session, name, map, TileAt, (x, y) => Passable(TileAt, x, y), descriptor, layouts, next);
+            Render(session, name, map, TileAt, (x, y) => Passable(TileAt, x, y), descriptor, layouts, next, optional: true);
         }
         Next(0);
     }
@@ -95,8 +95,22 @@ public static class LocationExporter
         return tileAt("Buildings", x, y) is not { } building || building.TileIndexProperties.ContainsKey("Shadow") || building.TileIndexProperties.ContainsKey("Passable");
     }
 
-    private static void Render(ExportSession session, string name, Map map, Func<string, int, int, Tile?> tileAt, Func<int, int, bool> passable, JObject descriptor, JArray entries, Action next)
+    /// <param name="optional">
+    /// An extra (a house layout, D-52): a failure is logged and leaves it out, instead of failing the export it's part of.
+    /// </param>
+    private static void Render(ExportSession session, string name, Map map, Func<string, int, int, Tile?> tileAt, Func<int, int, bool> passable, JObject descriptor, JArray entries, Action next, bool optional = false)
     {
+        bool broken = false;
+        void Queue(string label, Action work) => session.Queue(label, !optional ? work : () =>
+        {
+            if (broken) return;
+            try { work(); }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                broken = true;
+                session.Monitor.Log($"Couldn't draw {name} for the editor ({label}): {ex.Message}. The editor stages without it.", StardewModdingAPI.LogLevel.Warn);
+            }
+        });
         int width = map.Layers[0].LayerWidth, height = map.Layers[0].LayerHeight;
         string stem = "locations/" + Uri.EscapeDataString(name);
         descriptor["Origin"] = session.Origin((string)descriptor["MapAsset"]!);
@@ -112,7 +126,7 @@ public static class LocationExporter
             for (int y = 0; y < Math.Min(height, layer.LayerHeight); y++)
             {
                 int row = y;
-                session.Queue($"map {name}/{layerName}/{row}", () =>
+                Queue($"map {name}/{layerName}/{row}", () =>
                 {
                     for (int x = 0; x < Math.Min(width, layer.LayerWidth); x++)
                     {
@@ -140,15 +154,20 @@ public static class LocationExporter
                 });
             }
         }
-        session.Queue("passability " + name, () =>
+        Queue("passability " + name, () =>
         {
             for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
                 walkable.Pixels[y * width + x] = passable(x, y) ? 0xFFFFFFFF : 0xFF000000;
         });
-        session.Queue("map back " + name, () => session.Image(stem + ".back.png", back));
-        session.Queue("map front " + name, () => session.Image(stem + ".front.png", front));
-        session.Queue("map preview " + name, () => { Compositor.Blit(back, front, 0, 0); session.Image(stem + ".preview.png", back); });
-        session.Queue("map metadata " + name, () => { session.Image(stem + ".passable.png", walkable); session.Json(stem + ".json", descriptor); entries.Add(descriptor); next(); });
+        Queue("map back " + name, () => session.Image(stem + ".back.png", back));
+        Queue("map front " + name, () => session.Image(stem + ".front.png", front));
+        Queue("map preview " + name, () => { Compositor.Blit(back, front, 0, 0); session.Image(stem + ".preview.png", back); });
+        // Whatever happened, the next location still comes.
+        session.Queue("map metadata " + name, () =>
+        {
+            try { if (!broken) { session.Image(stem + ".passable.png", walkable); session.Json(stem + ".json", descriptor); entries.Add(descriptor); } }
+            finally { next(); }
+        });
     }
 
     /// <summary>

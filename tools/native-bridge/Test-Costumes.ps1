@@ -4,15 +4,17 @@
 #   -Suite costume  NativeCostumeTests: the game draws an outfit; a scene with earmuffs keeps them on until it ends.
 #   -Suite camera   NativeCameraTests: a scene whose player walks out of view ends with no camera leap on screen.
 #   -Suite logic    NativeLogicTests: Checks (and later Chance, random items, story numbers) take the branches they should.
+#   -Suite places   NativePlacesTests: positions from the spouse's room stand where the game's spot is (D-52), married or not.
+#                   Then the Bridge exports the save (maps on, for this suite only) and the upgraded houses' spots match the game's.
 # Never starts while another Stardew Valley or SMAPI process runs. The owner's SMAPI-latest.txt is restored afterwards.
-param([int]$ReadyTimeoutSeconds = 240, [ValidateSet('costume', 'camera', 'logic')][string]$Suite = 'costume')
+param([int]$ReadyTimeoutSeconds = 240, [ValidateSet('costume', 'camera', 'logic', 'places')][string]$Suite = 'costume')
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $game = 'C:\Program Files (x86)\Steam\steamapps\common\Stardew Valley'
 $run = Join-Path $repo (Join-Path 'benches\.run' $Suite)
 $log = Join-Path $env:APPDATA 'StardewValley\ErrorLogs\SMAPI-latest.txt'
 $pipe = 'SDCS.Native.' + $Suite + '.' + [Guid]::NewGuid().ToString('N')
-$filter = @{ costume = 'NativeCostumeTests'; camera = 'NativeCameraTests'; logic = 'NativeLogicTests' }[$Suite]
+$filter = @{ costume = 'NativeCostumeTests'; camera = 'NativeCameraTests'; logic = 'NativeLogicTests'; places = 'NativePlacesTests' }[$Suite]
 
 function Assert-NoGame {
     $running = Get-Process | Where-Object { $_.ProcessName -match 'Stardew|StardewModdingAPI' }
@@ -38,7 +40,7 @@ Copy-Item "$src\SDCharacterStudio.Bridge\bin\Release\net6.0\SDCharacterStudio.Br
 Copy-Item "$src\SDCharacterStudio.Bridge\assets" $bridge -Recurse
 Copy-Item (Join-Path $repo 'benches\BenchDriver\bin\Release\net6.0\*') $driver -Recurse
 $export = Join-Path $run 'Export'
-@{ ExportFolder = $export; Profile = 'costume'; AutoExportOnSaveLoaded = $false; ExportLocations = $false; PreviewPipeName = $pipe } |
+@{ ExportFolder = $export; Profile = 'costume'; AutoExportOnSaveLoaded = $false; ExportLocations = ($Suite -eq 'places'); PreviewPipeName = $pipe } |
     ConvertTo-Json | Set-Content (Join-Path $bridge 'config.json') -Encoding UTF8
 
 $ownerLog = Join-Path $run 'owner-SMAPI-latest.txt'
