@@ -96,5 +96,8 @@ public sealed class CodeModExportTests
         Assert.Contains("  - Stardew Valley Expanded (FlashShifter.StardewValleyExpandedCP), required: NPC Sophia", readme);
         Assert.DoesNotContain("Positions were placed", readme);
         Assert.Contains("\"Dependencies\"", export.Result);
+        // The scenes still say what they need: an embedded engine without that mod skips them and logs why.
+        var requires = JObject.Parse(File.ReadAllText(Path.Combine(export.OutputFolder, ModExporter.ScenesFolder, "studio.json")))["Requires"] as JArray;
+        Assert.Contains(requires!, r => (string?)r["Mod"] == "FlashShifter.StardewValleyExpandedCP");
     }
 }

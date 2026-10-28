@@ -51,6 +51,44 @@ Validation occurs when a pack loads and when a cutscene compiles. Missing files,
 
 Imported music is declared in `studio.json`, for example `"Music": { "evening": { "Name": "Evening theme", "File": "assets/audio/evening.ogg", "Loop": true } }`. A scene's `Music` or a Music beat's `Cue` uses `"music:evening"`. `Loop` defaults to true. The runtime registers a unique native cue for each pack and track, so game music volume and event music restoration apply. Preview packs have separate cue IDs. Export again with the updated editor to include music support in embedded engines; framework content packs need the updated Runtime.
 
+## Positions that follow a place (D-52)
+
+Every position in a scene (an actor's `Start`, a Move's `To`, a Camera beat's `Center`, the scene's `Camera`, a Prop's or Effect's `At`, a clip camera key's `Center`) is a map tile:
+
+```json
+{ "Tile": [12, 8], "Px": [0, 0] }
+```
+
+Add `"From"` and the tile counts from a **place** the game finds when the scene starts instead: tiles right and down of its spot (negative: left and up). `Px` is still a pixel nudge.
+
+```json
+"Actors": [
+  { "Id": "farmer",  "Kind": "Farmer", "Start": { "From": "SpouseRoom", "Tile": [0, 2] }, "Facing": "up" },
+  { "Id": "Abigail", "Kind": "Npc", "Npc": "Abigail", "Start": { "From": "SpouseRoom", "Tile": [0, 0] }, "Facing": "down" }
+],
+"Beats": [
+  { "Type": "Move", "Actor": "Abigail", "To": { "From": "SpouseRoom", "Tile": [1, 1] } },
+  { "Type": "Camera", "Center": { "From": "SpouseRoom", "Tile": [0, 1] }, "Duration": 800 },
+  { "Type": "Prop", "Item": "(F)1130", "At": { "From": "SpouseRoom", "Tile": [-1, 0] } }
+]
+```
+
+The scene's own camera takes the same shape: `"Camera": { "From": "SpouseRoom", "Tile": [0, 1] }`.
+
+| Place | Its spot | Found when |
+|---|---|---|
+| `SpouseRoom` | The spouse's spot in the farmhouse the scene plays in (the game's `FarmHouse.GetSpouseRoomSpot()`): the map's `SpouseRoomPosition` (or the room's usual corner, 29,1 once upgraded and 50,20 after) plus 3,4, or the spouse's room's own marked tile. It follows the upgrade level, map mods and the spouse. | The scene plays in a farmhouse (or cabin) upgraded at least once, where a villager lives as the player's spouse or roommate. |
+
+What the engine does:
+
+- **Trigger:** a scene with a trigger that uses a place plays by itself only when the place is there. The compiled event key gets the game state query `<prefix>_HAS_PLACE SpouseRoom` (`SDCS_HAS_PLACE` in the framework; each embedded copy uses its own prefix).
+- **Start:** the compiled event header still needs map tiles, so it starts everyone at the place's fallback spot plus their offset (`SpouseRoom`: 32,5, the spot in a once-upgraded house). The engine's first command, before the scene fades in, moves anchored actors (and the opening camera) to the real spot.
+- **During the scene:** walks, Camera beats (cuts and pans), clip camera keys, items and effects with `From` go to the spot found at the start.
+- **Missing place:** when a scene plays anyway without its place (a preview, or `Play` without checking conditions on a save without a spouse), the SMAPI log says so once and positions from it count from the fallback spot.
+- **Validation:** an unknown place is an error (V20); `SpouseRoom` in a scene whose `Location` isn't `FarmHouse` is a warning.
+
+Clip position keys aren't places: a key is a map tile, or relative to where the actor stood when the clip began (`"Relative": true`), which follows a place when the actor started from one.
+
 ## Embedded API
 
 ```csharp
