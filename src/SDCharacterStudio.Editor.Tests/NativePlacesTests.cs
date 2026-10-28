@@ -70,7 +70,7 @@ public class NativePlacesTests
         Xunit.Assert.Contains(shell.Output.Lines, l => l.Text.Contains("the spouse's room isn't here", StringComparison.Ordinal));
         await Until(driver, s => (bool?)s["Settled"] == true, "the scene's end");
 
-        // Married to Abigail, upgraded twice: the game's own spot (her room marks it), and everyone there.
+        // Married to Abigail, upgraded twice: the game's own spot (their room marks it), and everyone there.
         var married = (JObject)(await Ask(driver, "home", new JObject { ["Spouse"] = "Abigail", ["Level"] = 2 }))["Data"]!;
         Note("married: " + married.ToString(Newtonsoft.Json.Formatting.None));
         await Until(driver, s => s["Location"]?.ToString() == "FarmHouse" && (bool?)s["Settled"] == true, "the player back in the farmhouse");
